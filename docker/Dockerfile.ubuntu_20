@@ -1,0 +1,48 @@
+# Copyright (C) 2021 Intel Corporation
+# SPDX-License-Identifier: BSD-3-Clause
+ARG VERSION=v0.0.0
+ARG COMMIT=fffffff
+
+FROM ubuntu:20.04 as dependencies
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update; \
+    apt-get upgrade -y; \
+    apt-get autoremove -y; \
+    apt-get install -y gnupg wget
+RUN echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu focal main' > /etc/apt/sources.list.d/intel-sgx.list
+RUN wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | apt-key add -
+RUN apt-get update 
+RUN apt-get update && apt-get install -y build-essential
+WORKDIR /opt/intel
+RUN wget -q https://download.01.org/intel-sgx/sgx-linux/2.15/distro/ubuntu20.04-server/sgx_linux_x64_sdk_2.15.100.3.bin; \
+    chmod +x sgx_linux_x64_sdk_2.15.100.3.bin; \
+    echo 'yes' | ./sgx_linux_x64_sdk_2.15.100.3.bin
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libsgx-urts \
+    libsgx-dcap-quote-verify-dev \
+    libsgx-dcap-default-qpl \
+    libsgx-dcap-ql \
+    cmake \
+    libcurl4-openssl-dev \
+    libssl-dev
+
+FROM dependencies as build
+RUN mkdir -p /amber-client
+WORKDIR /amber-client
+COPY . .
+RUN mkdir -p /amber-client/build \
+    && cd /amber-client/build \
+    && cmake .. \
+    && cmake --build . 
+
+FROM scratch as export-stage
+COPY --from=build /amber-client/build/src/amber_api/libAmberApi.so .
+COPY --from=build /amber-client/build/src/amber_sgx/libAmberSgx.so .
+COPY --from=build /amber-client/build/src/amber_token_provider/libAmberTokenProvider.so .
+COPY --from=build /amber-client/build/src/amber_token_verifier/libAmberTokenVerifier.so .
+COPY --from=build /amber-client/build/examples/sgx_token/sgx_token .
+# TODO:  Enclaves need to be built...
+COPY --from=build /amber-client/examples/sgx_enclave/libapp.so .
+COPY --from=build /amber-client/examples/sgx_enclave/enclave.signed.so .
+COPY --from=build /amber-client/examples/sgx_enclave/enclave.signed.info .
+
