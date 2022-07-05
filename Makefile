@@ -3,9 +3,8 @@ ORGNAME := amber
 APPNAME := amber-client
 REPO := localhost:5000
 
-GITTAG := $(shell git describe --tags --abbrev=0 2> /dev/null)
 COMMIT := $(shell git rev-parse --short HEAD)
-VERSION := $(or ${GITTAG}, v0.0.0)
+VERSION := v0.3.0
 BUILDDATE := $(shell TZ=UTC date +%Y-%m-%dT%H:%M:%S%z)
 PROXY_EXISTS := $(shell if [[ "${https_proxy}" || "${http_proxy}" || "${no_proxy}" ]]; then echo 1; else echo 0; fi)
 DOCKER_PROXY_FLAGS := ""
