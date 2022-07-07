@@ -1,1 +1,2 @@
 add_subdirectory(sgx_token)
+add_subdirectory(tdx_token)
