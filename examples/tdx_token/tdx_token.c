@@ -45,19 +45,22 @@ int main(int argc, char *argv[])
     policies.ids =  ids; 
     policies.count = 1;
 
+    char* user_data = "data generated inside tee";
+    int user_data_len = strnlen(user_data, MAX_USER_DATA_LEN);
+
     printf("Connecting to %s\n", amber_url);
 
     result = amber_new(&api, amber_key, amber_url);
     if (result != AMBER_STATUS_OK) 
     {
-        printf("Failed to create Amber Api: %d\n", result);
+        printf("Failed to create Amber Api: 0x%04x\n", result);
         goto ERROR;
     }
 
     result = amber_get_version(api, &version);
     if (result != AMBER_STATUS_OK) 
     {
-        printf("Failed to get version: %d\n", result);
+        printf("Failed to get version: 0x%04x\n", result);
         goto ERROR;
     }
 
@@ -66,7 +69,7 @@ int main(int argc, char *argv[])
     result = tdx_adapter_new(&adapter);
     if (result != AMBER_STATUS_OK) 
     {
-        printf("Failed to create TDX Adapter: %d\n", result);
+        printf("Failed to create TDX Adapter: 0x%04x\n", result);
         goto ERROR;
     }
 
@@ -76,11 +79,11 @@ int main(int argc, char *argv[])
                                    &token, 
                                    &policies, 
                                    adapter,
-                                   NULL, 
-                                   0);
+                                   user_data,
+                                   user_data_len);
     if (result != AMBER_STATUS_OK) 
     {
-        printf("Failed to collect Amber token: %d\n", result);
+        printf("Failed to collect Amber token: 0x%04x\n", result);
         goto ERROR;
     }
 

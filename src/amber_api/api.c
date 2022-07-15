@@ -178,6 +178,8 @@ AMBER_STATUS amber_get_token(amber_api* api,
     request.quote_len = evidence->data_len;
     request.quote = evidence->data; 
     request.nonce = nonce;
+    request.user_data_len = evidence->user_data_len;
+    request.user_data = evidence->user_data;
     request.policies = policies;
 
     result = json_marshal_appraisal_request(&request, &json);

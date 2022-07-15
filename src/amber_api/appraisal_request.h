@@ -11,6 +11,8 @@ typedef struct appraisal_request {
     uint8_t*        quote;             // TASK:  Pass amber_evidence* to pluggable backend
     uint32_t        quote_len;
     amber_nonce*    nonce;
+    uint8_t*        user_data;
+    uint32_t        user_data_len;
     amber_policies* policies;
 } appraisal_request;
 

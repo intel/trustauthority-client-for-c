@@ -19,20 +19,20 @@ int tdx_adapter_new(evidence_adapter** adapter)
 
     if (adapter == NULL) 
     {
-        return AMBER_STATUS_TDX_ERROR_BASE + AMBER_STATUS_NULL_ADAPTER;
+        return AMBER_STATUS_TDX_ERROR_BASE | AMBER_STATUS_NULL_ADAPTER;
     }
 
     *adapter = (evidence_adapter*)malloc(sizeof(evidence_adapter));
     if (*adapter == NULL)
     {
-        return AMBER_STATUS_TDX_ERROR_BASE + AMBER_STATUS_ALLOCATION_ERROR;
+        return AMBER_STATUS_TDX_ERROR_BASE | AMBER_STATUS_ALLOCATION_ERROR;
     }
 
     ctx = calloc(1, sizeof(tdx_adapter_context));
     if (ctx == NULL)
     {
         free(*adapter);
-        return AMBER_STATUS_TDX_ERROR_BASE + AMBER_STATUS_ALLOCATION_ERROR;
+        return AMBER_STATUS_TDX_ERROR_BASE | AMBER_STATUS_ALLOCATION_ERROR;
     }
 
     (*adapter)->ctx = ctx;
@@ -64,22 +64,22 @@ int tdx_collect_evidence(amber_evidence* evidence,
 
     if (ctx == NULL)
     {
-        return AMBER_STATUS_TDX_ERROR_BASE + AMBER_STATUS_NULL_ADAPTER_CTX;
+        return AMBER_STATUS_TDX_ERROR_BASE | AMBER_STATUS_NULL_ADAPTER_CTX;
     }
 
     if (evidence == NULL) 
     {
-        return AMBER_STATUS_TDX_ERROR_BASE + AMBER_STATUS_NULL_EVIDENCE;
+        return AMBER_STATUS_TDX_ERROR_BASE | AMBER_STATUS_NULL_EVIDENCE;
     }
 
     if(nonce == NULL)
     {
-        return AMBER_STATUS_TDX_ERROR_BASE + AMBER_STATUS_NULL_NONCE;
+        return AMBER_STATUS_TDX_ERROR_BASE | AMBER_STATUS_NULL_NONCE;
     }
 
     if(user_data_len > 0 && user_data == NULL)
     {
-        return AMBER_STATUS_TDX_ERROR_BASE + AMBER_STATUS_INVALID_USER_DATA;
+        return AMBER_STATUS_TDX_ERROR_BASE | AMBER_STATUS_INVALID_USER_DATA;
     }
 
     tdx_ctx = (tdx_adapter_context*)ctx;
@@ -101,15 +101,17 @@ int tdx_collect_evidence(amber_evidence* evidence,
     tdx_report_data_t report_data = {{0}};
     tdx_uuid_t selected_att_key_id = {0};
     memcpy(report_data.d, md_value, TDX_REPORT_DATA_SIZE);
-    if (TDX_ATTEST_SUCCESS != tdx_att_get_quote(&report_data, NULL, 0, &selected_att_key_id,
-        &p_quote_buf, &quote_size, 0)) {
-        return AMBER_STATUS_TDX_ERROR_BASE + AMBER_STATUS_QUOTE_ERROR;
+    uint32_t ret = tdx_att_get_quote(&report_data, NULL, 0, &selected_att_key_id,
+        &p_quote_buf, &quote_size, 0);
+    if (TDX_ATTEST_SUCCESS != ret) {
+        printf("tdx_att_get_quote failed: 0x%04x", ret);
+        return AMBER_STATUS_TDX_ERROR_BASE | AMBER_STATUS_QUOTE_ERROR;
     }
 
     // Populating Evidence with TDQuote
     evidence->data = (uint8_t *)calloc(1, quote_size);
     if (NULL == evidence->data) {
-        return AMBER_STATUS_TDX_ERROR_BASE + AMBER_STATUS_ALLOCATION_ERROR;
+        return AMBER_STATUS_TDX_ERROR_BASE | AMBER_STATUS_ALLOCATION_ERROR;
     }
     memcpy(evidence->data, p_quote_buf, quote_size);
     evidence->data_len = quote_size;
@@ -118,7 +120,7 @@ int tdx_collect_evidence(amber_evidence* evidence,
     // Populating UserData with UserData
     evidence->user_data = (uint8_t *)calloc(1, user_data_len);
     if (NULL == evidence->user_data) {
-        return AMBER_STATUS_TDX_ERROR_BASE + AMBER_STATUS_ALLOCATION_ERROR;
+        return AMBER_STATUS_TDX_ERROR_BASE | AMBER_STATUS_ALLOCATION_ERROR;
     }
     memcpy(evidence->user_data, user_data, user_data_len);
     evidence->user_data_len = user_data_len;

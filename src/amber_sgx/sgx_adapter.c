@@ -18,20 +18,20 @@ int sgx_adapter_new(evidence_adapter** adapter, int eid)
 
     if (adapter == NULL) 
     {
-        return AMBERS_STATUS_SGX_ERROR_BASE + AMBER_STATUS_NULL_ADAPTER;
+        return AMBERS_STATUS_SGX_ERROR_BASE | AMBER_STATUS_NULL_ADAPTER;
     }
 
     *adapter = (evidence_adapter*)malloc(sizeof(evidence_adapter));
     if (*adapter == NULL)
     {
-        return AMBERS_STATUS_SGX_ERROR_BASE + AMBER_STATUS_ALLOCATION_ERROR;
+        return AMBERS_STATUS_SGX_ERROR_BASE | AMBER_STATUS_ALLOCATION_ERROR;
     }
 
     ctx = calloc(1, sizeof(sgx_adapter_context));
     if (ctx == NULL)
     {
         free(*adapter);
-        return AMBERS_STATUS_SGX_ERROR_BASE + AMBER_STATUS_ALLOCATION_ERROR;
+        return AMBERS_STATUS_SGX_ERROR_BASE | AMBER_STATUS_ALLOCATION_ERROR;
     }
 
     ctx->eid = eid;
@@ -64,22 +64,22 @@ int sgx_collect_evidence(amber_evidence* evidence,
 
     if (ctx == NULL)
     {
-        return AMBERS_STATUS_SGX_ERROR_BASE + AMBER_STATUS_NULL_ADAPTER_CTX;
+        return AMBERS_STATUS_SGX_ERROR_BASE | AMBER_STATUS_NULL_ADAPTER_CTX;
     }
 
     if (evidence == NULL) 
     {
-        return AMBERS_STATUS_SGX_ERROR_BASE + AMBER_STATUS_NULL_EVIDENCE;
+        return AMBERS_STATUS_SGX_ERROR_BASE | AMBER_STATUS_NULL_EVIDENCE;
     }
 
     if(nonce == NULL)
     {
-        return AMBERS_STATUS_SGX_ERROR_BASE + AMBER_STATUS_NULL_NONCE;
+        return AMBERS_STATUS_SGX_ERROR_BASE | AMBER_STATUS_NULL_NONCE;
     }
 
     if(user_data_len > 0 && user_data == NULL)
     {
-        return AMBERS_STATUS_SGX_ERROR_BASE + AMBER_STATUS_INVALID_USER_DATA;
+        return AMBERS_STATUS_SGX_ERROR_BASE | AMBER_STATUS_INVALID_USER_DATA;
     }
 
     sgx_ctx = (sgx_adapter_context*)ctx;

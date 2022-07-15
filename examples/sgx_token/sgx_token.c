@@ -54,14 +54,14 @@ int main(int argc, char *argv[])
     result = amber_new(&api, amber_key, amber_url);
     if (result != AMBER_STATUS_OK) 
     {
-        printf("Failed to create Amber Api: %d\n", result);
+        printf("Failed to create Amber Api: 0x%04x\n", result);
         goto ERROR;
     }
 
     result = amber_get_version(api, &version);
     if (result != AMBER_STATUS_OK) 
     {
-        printf("Failed to get version: %d\n", result);
+        printf("Failed to get version: 0x%04x\n", result);
         goto ERROR;
     }
 
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
                                             0);
     if (result != AMBER_STATUS_OK) 
     {
-        printf("Failed to collect Amber token: %d\n", result);
+        printf("Failed to collect Amber token: 0x%04x\n", result);
         goto ERROR;
     }
 

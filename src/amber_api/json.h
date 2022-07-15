@@ -22,7 +22,7 @@ AMBER_STATUS json_marshal_evidence(amber_evidence* evidence, char** json);
 AMBER_STATUS json_unmarshal_token(amber_token* token, const char* json);
 AMBER_STATUS json_marshal_token(amber_token* token, char** json);
 
-//int json_marshal_appraisal_request(appraisal_request* request, const char* json);
+AMBER_STATUS json_unmarshal_appraisal_request(appraisal_request* request, const char* json);
 AMBER_STATUS json_marshal_appraisal_request(appraisal_request* request, char** json);
 
 #endif

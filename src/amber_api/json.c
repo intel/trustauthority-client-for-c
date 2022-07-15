@@ -223,6 +223,12 @@ AMBER_STATUS json_marshal_token(amber_token* token, char** json)
     return AMBER_STATUS_UNKNOWN_ERROR;
 }
 
+AMBER_STATUS json_unmarshal_appraisal_request(appraisal_request* request, const char* json)
+{
+    // TODO:  Implement conversion from json to C structure (needed?)
+    return AMBER_STATUS_UNKNOWN_ERROR;
+}
+
 AMBER_STATUS json_marshal_appraisal_request(appraisal_request* request, char** json)
 {
     int     result = AMBER_STATUS_OK;
@@ -247,6 +253,11 @@ AMBER_STATUS json_marshal_appraisal_request(appraisal_request* request, char** j
     }
 
     json_object_set(jansson_request, "signed_nonce", jansson_nonce);
+
+    // userdata
+    Base64Encode(request->user_data, request->user_data_len, &b64);
+    json_object_set(jansson_request, "user_data", json_string(b64));
+    free(b64);
 
     // policy_ids
     policies = json_array();
