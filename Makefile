@@ -43,6 +43,15 @@ sgx_token_docker: ubuntu_20
 		--build-arg VERSION=${VERSION} \
 		--build-arg COMMIT=${COMMIT} .
 
+tdx_token_docker: ubuntu_20
+	DOCKER_BUILDKIT=1 docker build \
+		${DOCKER_PROXY_FLAGS} \
+		-f examples/tdx_token/Dockerfile \
+		-t $(ORGNAME)/tdx_token:$(VERSION) \
+		--build-arg MAKEFILE_DIR=${MAKEFILE_DIR} \
+		--build-arg VERSION=${VERSION} \
+		--build-arg COMMIT=${COMMIT} .
+
 clean:
 	rm -rf ${MAKEFILE_DIR}bin
 
