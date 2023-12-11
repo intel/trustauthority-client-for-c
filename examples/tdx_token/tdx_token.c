@@ -1,117 +1,163 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <amber-api.h>
-#include <amber-tdx.h>
-#include <amber-token-provider.h>
-#include <amber-token-verifier.h>
+#include <string.h>
+#include <connector.h>
+#include <tdx_adapter.h>
+#include <token_provider.h>
+#include <token_verifier.h>
+#include <jwt.h>
+#include <log.h>
 
-#define ENV_AMBER_URL "AMBER_URL"
-#define ENV_AMBER_KEY "AMBER_KEY"
-#define ENV_POLICY_ID "AMBER_POLICY_ID"
+#define ENV_TRUSTAUTHORITY_API_URL "TRUSTAUTHORITY_API_URL"
+#define ENV_TRUSTAUTHORITY_BASE_URL "TRUSTAUTHORITY_BASE_URL"
+#define ENV_TRUSTAUTHORITY_API_KEY "TRUSTAUTHORITY_API_KEY"
+#define ENV_TRUSTAUTHORITY_POLICY_ID "TRUSTAUTHORITY_POLICY_ID"
+#define ENV_RETRY_MAX "RETRY_MAX"
+#define ENV_RETRY_WAIT_TIME "RETRY_WAIT_TIME"
+#define ENV_REQUEST_ID "REQUEST_ID"
 
-// env AMBER_URL=https://{{AMBER_IP}} AMBER_KEY={{API_KEY}} AMBER_POLICY_ID={{POLICY_ID}} no_proxy={{AMBER_IP}} tdx_token
+// env TRUSTAUTHORITY_BASE_URL=https://{{TRUSTAUTHORITY_IP}} TRUSTAUTHORITY_API_KEY={{API_KEY}} TRUSTAUTHORITY_POLICY_ID={{POLICY_ID}} no_proxy={{TRUSTAUTHORITY_IP}} tdx_token
 
-int main(int argc, char *argv[]) 
+int main(int argc, char *argv[])
 {
-    int                 result;
-    amber_api*          api = NULL;
-    evidence_adapter*   adapter = NULL;
-    amber_token         token = {0};
-    amber_evidence      evd = {0};
-    amber_version       version = {0};
-    amber_policies      policies = {0};
-    char*               amber_url = getenv(ENV_AMBER_URL);
-    char*               amber_key = getenv(ENV_AMBER_KEY);
-    char*               policy_id = getenv(ENV_POLICY_ID);
+	int result;
+	trust_authority_connector *connector = NULL;
+	evidence_adapter *adapter = NULL;
+	token token = {0};
+	response_headers headers = {0};
+	policies policies = {0};
+	char *ta_api_url = getenv(ENV_TRUSTAUTHORITY_API_URL);
+	char *ta_base_url = getenv(ENV_TRUSTAUTHORITY_BASE_URL);
+	char *ta_key = getenv(ENV_TRUSTAUTHORITY_API_KEY);
+	char *policy_id = getenv(ENV_TRUSTAUTHORITY_POLICY_ID);
+	char *retry_max_str = getenv(ENV_RETRY_MAX);
+	char *retry_wait_time_str = getenv(ENV_RETRY_WAIT_TIME);
+	char *request_id = getenv(ENV_REQUEST_ID);
+	int retry_max, retry_wait_time = 0;
+	// Store Parsed Token
+	jwt_t *parsed_token = NULL;
 
-    if(amber_url == NULL) 
-    {
-        printf("%s environment variable is required\n", ENV_AMBER_URL);
-        return 1;
-    }
+	if (NULL == ta_api_url || !strlen(ta_api_url))
+	{
+		ERROR("ERROR: %s - environment variable is required\n", ENV_TRUSTAUTHORITY_API_URL);
+		return 1;
+	}
 
-    if(amber_key == NULL) {
-        printf("%s environment variable is required\n", ENV_AMBER_KEY);
-        return 1;
-    }
+	if (NULL == ta_base_url || !strlen(ta_base_url))
+	{
+		ERROR("ERROR: %s - environment variable is required\n", ENV_TRUSTAUTHORITY_BASE_URL);
+		return 1;
+	}
 
-    if(policy_id == NULL)
-    {
-        printf("%s environment variable is required\n", ENV_POLICY_ID);
-        return 1;
-    }
+	if (NULL == ta_key || !strlen(ta_key))
+	{
+		ERROR("ERROR: %s - environment variable is required\n", ENV_TRUSTAUTHORITY_API_KEY);
+		return 1;
+	}
 
-    char* ids[] = {policy_id};
-    policies.ids =  ids; 
-    policies.count = 1;
+	if (NULL == policy_id || !strlen(policy_id))
+	{
+		ERROR("ERROR: %s - environment variable is required\n", ENV_TRUSTAUTHORITY_POLICY_ID);
+		return 1;
+	}
 
-    char* user_data = "data generated inside tee";
-    int user_data_len = strnlen(user_data, MAX_USER_DATA_LEN);
+	if (NULL == retry_max_str)
+	{
+		retry_max = DEFAULT_RETRY_MAX;	
+	}
+	else
+	{
+		retry_max = atoi(retry_max_str);
+		if (0 == retry_max)
+		{
+			ERROR("ERROR: Invalid RETRY_MAX format. RETRY_MAX should be an integer.\n");
+			return 1;
+		}
+		
+	}
 
-    printf("Connecting to %s\n", amber_url);
+	if (NULL == retry_wait_time_str)
+	{
+		retry_wait_time = DEFAULT_RETRY_WAIT_TIME;
+	}
+	else
+	{
+		retry_wait_time = atoi(retry_wait_time_str);
+		if (0 == retry_wait_time)
+		{
+			ERROR("ERROR: Invalid RETRY_WAIT_TIME format. RETRY_WAIT_TIME should be an integer.\n");
+			return 1;
+		}
+		
+	}
 
-    result = amber_new(&api, amber_key, amber_url);
-    if (result != AMBER_STATUS_OK) 
-    {
-        printf("Failed to create Amber Api: 0x%04x\n", result);
-        goto ERROR;
-    }
+	if (0 != is_valid_uuid(policy_id))
+	{
+		ERROR("ERROR: Invalid UUID format");
+		return 1;
+	}
 
-    result = amber_get_version(api, &version);
-    if (result != AMBER_STATUS_OK) 
-    {
-        printf("Failed to get version: 0x%04x\n", result);
-        goto ERROR;
-    }
+	if (0 != is_valid_url(ta_base_url))
+	{
+		ERROR("ERROR: Invalid TRUSTAUTHORITY_BASE_URL format\n");
+		return 1;
+	}
 
-    printf("Connected to %s %s-%s [%s]\n", version.name, version.semver, version.commit, version.build_date);
+	char *ids[] = {policy_id};
+	policies.ids = ids;
+	policies.count = 1;
 
-    result = tdx_adapter_new(&adapter);
-    if (result != AMBER_STATUS_OK) 
-    {
-        printf("Failed to create TDX Adapter: 0x%04x\n", result);
-        goto ERROR;
-    }
+	char *user_data = "data generated inside tee";
+	int user_data_len = strnlen(user_data, MAX_USER_DATA_LEN);
 
-    printf("Collecting token... \n");
+	LOG("Info: connecting to %s\n", ta_api_url);
 
-    result = amber_collect_token(api, 
-                                   &token, 
-                                   &policies, 
-                                   adapter,
-                                   user_data,
-                                   user_data_len);
-    if (result != AMBER_STATUS_OK) 
-    {
-        printf("Failed to collect Amber token: 0x%04x\n", result);
-        goto ERROR;
-    }
+	result = trust_authority_connector_new(&connector, ta_key, ta_api_url, retry_max, retry_wait_time);
+	if (STATUS_OK != result)
+	{
+		ERROR("ERROR: Failed to create Trust Authority Connector: 0x%04x\n", result);
+		goto ERROR;
+	}
 
-    printf("Amber Token: %s\n", token.jwt);
+	result = tdx_adapter_new(&adapter);
+	if (STATUS_OK != result)
+	{
+		ERROR("ERROR: Failed to create TDX Adapter: 0x%04x\n", result);
+		goto ERROR;
+	}
 
-    // TODO:
-    // result = amber_verify_token(api, &token);
-    // if (result != AMBER_STATUS_OK) 
-    // {
-    //     printf("Failed to verify token: %d\n", result);
-    //     goto ERROR;
-    // }
-    //
-    //printf("Successfully verified token\n");
+	LOG("Info: Collecting token... \n");
+
+	result = collect_token(connector, &headers, &token, &policies, request_id, adapter, user_data, user_data_len);
+	if (STATUS_OK != result)
+	{
+		ERROR("ERROR: Failed to collect trust authority token: 0x%04x\n", result);
+		goto ERROR;
+	}
+
+	LOG("Info: Intel Trust Authority Token: %s\n", token.jwt);
+
+	result = verify_token(&token, ta_base_url, NULL, &parsed_token, retry_max, retry_wait_time);
+	if (STATUS_OK != result)
+	{
+		ERROR("ERROR: Failed to verify token: 0x%04x\n", result);
+		goto ERROR;
+	}
+
+	LOG("Info: Successfully verified token\n");
+	LOG("Info: \nParsed token : \n");
+	jwt_dump_fp(parsed_token, stdout, 1);
 
 ERROR:
 
-    if (api != NULL) 
-    {
-        amber_free_api(api);
-    }
+	if (NULL != adapter)
+	{
+		tdx_adapter_free(adapter);
+		adapter = NULL;
+	}
 
-    if (adapter != NULL) 
-    {
-        tdx_adapter_free(adapter);
-    }
+	connector_free(connector);
+	token_free(&token);
 
-    // TODO:  Free buffers in token, evidence, etc. (make this user ("API") friendly)
-
-    return result;
+	return result;
 }

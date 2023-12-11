@@ -1,7 +1,15 @@
 SHELL := /bin/bash
-ORGNAME := amber
-APPNAME := amber-client
+ORGNAME := taas
+APPNAME := trustauthority-client
 REPO := localhost:5000
+DCAP_VERSION := 1.19.100.3-focal1
+PSW_VERSION := 2.22.100.3
+
+# By default set the build in release mode
+ENABLE_DEBUG ?= Release
+ifeq ($(DEBUG),1)
+    ENABLE_DEBUG = Debug
+endif
 
 COMMIT := $(shell git rev-parse --short HEAD)
 VERSION := v0.3.0
@@ -25,34 +33,39 @@ MAKEFILE_DIR := $(dir $(MAKEFILE_PATH))
 all: ubuntu_20
 
 ubuntu_20: 
-# mkdir -p ${MAKEFILE_DIR}bin/ubuntu_20
 	DOCKER_BUILDKIT=1 docker build \
+		--build-arg ENABLE_DEBUG=${ENABLE_DEBUG} \
 		${DOCKER_PROXY_FLAGS} \
 		-f docker/Dockerfile.ubuntu_20 \
 		--output ${MAKEFILE_DIR}bin/ubuntu_20 \
 		-t $(ORGNAME)/$(APPNAME)-ubuntu_20:$(VERSION) \
+		--build-arg DCAP_VERSION=${DCAP_VERSION} \
+		--build-arg PSW_VERSION=${PSW_VERSION} \
 		--build-arg VERSION=${VERSION} \
 		--build-arg COMMIT=${COMMIT} .
 
 sgx_token_docker: ubuntu_20
 	DOCKER_BUILDKIT=1 docker build \
+		--build-arg ENABLE_DEBUG=${ENABLE_DEBUG} \
 		${DOCKER_PROXY_FLAGS} \
 		-f examples/sgx_token/Dockerfile \
 		-t $(ORGNAME)/sgx_token:$(VERSION) \
+		--build-arg DCAP_VERSION=${DCAP_VERSION} \
+		--build-arg PSW_VERSION=${PSW_VERSION} \
 		--build-arg MAKEFILE_DIR=${MAKEFILE_DIR} \
 		--build-arg VERSION=${VERSION} \
 		--build-arg COMMIT=${COMMIT} .
 
 tdx_token_docker: ubuntu_20
 	DOCKER_BUILDKIT=1 docker build \
+		--build-arg ENABLE_DEBUG=${ENABLE_DEBUG} \
 		${DOCKER_PROXY_FLAGS} \
 		-f examples/tdx_token/Dockerfile \
 		-t $(ORGNAME)/tdx_token:$(VERSION) \
+		--build-arg DCAP_VERSION=${DCAP_VERSION} \
 		--build-arg MAKEFILE_DIR=${MAKEFILE_DIR} \
 		--build-arg VERSION=${VERSION} \
 		--build-arg COMMIT=${COMMIT} .
 
 clean:
 	rm -rf ${MAKEFILE_DIR}bin
-
-

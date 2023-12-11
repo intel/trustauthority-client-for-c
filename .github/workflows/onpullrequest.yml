@@ -1,0 +1,20 @@
+name: OnPullRequest
+
+on:
+  pull_request:
+
+jobs:
+  build-test-scan:
+    runs-on: [ self-hosted, taas ]
+    env:
+      http_proxy: ${{ secrets.HTTP_PROXY }}
+      https_proxy: ${{ secrets.HTTPS_PROXY }}
+      no_proxy: ${{ secrets.NO_PROXY }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Build sgx 
+        run: make sgx_token_docker 
+      - name: Build tdx
+        run: make tdx_token_docker 

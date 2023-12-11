@@ -1,1 +1,0 @@
-These libraries/enclaves were pulled from applications.security.amber.attestation-library.
