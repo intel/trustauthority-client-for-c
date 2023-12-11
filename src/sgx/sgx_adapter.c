@@ -62,11 +62,6 @@ int sgx_collect_evidence(void *ctx,
 		return STATUS_SGX_ERROR_BASE | STATUS_NULL_EVIDENCE;
 	}
 
-	if (NULL == nonce)
-	{
-		return STATUS_SGX_ERROR_BASE | STATUS_NULL_NONCE;
-	}
-
 	if (user_data_len > 0 && user_data == NULL)
 	{
 		return STATUS_SGX_ERROR_BASE | STATUS_INVALID_USER_DATA;
@@ -77,6 +72,8 @@ int sgx_collect_evidence(void *ctx,
 	int status = 0;
 	uint32_t retval = 0;
 	uint32_t quote_size = 0;
+	uint32_t nonce_data_len = 0;
+	uint8_t *nonce_data = NULL;
 	uint8_t *p_quote_buffer = NULL;
 	quote3_error_t qe3_ret;
 	sgx_target_info_t qe_target_info;
@@ -88,23 +85,26 @@ int sgx_collect_evidence(void *ctx,
 		ERROR("Error: In sgx_qe_get_target_info. 0x%04x\n", qe3_ret);
 		return qe3_ret;
 	}
-	// append nonce->val and nonce->iat
-	uint32_t nonce_data_len = nonce->val_len + nonce->iat_len;
-	uint8_t *nonce_data = (uint8_t *)calloc(1, (nonce_data_len + 1) * sizeof(uint8_t));
-	if (NULL == nonce_data)
-	{
-		return STATUS_ALLOCATION_ERROR;
-	}
 
-	memcpy(nonce_data, nonce->val, nonce->val_len);
-	memcpy(nonce_data + nonce->val_len, nonce->iat, nonce->iat_len);
+	if (NULL != nonce)
+	{
+		// append nonce->val and nonce->iat
+		nonce_data_len = nonce->val_len + nonce->iat_len;
+		nonce_data = (uint8_t *)calloc(1, (nonce_data_len + 1) * sizeof(uint8_t));
+		if (NULL == nonce_data)
+		{
+			return STATUS_ALLOCATION_ERROR;
+		}
+		
+		memcpy(nonce_data, nonce->val, nonce->val_len);
+		memcpy(nonce_data + nonce->val_len, nonce->iat, nonce->iat_len);
+	}
 
 	status = ((report_fx)sgx_ctx->report_callback)(sgx_ctx->eid, &retval, &qe_target_info, nonce_data,
 			nonce_data_len, &app_report);
 	if (0 != status)
 	{
-		ERROR("Error: Report callback returned error code  0x%04x\n",
-				status);
+		ERROR("Error: Report callback returned error code  0x%04x\n", status);
 		goto ERROR;
 	}
 
@@ -151,7 +151,6 @@ int sgx_collect_evidence(void *ctx,
 	memcpy(evidence->evidence, p_quote_buffer, quote_size);
 	evidence->evidence_len = quote_size;
 
-
 	// Populating Evidence with UserData
 	evidence->user_data = (uint8_t *)calloc(user_data_len, sizeof(uint8_t));
 	if (NULL == evidence->user_data)
@@ -164,9 +163,8 @@ int sgx_collect_evidence(void *ctx,
 	}
 	memcpy(evidence->user_data, user_data, user_data_len);
 	evidence->user_data_len = user_data_len;
-	status = STATUS_OK;
 	evidence->event_log=NULL;
-        evidence->event_log_len=0;
+	evidence->event_log_len=0;
 
 ERROR:
 	if (p_quote_buffer != NULL)

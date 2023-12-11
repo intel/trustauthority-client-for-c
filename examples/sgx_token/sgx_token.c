@@ -26,6 +26,7 @@ int main(int argc, char *argv[])
 	int status = 0;
 	trust_authority_connector *connector = NULL;
 	token token = {0};
+	evidence evidence = {0};
 	response_headers headers = {0};
 	evidence_adapter *adapter = NULL;
 	policies policies = {0};
@@ -114,7 +115,6 @@ int main(int argc, char *argv[])
 	policies.ids = ids;
 	policies.count = 1;
 
-
 	LOG("Info: Connecting to %s\n", ta_api_url);
 
 	status = trust_authority_connector_new(&connector, ta_key, ta_api_url, retry_max, retry_wait_time);
@@ -145,6 +145,38 @@ int main(int argc, char *argv[])
 		goto ERROR;
 	}
 
+	status = sgx_collect_evidence(adapter->ctx, &evidence, NULL, key_buf, key_size);
+	if (STATUS_OK != status)
+	{
+		ERROR("Error: Failed to collect evidence from adapter 0x%04x\n", status);
+		goto ERROR;
+	}
+
+	int output_length = ((evidence.evidence_len + 2) / 3) * 4 + 1;
+	char *b64 = (char *)malloc(output_length * sizeof(char));
+	if (b64 == NULL)
+	{
+		ERROR("Error: Failed to allocate memory for base64 encoded quote")
+		goto ERROR;
+	}
+	status = base64_encode(evidence.evidence, evidence.evidence_len, b64, output_length, 0);
+	if (BASE64_SUCCESS != status)
+	{
+		ERROR("Error: Failed to base64 encode quote 0x%04x\n", status)
+		goto ERROR;
+	}
+	LOG("Info: quote: %s\n", b64);
+
+	memset(b64, 0, evidence.evidence_len);
+	output_length = ((evidence.user_data_len + 2) / 3) * 4 + 1;
+	status = base64_encode(evidence.user_data, evidence.user_data_len, b64, output_length, 0);
+	if (BASE64_SUCCESS != status)
+	{
+		ERROR("Error: Failed to base64 encode user-data 0x%04x\n", status)
+		goto ERROR;
+	}
+	LOG("Info: user-data: %s\n", b64);
+
 	status = collect_token(connector, &headers, &token, &policies, request_id, adapter, key_buf, key_size);
 	if (STATUS_OK != status)
 	{
@@ -162,7 +194,7 @@ int main(int argc, char *argv[])
 	}
 
 	LOG("Info: Successfully verified token\n");
-	LOG("Info: \nParsed token : \n");
+	LOG("Info: Parsed token : ");
 	jwt_dump_fp(parsed_token, stdout, 1);
 
 ERROR:
@@ -182,6 +214,11 @@ ERROR:
 	{
 		sgx_adapter_free(adapter);
 		adapter = NULL;
+	}
+
+	if (NULL != b64) {
+		free(b64);
+		b64 = NULL;
 	}
 
 	connector_free(connector);

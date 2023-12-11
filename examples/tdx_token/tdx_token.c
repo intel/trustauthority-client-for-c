@@ -16,14 +16,13 @@
 #define ENV_RETRY_WAIT_TIME "RETRY_WAIT_TIME"
 #define ENV_REQUEST_ID "REQUEST_ID"
 
-// env TRUSTAUTHORITY_BASE_URL=https://{{TRUSTAUTHORITY_IP}} TRUSTAUTHORITY_API_KEY={{API_KEY}} TRUSTAUTHORITY_POLICY_ID={{POLICY_ID}} no_proxy={{TRUSTAUTHORITY_IP}} tdx_token
-
 int main(int argc, char *argv[])
 {
 	int result;
 	trust_authority_connector *connector = NULL;
 	evidence_adapter *adapter = NULL;
 	token token = {0};
+	evidence evidence = {0};
 	response_headers headers = {0};
 	policies policies = {0};
 	char *ta_api_url = getenv(ENV_TRUSTAUTHORITY_API_URL);
@@ -126,7 +125,37 @@ int main(int argc, char *argv[])
 		goto ERROR;
 	}
 
-	LOG("Info: Collecting token... \n");
+	result = tdx_collect_evidence(adapter->ctx, &evidence, NULL, user_data, user_data_len);
+	if (STATUS_OK != result)
+	{
+		ERROR("Error: Failed to collect evidence from adapter 0x%04x\n", result);
+		goto ERROR;
+	}
+
+	int output_length = ((evidence.evidence_len + 2) / 3) * 4 + 1;
+	char *b64 = (char *)malloc(output_length * sizeof(char));
+	if (b64 == NULL)
+	{
+		ERROR("Error: Failed to allocate memory for base64 encoded quote")
+		goto ERROR;
+	}
+	result = base64_encode(evidence.evidence, evidence.evidence_len, b64, output_length, 0);
+	if (BASE64_SUCCESS != result)
+	{
+		ERROR("Error: Failed to base64 encode quote 0x%04x\n", result)
+		goto ERROR;
+	}
+	LOG("Info: quote: %s\n", b64);
+
+	memset(b64, 0, evidence.evidence_len);
+	output_length = ((evidence.user_data_len + 2) / 3) * 4 + 1;
+	result = base64_encode(evidence.user_data, evidence.user_data_len, b64, output_length, 0);
+	if (BASE64_SUCCESS != result)
+	{
+		ERROR("Error: Failed to base64 encode user-data 0x%04x\n", result)
+		goto ERROR;
+	}
+	LOG("Info: user-data: %s\n", b64);
 
 	result = collect_token(connector, &headers, &token, &policies, request_id, adapter, user_data, user_data_len);
 	if (STATUS_OK != result)
@@ -145,7 +174,7 @@ int main(int argc, char *argv[])
 	}
 
 	LOG("Info: Successfully verified token\n");
-	LOG("Info: \nParsed token : \n");
+	LOG("Info: Parsed token : ");
 	jwt_dump_fp(parsed_token, stdout, 1);
 
 ERROR:
@@ -154,6 +183,11 @@ ERROR:
 	{
 		tdx_adapter_free(adapter);
 		adapter = NULL;
+	}
+
+	if (NULL != b64) {
+		free(b64);
+		b64 = NULL;
 	}
 
 	connector_free(connector);

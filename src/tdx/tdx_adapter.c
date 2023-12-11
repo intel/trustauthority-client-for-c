@@ -81,27 +81,28 @@ int tdx_collect_evidence(void *ctx,
 		return STATUS_TDX_ERROR_BASE | STATUS_NULL_EVIDENCE;
 	}
 
-	if (NULL == nonce)
-	{
-		return STATUS_TDX_ERROR_BASE | STATUS_NULL_NONCE;
-	}
-
 	if (user_data_len > 0 && user_data == NULL)
 	{
 		return STATUS_TDX_ERROR_BASE | STATUS_INVALID_USER_DATA;
 	}
 
 	tdx_ctx = (tdx_adapter_context *)ctx;
-	// append nonce->val and nonce->iat
-	uint32_t nonce_data_len = nonce->val_len + nonce->iat_len;
-	uint8_t *nonce_data = (uint8_t *)calloc(1, (nonce_data_len + 1) * sizeof(uint8_t));
-	if (NULL == nonce_data)
-	{
-		return STATUS_ALLOCATION_ERROR;
-	}
+	uint32_t nonce_data_len = 0;
+	uint8_t *nonce_data = NULL;
 
-	memcpy(nonce_data, nonce->val, nonce->val_len);
-	memcpy(nonce_data + nonce->val_len, nonce->iat, nonce->iat_len);
+	if (NULL != nonce)
+	{
+		// append nonce->val and nonce->iat
+		nonce_data_len = nonce->val_len + nonce->iat_len;
+		nonce_data = (uint8_t *)calloc(1, (nonce_data_len + 1) * sizeof(uint8_t));
+		if (NULL == nonce_data)
+		{
+			return STATUS_ALLOCATION_ERROR;
+		}
+		
+		memcpy(nonce_data, nonce->val, nonce->val_len);
+		memcpy(nonce_data + nonce->val_len, nonce->iat, nonce->iat_len);
+	}
 
 	// Hashing Nonce and UserData
 	unsigned char md_value[EVP_MAX_MD_SIZE];
@@ -124,9 +125,13 @@ int tdx_collect_evidence(void *ctx,
 	uint32_t ret = g_tdx_att_get_quote_fx(&report_data, NULL, 0, &selected_att_key_id, &p_quote_buf, &quote_size, 0);
 	if (TDX_ATTEST_SUCCESS != ret)
 	{
-		status = STATUS_TDX_ERROR_BASE | STATUS_QUOTE_ERROR;
+		ERROR("Error: In tdx_att_get_quote. 0x%04x\n", ret);
+		status = ret;
 		goto ERROR;
 	}
+
+	evidence->type = EVIDENCE_TYPE_TDX;
+
 	// Populating Evidence with TDQuote
 	evidence->evidence = (uint8_t *)calloc(quote_size, sizeof(uint8_t));
 	if (NULL == evidence->evidence)
@@ -149,11 +154,8 @@ int tdx_collect_evidence(void *ctx,
 	}
 	memcpy(evidence->user_data, user_data, user_data_len);
 	evidence->user_data_len = user_data_len;
-
 	evidence->event_log=NULL;
 	evidence->event_log_len=0;
-
-	evidence->type = EVIDENCE_TYPE_TDX;
 
 ERROR:
 	if(nonce_data)
