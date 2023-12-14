@@ -18,12 +18,30 @@ extern "C"
 #define STATUS_SGX_ERROR_BASE 0x2000
 
 	/**
+	 * callback to get SGX QE Target Info
+	 */
+	typedef quote3_error_t (*sgx_qe_target_info_fx)(sgx_target_info_t *p_target_info);
+
+	/**
+	 * callback to get SGX Quote Size
+	 */
+	typedef quote3_error_t (*sgx_qe_get_quote_size_fx)(uint32_t *p_quote_size);
+	/**
+	 * callback to get SGX Quote
+	 */
+	typedef quote3_error_t (*sgx_qe_get_quote_fx)(const sgx_report_t *p_app_report, uint32_t quote_size, uint8_t *p_quote);
+
+
+	/**
 	 * Adapter to get quote from sgx platform.
 	 */
 	typedef struct sgx_adapter_context
 	{
 		int eid; /* integer containing enclave id */
 		void *report_callback; /* function call to collect evidence */
+		sgx_qe_target_info_fx sgx_qe_target_info_cb; /*function call to qe target info */
+		sgx_qe_get_quote_size_fx sgx_qe_get_quote_size_cb; /*function call to get quote size*/
+		sgx_qe_get_quote_fx sgx_qe_get_quote_cb; /*function call to get quote*/
 	} sgx_adapter_context;
 
 	/**
@@ -35,6 +53,7 @@ extern "C"
 			uint8_t *nonce,
 			uint32_t nonce_size,
 			sgx_report_t *p_report);
+
 
 	/**
 	 * Create a new adapter to get Quote from sgx platform.

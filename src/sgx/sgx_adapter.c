@@ -11,6 +11,7 @@
 #include <sgx_dcap_ql_wrapper.h>
 #include <log.h>
 
+
 int sgx_adapter_new(evidence_adapter **adapter,
 		int eid,
 		void *report_function)
@@ -38,6 +39,9 @@ int sgx_adapter_new(evidence_adapter **adapter,
 
 	ctx->eid = eid;
 	ctx->report_callback = report_function;
+	ctx->sgx_qe_target_info_cb = sgx_qe_get_target_info;
+	ctx->sgx_qe_get_quote_size_cb = sgx_qe_get_quote_size;
+	ctx->sgx_qe_get_quote_cb = sgx_qe_get_quote;
 	(*adapter)->ctx = ctx;
 	(*adapter)->collect_evidence = sgx_collect_evidence;
 
@@ -51,6 +55,8 @@ int sgx_collect_evidence(void *ctx,
 		uint32_t user_data_len)
 {
 	sgx_adapter_context *sgx_ctx = NULL;
+	uint32_t nonce_data_len = 0;
+	uint8_t *nonce_data = NULL;
 
 	if (NULL == ctx)
 	{
@@ -67,27 +73,12 @@ int sgx_collect_evidence(void *ctx,
 		return STATUS_SGX_ERROR_BASE | STATUS_INVALID_USER_DATA;
 	}
 
-	sgx_ctx = (sgx_adapter_context *)ctx;
-
-	int status = 0;
-	uint32_t retval = 0;
-	uint32_t quote_size = 0;
-	uint32_t nonce_data_len = 0;
-	uint8_t *nonce_data = NULL;
-	uint8_t *p_quote_buffer = NULL;
-	quote3_error_t qe3_ret;
-	sgx_target_info_t qe_target_info;
-	sgx_report_t app_report;
-
-	qe3_ret = sgx_qe_get_target_info(&qe_target_info);
-	if (0 != qe3_ret)
-	{
-		ERROR("Error: In sgx_qe_get_target_info. 0x%04x\n", qe3_ret);
-		return qe3_ret;
-	}
-
 	if (NULL != nonce)
 	{
+		if (nonce->val == NULL)
+		{
+			return STATUS_SGX_ERROR_BASE | STATUS_NULL_NONCE;
+		}
 		// append nonce->val and nonce->iat
 		nonce_data_len = nonce->val_len + nonce->iat_len;
 		nonce_data = (uint8_t *)calloc(1, (nonce_data_len + 1) * sizeof(uint8_t));
@@ -99,6 +90,32 @@ int sgx_collect_evidence(void *ctx,
 		memcpy(nonce_data, nonce->val, nonce->val_len);
 		memcpy(nonce_data + nonce->val_len, nonce->iat, nonce->iat_len);
 	}
+
+	sgx_ctx = (sgx_adapter_context *)ctx;
+
+	int status = 0;
+	uint32_t retval = 0;
+	uint32_t quote_size = 0;
+	uint8_t *p_quote_buffer = NULL;
+	quote3_error_t qe3_ret;
+	sgx_target_info_t qe_target_info;
+	sgx_report_t app_report;
+
+	if  ( sgx_ctx->sgx_qe_target_info_cb == NULL || sgx_ctx->report_callback == NULL ||  sgx_ctx->sgx_qe_get_quote_size_cb == NULL || sgx_ctx->sgx_qe_get_quote_cb == NULL )
+	{
+		ERROR("Error: Callback function is null");
+		status = STATUS_NULL_CALLBACK;
+		goto ERROR;
+	}
+
+	qe3_ret = sgx_ctx->sgx_qe_target_info_cb(&qe_target_info);
+	if (0 != qe3_ret)
+	{
+		ERROR("Error: In sgx_qe_get_target_info. 0x%04x\n", qe3_ret);
+		status  = qe3_ret;
+		goto ERROR;
+	}
+
 
 	status = ((report_fx)sgx_ctx->report_callback)(sgx_ctx->eid, &retval, &qe_target_info, nonce_data,
 			nonce_data_len, &app_report);
@@ -115,7 +132,7 @@ int sgx_collect_evidence(void *ctx,
 		goto ERROR;
 	}
 
-	qe3_ret = sgx_qe_get_quote_size(&quote_size);
+	qe3_ret = sgx_ctx->sgx_qe_get_quote_size_cb(&quote_size);
 	if (0 != qe3_ret)
 	{
 		ERROR("Error: In sgx_qe_get_quote_size. 0x%04x\n", qe3_ret);
@@ -131,7 +148,7 @@ int sgx_collect_evidence(void *ctx,
 	}
 	memset(p_quote_buffer, 0, quote_size);
 
-	qe3_ret = sgx_qe_get_quote(&app_report, quote_size, p_quote_buffer);
+	qe3_ret = sgx_ctx->sgx_qe_get_quote_cb(&app_report, quote_size, p_quote_buffer);
 	if (qe3_ret != 0)
 	{
 		ERROR("Error: In sgx_qe_get_quote. 0x%04x\n", qe3_ret);

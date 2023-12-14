@@ -28,6 +28,7 @@ extern "C"
 
 	typedef struct tdx_adapter_context
 	{
+		tdx_get_quote_fx tdx_att_get_quote_cb;
 	} tdx_adapter_context;
 
 	/**

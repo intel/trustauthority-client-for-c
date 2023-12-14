@@ -11,13 +11,6 @@
 #include <openssl/evp.h>
 #include <log.h>
 
-static tdx_get_quote_fx g_tdx_att_get_quote_fx = tdx_att_get_quote;
-
-void set_fx(tdx_get_quote_fx fx)
-{
-	g_tdx_att_get_quote_fx = fx;
-}
-
 int tdx_adapter_new(evidence_adapter **adapter)
 {
 	tdx_adapter_context *ctx = NULL;
@@ -39,6 +32,7 @@ int tdx_adapter_new(evidence_adapter **adapter)
 		*adapter = NULL;
 		return STATUS_TDX_ERROR_BASE | STATUS_ALLOCATION_ERROR;
 	}
+	ctx->tdx_att_get_quote_cb = tdx_att_get_quote;
 
 	(*adapter)->ctx = ctx;
 	(*adapter)->collect_evidence = tdx_collect_evidence;
@@ -92,6 +86,10 @@ int tdx_collect_evidence(void *ctx,
 
 	if (NULL != nonce)
 	{
+		if (nonce->val == NULL)
+		{
+			return STATUS_TDX_ERROR_BASE | STATUS_NULL_NONCE;
+		}
 		// append nonce->val and nonce->iat
 		nonce_data_len = nonce->val_len + nonce->iat_len;
 		nonce_data = (uint8_t *)calloc(1, (nonce_data_len + 1) * sizeof(uint8_t));
@@ -122,7 +120,15 @@ int tdx_collect_evidence(void *ctx,
 	tdx_report_data_t report_data = {{0}};
 	tdx_uuid_t selected_att_key_id = {0};
 	memcpy(report_data.d, md_value, TDX_REPORT_DATA_SIZE);
-	uint32_t ret = g_tdx_att_get_quote_fx(&report_data, NULL, 0, &selected_att_key_id, &p_quote_buf, &quote_size, 0);
+
+	if (tdx_ctx->tdx_att_get_quote_cb == NULL){
+		ERROR("Error: callback function is empty");
+		status = STATUS_TDX_ERROR_BASE;
+		goto ERROR;
+	}
+	
+	
+	uint32_t ret = tdx_ctx->tdx_att_get_quote_cb(&report_data, NULL, 0, &selected_att_key_id, &p_quote_buf, &quote_size, 0);
 	if (TDX_ATTEST_SUCCESS != ret)
 	{
 		ERROR("Error: In tdx_att_get_quote. 0x%04x\n", ret);
@@ -149,7 +155,7 @@ int tdx_collect_evidence(void *ctx,
 	{
 		free(evidence->evidence);
 		evidence->evidence = NULL;
-		status = STATUS_TDX_ERROR_BASE | STATUS_ALLOCATION_ERROR; 
+		status = STATUS_NULL_CALLBACK; 
 		goto ERROR;
 	}
 	memcpy(evidence->user_data, user_data, user_data_len);

@@ -135,6 +135,10 @@ if (result != STATUS_OK || jwks_resp == NULL)
 SGX: [SGX Sample App](./examples/sgx_token/README.md)
 TDX: [TDX Sample App](./examples/tdx_token/README.md)
 
+
+### Follow below link to run unit tests
+[Unit_Test.md](./docs/build_ut_tests.md) 
+
 ## License
 
 This library is distributed under the BSD-style license found in the [LICENSE](./LICENSE)
