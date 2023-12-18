@@ -63,3 +63,48 @@ COPY --from=build /trustauthority-client/build/src/sgx/libtrustauthority_sgx.a .
 COPY --from=build /trustauthority-client/build/src/tdx/libtrustauthority_tdx.a .
 COPY --from=build /trustauthority-client/build/src/token_provider/libtrustauthority_token_provider.a .
 COPY --from=build /trustauthority-client/build/src/token_verifier/libtrustauthority_token_verifier.a .
+
+
+FROM ubuntu:20.04 as test-image
+ARG DEBIAN_FRONTEND=noninteractive
+ARG USERNAME=intel
+ARG USER_UID=2000
+ARG USER_GID=$USER_UID
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
+RUN apt-get update &&  apt-get install -y --no-install-recommends \
+    cmake \
+    g++ \
+    lcov \
+    autoconf \
+    automake \
+    libtool \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    git \
+    libcpprest-dev \
+    libjansson-dev=2.12-1build1 \ 
+    build-essential \ 
+    ca-certificates \
+    googletest \
+    pkg-config \
+    libgtest-dev
+
+####################NOTE:TODO###################
+#Staged libraries libjwt-dev can't be used due to following git issue:
+#https://github.com/benmcollins/libjwt/issues/175
+#Till above issue is not packaged and released in UBUNTU focal, trustauthority client will be cloning and building a specific commit.
+#Below lines will be removed post resolution of above issue.
+###############################################
+RUN git clone https://github.com/benmcollins/libjwt.git 
+WORKDIR /libjwt 
+RUN git checkout c276dc7 && autoreconf -i && ./configure && make all && make install
+
+USER $USERNAME
+WORKDIR /trustauthority-client/
+COPY . .
+WORKDIR /trustauthority-client/tests/build
+RUN  cmake .. &&  cmake --build . 
+RUN env LD_LIBRARY_PATH=/trustauthority-client:/usr/local/lib/ ./trustauthorityclienttest 
+RUN lcov -o /tmp/coverage.info -c -d /trustauthority-client/tests/build/CMakeFiles/trustauthorityclienttest.dir 
+RUN lcov --extract /tmp/coverage.info '/trustauthority-client/src/*' --output-file /tmp/filtered_coverage.info

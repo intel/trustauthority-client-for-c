@@ -1,11 +1,6 @@
 # Build Instructions
 Intel Trust Authority Client unit tests are based on Googletest framework.  
 
-## Prerequisites
-- cmake  
-- googletest
-- lcov  
-
 ## Instructions
 - The table below lists the Linux distributions that the build process currently supports.
 
@@ -17,23 +12,32 @@ Intel Trust Authority Client unit tests are based on Googletest framework.
 ## Install Unit test dependencies
 
 ```shell
-apt-get update && apt-get install -y build-essential  
-apt-get update && apt-get install -y --no-install-recommends \
-cmake \
-g++ \
-lcov \
-autoconf \
-automake \
-ibtool \
-lbcurl4-openssl-dev \
-libssl-dev \
-git \
-wget \
-libjwt-dev \
-libcpprest-dev
+apt-get update &&  apt-get install -y --no-install-recommends \
+    cmake \
+    g++ \
+    lcov \
+    autoconf \
+    automake \
+    libtool \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    git \
+    libcpprest-dev \
+    libjansson-dev=2.12-1build1 \ 
+    build-essential \ 
+    ca-certificates \
+    googletest \
+    pkg-config \
+    libgtest-dev
 
 #Set CXX=/usr/bin/g++
 export CXX=/usr/bin/g++
+```
+
+## Install libjwt 
+```shell
+git clone https://github.com/benmcollins/libjwt.git && cd libjwt && git checkout c276dc7 && autoreconf -i  
+cd libjwt && ./configure && make all && make install  
 ```
 
 ## Build unit test and get the coverage by running coverage tool

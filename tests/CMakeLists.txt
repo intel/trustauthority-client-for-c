@@ -14,15 +14,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage -g")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage -g")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage")
 
-#Install jansson
-execute_process (
-	COMMAND sudo apt-get update -y &&  sudo apt-get install -y libjansson-dev
-	)
-
-execute_process (
-	 COMMAND bash -c "git clone https://github.com/benmcollins/libjwt.git && cd libjwt && git checkout c276dc7 && autoreconf -i && ./configure && sudo make all && sudo make install"
-	)
-
 # Add the test source files
 set(TEST_SOURCES
     ../src/log/log.h

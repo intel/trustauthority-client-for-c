@@ -4,7 +4,7 @@ on:
   pull_request:
 
 jobs:
-  build-test-scan:
+  build-test:
     runs-on: [ self-hosted, taas ]
     env:
       http_proxy: ${{ secrets.HTTP_PROXY }}
@@ -18,3 +18,18 @@ jobs:
         run: make sgx_token_docker 
       - name: Build tdx
         run: make tdx_token_docker 
+
+
+      - name: Unit Test Coverage
+        run: |
+          test_output=$(make test-coverage)
+          if [ $? -ne 0 ]; then
+            echo "Unit tests failed"
+            exit 1
+          fi
+          COVERAGE=$(make test-coverage | grep 'Total:|' |  awk -F\| '{print $2}' |  awk -F. '{print $1}')
+          echo "Unit test coverage for C Client is - $COVERAGE%"
+          if [[ $COVERAGE -lt 80 ]]; then
+            echo "Unit test coverage must be above 80%"
+            exit 1
+          fi
