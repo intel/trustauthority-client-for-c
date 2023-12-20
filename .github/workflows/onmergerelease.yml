@@ -1,7 +1,12 @@
-name: OnPullRequest
+name: OnMergeRelease
 
 on:
-  pull_request:
+  push:
+    branches:
+      - 'main'
+      - 'release/*'
+    tags:
+      - '**'
 
 jobs:
   build-test:
