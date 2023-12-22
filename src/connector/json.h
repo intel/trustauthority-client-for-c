@@ -37,15 +37,6 @@ extern "C"
 			char **json);
 
 	/**
-	 * Performs unmarshalling of quote
-	 * @param evidence evidence pointer containing quote
-	 * @param json const char pointer containing evidence from platform
-	 * @return return status
-	 */		
-	TRUST_AUTHORITY_STATUS json_unmarshal_evidence(evidence *evidence,
-			const char *json);
-
-	/**
 	 * Performs marshaling of quote
 	 * @param evidence evidence pointer containing quote
 	 * @param json const char pointer containing evidence from platform
@@ -71,15 +62,6 @@ extern "C"
 	 */		
 	TRUST_AUTHORITY_STATUS json_marshal_token(token *token,
 			char **json);
-
-	/**
-	 * Performs unmarshal of the output recieved from Intel Trust Authority
-	 * @param request  appraisal_request containing request to be marshalled to json format 
-	 * @param json json format
-	 * @return int containing status
-	 */		
-	TRUST_AUTHORITY_STATUS json_unmarshal_appraisal_request(appraisal_request *request,
-			const char *json);
 
 	/**
 	 * Performs marshaling of the request sent to Intel Trust Authority.

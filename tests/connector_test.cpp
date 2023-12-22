@@ -605,8 +605,8 @@ TEST(GenPubKey, ValidModulusExponent)
 // Test case to free trust_authority_connector - Success case
 TEST(ApiFree, SuccessCase)
 {
-	trust_authority_connector *connector;
-	connector = (trust_authority_connector*) malloc(sizeof(trust_authority_connector));
+	trust_authority_connector *connector=NULL;
+	connector = (trust_authority_connector*) calloc(1, sizeof(trust_authority_connector));
 	TRUST_AUTHORITY_STATUS result = connector_free(connector);
 
 	// Result should be STATUS_OK
@@ -624,6 +624,7 @@ TEST(NonceFree, SuccessCase)
 
 	// Call the function under test
 	TRUST_AUTHORITY_STATUS result = nonce_free(ta_nonce);
+	free(ta_nonce);
 
 	// Verify the result - status_ok
 	ASSERT_EQ(result, STATUS_OK);
@@ -632,10 +633,11 @@ TEST(NonceFree, SuccessCase)
 // Test case to free token - Success case
 TEST(TokenFree, SuccessCase)
 {
-	token *ta_token;
+	token *ta_token = NULL;
 	ta_token = (token *) malloc(sizeof(token));
 	ta_token->jwt = (char *) malloc(10);
 	TRUST_AUTHORITY_STATUS result = token_free(ta_token);
+	free(ta_token);
 
 	// Result should be status_ok
 	ASSERT_EQ(result, STATUS_OK);

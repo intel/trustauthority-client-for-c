@@ -82,10 +82,11 @@ TRUST_AUTHORITY_STATUS collect_token_callback(trust_authority_connector *connect
 		goto ERROR;
 	}
 
-	return STATUS_OK;
+	result = STATUS_OK;
 
 ERROR:
 	nonce_free(&nonce);
+	response_headers_free(&nonce_headers);
 	evidence_free(&evidence);
 	return result;
 }

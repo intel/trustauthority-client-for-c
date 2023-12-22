@@ -95,6 +95,9 @@ extern "C"
 	// Delete/free nonce.
 	TRUST_AUTHORITY_STATUS nonce_free(nonce *nonce);
 
+	// Delete/free response_headers
+	TRUST_AUTHORITY_STATUS response_headers_free(response_headers *header);
+
 #ifdef __cplusplus
 }
 #endif

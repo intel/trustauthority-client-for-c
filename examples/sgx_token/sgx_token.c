@@ -153,7 +153,8 @@ int main(int argc, char *argv[])
 	}
 
 	int output_length = ((evidence.evidence_len + 2) / 3) * 4 + 1;
-	char *b64 = (char *)malloc(output_length * sizeof(char));
+	char *b64 = NULL;
+	b64 = (char *)malloc(output_length * sizeof(char));
 	if (b64 == NULL)
 	{
 		ERROR("Error: Failed to allocate memory for base64 encoded quote")
@@ -203,7 +204,6 @@ ERROR:
 	{
 		sgx_destroy_enclave(eid);
 	}
-
 	if (NULL != key_buf)
 	{
 		free(key_buf);
@@ -221,6 +221,7 @@ ERROR:
 		b64 = NULL;
 	}
 
+	response_headers_free(&headers);
 	connector_free(connector);
 	token_free(&token);
 	return status;

@@ -341,11 +341,14 @@ TRUST_AUTHORITY_STATUS get_token_signing_certificate(const char *jwks_url,
 	}
 	CURLcode status = CURLE_OK;
 	char *header = NULL;
+	TRUST_AUTHORITY_STATUS ret = STATUS_OK;
 
-	retry_config *retries = (retry_config *)calloc(1, sizeof(retry_config));
+	retry_config *retries = NULL;
+	retries  = (retry_config *)calloc(1, sizeof(retry_config));
 	if (NULL == retries)
 	{
-		return STATUS_ALLOCATION_ERROR;
+		ret = STATUS_ALLOCATION_ERROR;
+		goto ERROR;
 	}
 	if (retry_max != 0)
 	{
@@ -358,11 +361,19 @@ TRUST_AUTHORITY_STATUS get_token_signing_certificate(const char *jwks_url,
 	status = get_request(jwks_url, NULL, ACCEPT_APPLICATION_JSON, NULL, NULL, jwks, &header, retries);
 	if (CURLE_OK != status || *jwks == NULL)
 	{
-		return STATUS_GET_SIGNING_CERT_ERROR;
+		ret = STATUS_GET_SIGNING_CERT_ERROR;
+		goto ERROR;
 	}
 	DEBUG("\nRetrieved token signing certificate : \n%s", *jwks);
 
-	return STATUS_OK;
+ERROR:
+	if (NULL != retries)
+	{
+		free(retries);
+		retries = NULL;
+	}
+
+	return ret;
 }
 
 TRUST_AUTHORITY_STATUS parse_token_header_for_kid(token *token,
@@ -571,6 +582,11 @@ TRUST_AUTHORITY_STATUS connector_free(trust_authority_connector *connector)
 {
 	if (NULL != connector)
 	{
+		if (NULL != connector->retries)
+		{
+			free(connector->retries);
+			connector->retries = NULL;
+		}
 		free(connector);
 		connector = NULL;
 	}
@@ -638,5 +654,18 @@ TRUST_AUTHORITY_STATUS evidence_free(evidence *evidence)
 		}
 	}
 
+	return STATUS_OK;
+}
+
+TRUST_AUTHORITY_STATUS response_headers_free(response_headers *header)
+{
+	if (NULL != header)
+	{
+		if(NULL != header->headers)
+		{
+			free(header->headers);
+			header->headers = NULL;
+		}
+	}
 	return STATUS_OK;
 }

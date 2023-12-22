@@ -24,8 +24,7 @@ TEST(SgxAdapterTest, PositiveCase)
 	ASSERT_EQ(adapter->collect_evidence, sgx_collect_evidence);
 
 	// Cleanup
-	free(adapter->ctx);
-	free(adapter);
+	sgx_adapter_free(adapter);
 }
 
 TEST(SgxAdapterTest, NegativeCase_NullAdapter)
@@ -231,6 +230,7 @@ TEST(SgxCollectEvidenceTest, TestGetSgxqeGetTargetInfoFailure)
 	// Call the sgx_collect_evidence function
 	int result = sgx_collect_evidence(&ctx, &evidence, &nonce, u_data, 10);
 
+	delete[] u_data;
 	// Assertions
 	ASSERT_NE(result, 0);
 
@@ -268,10 +268,10 @@ TEST(SgxCollectEvidenceTest, TestValidSgx)
 
 	// Call the sgx_collect_evidence function
 	int result = sgx_collect_evidence(&ctx, &evidence, &nonce, u_data, 10);
-
 	// Assertions
 	ASSERT_EQ(result, 0);
 
+	delete[] u_data;
 	free(evidence.evidence);
 }
 

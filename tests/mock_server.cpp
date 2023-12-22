@@ -71,9 +71,7 @@ char *MockServer::validTokenResponse()
 {
 	const char *validToken1 =
 		"{\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImtleTEyMyIsImprdSI6Imh0dHBzOlxcbG9jYWxob3N0OjgwODAifQ.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.cCOaUSoglcRlEiqoKIxV0bC8PptNuedV_EaXD2BDCng\"}";
-	char *validToken = (char *) calloc(1, 235 * sizeof(char));
-	memcpy(validToken, validToken1, 234);
-	return validToken;
+	return (char *)validToken1;
 }
 
 string MockServer::generateResponse(const http_request & request,

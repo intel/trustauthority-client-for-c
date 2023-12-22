@@ -181,9 +181,10 @@ TRUST_AUTHORITY_STATUS verify_token(token *token,
 {
 	int result;
 	char *jwks_url = NULL;
-	const char *formatted_pub_key, *token_kid = NULL;
+	const char *formatted_pub_key = NULL, *token_kid = NULL;
 	jwks *jwks = NULL;
 	EVP_PKEY *pubkey = NULL;
+	TRUST_AUTHORITY_STATUS status = STATUS_OK;
 
 	if (NULL == token)
 	{
@@ -229,35 +230,41 @@ TRUST_AUTHORITY_STATUS verify_token(token *token,
 	result = json_unmarshal_token_signing_cert(&jwks, jwks_data);
 	if (result != STATUS_OK || jwks == NULL)
 	{
-		return STATUS_JSON_SIGN_CERT_UNMARSHALING_ERROR;
+		status = STATUS_JSON_SIGN_CERT_UNMARSHALING_ERROR;
+		goto ERROR;
 	}
 	// Lookup for Key ID matches
 	if (0 != strcmp(jwks->kid, token_kid))
 	{
-		return STATUS_KID_NOT_MATCHING_ERROR;
+		status = STATUS_KID_NOT_MATCHING_ERROR;
+		goto ERROR;
 	}
 	// Check the number of signing certificates from JWKS
 	if (jwks->num_of_x5c > MAX_ATS_CERT_CHAIN_LEN)
 	{
-		return STATUS_JSON_NO_OF_SIGN_CERT_EXCEEDING_ERROR;
+		status = STATUS_JSON_NO_OF_SIGN_CERT_EXCEEDING_ERROR;
+		goto ERROR;
 	}
 	// Do the certificate chain verification of JWKS's x5c
 	result = verify_jwks_cert_chain(jwks);
 	if (result != STATUS_OK)
 	{
-		return STATUS_VERIFYING_CERT_CHAIN_ERROR;
+		status = STATUS_VERIFYING_CERT_CHAIN_ERROR;
+		goto ERROR;
 	}
 
 	result = generate_pubkey_from_exponent_and_modulus(jwks->e, jwks->n, &pubkey);
 	if (result != STATUS_OK || pubkey == NULL)
 	{
-		return STATUS_GENERATE_PUBKEY_ERROR;
+		status = STATUS_GENERATE_PUBKEY_ERROR;
+		goto ERROR;
 	}
 	// Format the received public key
 	result = format_pubkey(pubkey, &formatted_pub_key);
 	if (result != STATUS_OK || formatted_pub_key == NULL)
 	{
-		return STATUS_FORMAT_PUBKEY_ERROR;
+		status = STATUS_FORMAT_PUBKEY_ERROR;
+		goto ERROR;
 	}
 	// Perform the actual token verification here by using libjwt
 	result = jwt_decode(parsed_token, (const char *)token->jwt, (const unsigned char *)formatted_pub_key,
@@ -265,8 +272,62 @@ TRUST_AUTHORITY_STATUS verify_token(token *token,
 	if (result != STATUS_OK || *parsed_token == NULL)
 	{
 		ERROR("Error: Token verification failed : %d\n", result);
-		return STATUS_TOKEN_VERIFICATION_FAILED_ERROR;
+		status = STATUS_TOKEN_VERIFICATION_FAILED_ERROR;
+		goto ERROR;
 	}
 
-	return STATUS_OK;
+ERROR:
+	if(NULL != formatted_pub_key)
+	{
+		free(formatted_pub_key);
+		formatted_pub_key = NULL;
+	}
+	free_jwks_data(jwks);
+
+	return status;
+}
+
+void free_jwks_data(jwks *jwks)
+{
+	if (NULL != jwks)
+	{
+		int i=0;
+		for(i=0; i < jwks->num_of_x5c; i++)
+		{
+			if(NULL != jwks->x5c[i])
+			{
+				free((void *)jwks->x5c[i]);
+				jwks->x5c[i] = NULL;
+			}
+		}
+
+		if(NULL != jwks->alg)
+		{
+			free((void *)jwks->alg);
+			jwks->alg = NULL;
+		}
+
+		if(NULL != jwks->e)
+		{
+			free((void *)jwks->e);
+			jwks->e = NULL;
+		}
+		if(NULL != jwks->n)
+		{
+			free((void *)jwks->n);
+			jwks->n = NULL;
+		}
+		if(NULL != jwks->kid)
+		{
+			free((void *)jwks->kid);
+			jwks->kid = NULL;
+		}
+		if(NULL != jwks->keytype)
+		{
+			free((void *)jwks->keytype);
+			jwks->keytype = NULL;
+		}
+		free(jwks);
+	}
+
 }
