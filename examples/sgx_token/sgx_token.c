@@ -186,6 +186,7 @@ int main(int argc, char *argv[])
 	}
 
 	LOG("Info: trust authority token: %s\n", token.jwt);
+	LOG("Info: Headers returned: %s\n",headers);
 
 	status = verify_token(&token, ta_base_url, NULL, &parsed_token, retry_max, retry_wait_time);
 	if (STATUS_OK != status)

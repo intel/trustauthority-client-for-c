@@ -61,7 +61,7 @@ TRUST_AUTHORITY_STATUS collect_token_callback(trust_authority_connector *connect
 	result = get_nonce(connector, &nonce, request_id, &nonce_headers);
 	if (result != STATUS_OK)
 	{
-		ERROR("Error: Failed to get Trust Authority nonce %d\n", result);
+		ERROR("Error: Failed to get Trust Authority nonce 0x%04x\n", result);
 		goto ERROR;
 	}
 
@@ -69,7 +69,7 @@ TRUST_AUTHORITY_STATUS collect_token_callback(trust_authority_connector *connect
 	result = callback(ctx, &evidence, &nonce, user_data, user_data_len);
 	if (result != STATUS_OK)
 	{
-		ERROR("Error: Failed to collect evidence from adapter %d\n", result);
+		ERROR("Error: Failed to collect evidence from adapter 0x%04x\n", result);
 		goto ERROR;
 	}
 
@@ -78,7 +78,7 @@ TRUST_AUTHORITY_STATUS collect_token_callback(trust_authority_connector *connect
 	result = get_token(connector, resp_headers, token, policies, &evidence, &nonce, request_id);
 	if (STATUS_OK != result)
 	{
-		ERROR("Error: Failed to get Trust Authority token %d\n", result);
+		ERROR("Error: Failed to get Trust Authority token 0x%04x\n", result);
 		goto ERROR;
 	}
 

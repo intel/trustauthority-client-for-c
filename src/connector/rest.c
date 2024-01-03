@@ -163,37 +163,42 @@ CURLcode make_http_request(const char *url,
 	curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, write_response_headers);
 	curl_easy_setopt(curl, CURLOPT_HEADERDATA, &write_headers);
 
+	int retry_count = 0;
 	status = curl_easy_perform(curl);
-	if (0 != status)
+	while (status == 0)
 	{
-		ERROR("%s request to %s returned %s", req_type, url, curl_easy_strerror(status));
-	}
-
-	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-
-	if (200 != code)
-	{
-		if (code == 500 || code == 503 || code == 504)
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
+		if (code == 500 || code == 503 || code == 504) 
 		{
-			ERROR("%s request to '%s' returned code %ld. Hence retrying for %d times \
-					if requests status is allowed.\n", req_type, url, code, retries->retry_max);
-			for (int i = 1; i <= retries->retry_max && (status = curl_easy_perform(curl)) != 0; i++)
+			ERROR("%s %s (status: %ld): retrying in %ds(%d left)", req_type, url, code, retries->retry_wait_time, (retries->retry_max- retry_count));
+			if (retry_count >= retries->retry_max) 
 			{
-				//TODO: Try to increase sleep time exponentially.
-				const int sleep_secs = retries->retry_wait_time;
-				sleep(sleep_secs);
-			}
-			if (0 != status)
-			{
-				ERROR("%s request to '%s' returned code %ld.\n", req_type, url, code);
+				ERROR("Request to %s failed: %s %s giving up after %d attempts:%ld.\n", url, req_type, url, (retries->retry_max + 1), code);
 				goto ERROR;
 			}
+
+			//TODO: Try to increase sleep time exponentially.
+			const int sleep_secs = retries->retry_wait_time;
+			sleep(sleep_secs);
 		}
 		else
 		{
-			ERROR("%s request to '%s' returned code %ld\n", req_type, url, code);
-			goto ERROR;
+			if (200 != code) 
+			{
+				ERROR("%s request to '%s' returned code %ld\n", req_type, url, code);
+				goto ERROR;
+			}
+			break;
 		}
+
+		status = curl_easy_perform(curl);
+		retry_count++;
+	}
+
+	if (0 != status)
+	{
+		ERROR("%s request to %s returned %s", req_type, url, curl_easy_strerror(status));
+		goto ERROR;
 	}
 
 	*response = (char *)calloc(strlen(data) + 1, sizeof(char));
