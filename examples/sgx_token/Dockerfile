@@ -46,7 +46,7 @@ WORKDIR /trustauthority-client/minimal-enclave
 RUN make clean all
 RUN cp /trustauthority-client/minimal-enclave/Enclave_u.* /trustauthority-client/examples/sgx_token/
 WORKDIR /trustauthority-client/build
-RUN cmake -DBUILD_SGX_EXAMPLE=ON -DCMAKE_BUILD_TYPE=$ENABLE_DEBUG .. \
+RUN cmake -DBUILD_EXAMPLES=ON -DBUILD_SGX=ON -DCMAKE_BUILD_TYPE=$ENABLE_DEBUG .. \
     && cmake --build .  --target sgx_token
 
 

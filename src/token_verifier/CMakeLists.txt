@@ -6,8 +6,8 @@ add_library(${PROJECT_NAME}
     token_verifier.c
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE
+target_include_directories(${PROJECT_NAME} PUBLIC
     ../../include
-    ../log
-    ../connector
 )
+
+target_link_libraries(${PROJECT_NAME} PUBLIC trustauthority_connector)

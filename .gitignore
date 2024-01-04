@@ -8,3 +8,5 @@ build/**
 **/CMakeCache.txt
 **/cmake_install.cmake
 **/*.a
+src/connector/libjwt/
+minimal-enclave/.config_HW_RELEASE_x64

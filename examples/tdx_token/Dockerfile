@@ -64,7 +64,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /trustauthority-client/
 COPY . .
 WORKDIR /trustauthority-client/build 
-RUN cmake -DCMAKE_BUILD_TYPE=$ENABLE_DEBUG -DBUILD_TDX_EXAMPLE=ON -DUSE_AZURE_TDX_ADAPTER=${USE_AZURE_TDX_ADAPTER} ../ \
+RUN cmake -DBUILD_EXAMPLES=ON -DBUILD_TDX=ON -DCMAKE_BUILD_TYPE=$ENABLE_DEBUG -DUSE_AZURE_TDX_ADAPTER=${USE_AZURE_TDX_ADAPTER} .. \
     && cmake --build . --target tdx_token
 
 FROM ubuntu:20.04 as intel_tdx_token

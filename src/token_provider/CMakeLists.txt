@@ -6,9 +6,8 @@ add_library(${PROJECT_NAME}
     token_provider.c
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE
+target_include_directories(${PROJECT_NAME} PUBLIC
     ../../include
-    ../log
 )
 
-target_link_libraries(${PROJECT_NAME} PUBLIC curl)
+target_link_libraries(${PROJECT_NAME} PUBLIC trustauthority_connector)

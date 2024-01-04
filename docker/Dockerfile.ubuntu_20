@@ -80,7 +80,7 @@ USER $USERNAME
 WORKDIR /trustauthority-client/
 COPY . .
 WORKDIR /trustauthority-client/build
-RUN  cmake -DCMAKE_BUILD_TYPE=$ENABLE_DEBUG .. \
+RUN cmake -DBUILD_SGX=ON -DBUILD_TDX=ON -DCMAKE_BUILD_TYPE=$ENABLE_DEBUG .. \
 	&& cmake --build .
 
 FROM scratch as export-stage
