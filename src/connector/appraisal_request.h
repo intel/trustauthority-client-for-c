@@ -6,6 +6,8 @@
 #ifndef __APPRAISAL_REQUEST_H__
 #define __APPRAISAL_REQUEST_H__
 
+#include "types.h"
+
 /**
  * struct containing request sent to Intel Trust Authority for attestation.
  */

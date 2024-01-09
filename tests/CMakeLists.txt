@@ -16,24 +16,16 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-cove
 
 # Add the test source files
 set(TEST_SOURCES
-    ../src/log/log.h
     ../src/log/log.c
     ../src/connector/connector.c
-    ../src/connector/api.h
     ../src/connector/rest.c
-    ../src/connector/rest.h
     ../src/connector/json.c
-    ../src/connector/json.h
-    ../src/connector/base64.h
     ../src/connector/base64.c
-    ../src/connector/appraisal_request.h
     ../src/sgx/sgx_adapter.c
     ../src/tdx/intel/tdx_adapter.c
     ../src/token_provider/token_provider.c
     ../src/token_verifier/token_verifier.c
-    ../include/connector.h
-    ../include/types.h
-    ../include/token_provider.h
+    ../src/token_verifier/util.c
     base64_test.cpp
     rest_test.cpp
     json_test.cpp

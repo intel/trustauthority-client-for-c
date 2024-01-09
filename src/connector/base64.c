@@ -211,24 +211,3 @@ int base64_decode(const char *input,
 	*output_length = output_index;
 	return BASE64_SUCCESS;
 }
-
-BIGNUM *bignum_base64_decode(const char *base64bignum)
-{
-	BIGNUM *bn = NULL;
-	size_t base64_input_length = strlen(base64bignum);
-	size_t output_length = (base64_input_length / 4) * 3; // Estimate the output length
-	unsigned char *output = (unsigned char *)calloc(output_length + 1, sizeof(unsigned char));
-	// If calloc allocation fails
-	if (output == NULL)
-	{
-		return NULL;
-	}
-
-	int result = base64_decode(base64bignum, base64_input_length, output, &output_length);
-	if (result == BASE64_SUCCESS)
-	{
-		bn = BN_bin2bn(output, output_length, NULL);
-	}
-	free(output);
-	return bn;
-}

@@ -9,14 +9,14 @@ ENDIF()
 option (BUILD_EXAMPLES "Build example projects." OFF)
 option (BUILD_TESTS "Build test projects." OFF)
 
-include_directories(include src/connector src/log)
+include_directories(include)
 
 add_subdirectory(src)
 
 IF(BUILD_EXAMPLES MATCHES ON)
-add_subdirectory(examples)
+    add_subdirectory(examples)
 ENDIF()
 
 IF(BUILD_TESTS MATCHES ON)
-add_subdirectory(tests)
+    add_subdirectory(tests)
 ENDIF()

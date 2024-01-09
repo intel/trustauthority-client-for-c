@@ -225,7 +225,7 @@ TEST(CollectToken, NullNonceError)
 	TRUST_AUTHORITY_STATUS status = collect_token(&api, NULL, &token, policies, NULL, adapter, user_data, user_data_len);
 	ASSERT_EQ(status, STATUS_GET_NONCE_ERROR);
 
-	status = collect_token(&api, NULL, &token, policies, NULL, adapter, user_data, user_data_len);
+	status = collect_token_azure(&api, NULL, &token, policies, NULL, adapter, user_data, user_data_len);
 	ASSERT_EQ(status, STATUS_GET_NONCE_ERROR);
 
 	mock_adapter_free(adapter);

@@ -69,6 +69,13 @@ typedef struct retry_config
 	int retry_max;
 } retry_config;
 
+typedef struct trust_authority_connector
+{
+	char api_key[API_KEY_MAX_LEN + 1]; /* character array containing API KEY use to authenticate to Intel trust Authority */
+	char api_url[API_URL_MAX_LEN + 1]; /* character array containing URL of Intel Trust Authority */
+	retry_config *retries;
+} trust_authority_connector;
+
 typedef struct jwks
 {
 	char *keytype;

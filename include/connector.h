@@ -6,23 +6,11 @@
 #define __CONNECTOR_H__
 
 #include "types.h"
-#include <openssl/x509.h>
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-
-	/**
-	 * Connector to Intel Trust Authority
-	 */
-	typedef struct trust_authority_connector
-	{
-		char api_key[API_KEY_MAX_LEN + 1]; /* character array containing API KEY use to authenticate to Intel trust Authority */
-		char api_url[API_URL_MAX_LEN + 1]; /* character array containing URL of Intel Trust Authority */
-		retry_config *retries; /* struct defining retry values */
-	} trust_authority_connector;
 
 	/**
 	 * Create a new trust authority connector client to make REST calls to Intel Trust Authority
@@ -99,6 +87,9 @@ extern "C"
 
 	// Delete/free response_headers
 	TRUST_AUTHORITY_STATUS response_headers_free(response_headers *header);
+
+	// Delete/free jwks.
+	TRUST_AUTHORITY_STATUS jwks_free(jwks *jwks);
 
 #ifdef __cplusplus
 }

@@ -18,8 +18,6 @@
 #include <jwt.h>
 #include <regex.h>
 
-extern BIGNUM *bignum_base64_decode(const char *base64bignum);
-
 TRUST_AUTHORITY_STATUS trust_authority_connector_new(trust_authority_connector **connector,
 		const char *api_key,
 		const char *api_url,
@@ -380,242 +378,6 @@ ERROR:
 	return ret;
 }
 
-TRUST_AUTHORITY_STATUS parse_token_header_for_kid(token *token,
-		const char **token_kid)
-{
-	char *substring = NULL;
-	size_t substring_length = 0;
-	size_t base64_input_length = 0, output_length = 0;
-	unsigned char *buf = NULL;
-	json_error_t error;
-	json_t *js, *js_val;
-	const char *val = NULL;
-	TRUST_AUTHORITY_STATUS status = STATUS_OK;
-	int include_char = 0;
-	char equal='=';
-
-	// // Check if token or token jwt pointer is NULL
-	if (token == NULL || token->jwt == NULL)
-	{
-		return STATUS_NULL_TOKEN;
-	}
-	char *period_pos = strchr(token->jwt, '.');
-	if (NULL == period_pos)
-	{
-		return STATUS_TOKEN_INVALID_ERROR;
-	}
-	// Calculate the length of the substring
-	substring_length = period_pos - token->jwt;
-
-	if((substring_length % 4) != 0)
-	{
-		substring_length += 1;
-		if((substring_length % 4) != 0)
-		{
-			return STATUS_TOKEN_INVALID_ERROR;
-		}
-		include_char = 1;
-	}
-
-	// Allocate memory for the substring
-	substring = calloc(1, (substring_length + 1) * sizeof(char));
-	if (NULL == substring)
-	{
-		return STATUS_ALLOCATION_ERROR;
-	}
-
-	// Copy the substring
-	if (include_char == 0) 
-	{
-		memcpy(substring, token->jwt, substring_length);
-	}
-	else
-	{
-		memcpy(substring, token->jwt, (substring_length-1));
-		memcpy(substring+(substring_length-1), &equal, 1);
-	}
-
-	// Do base64 decode.
-	base64_input_length = substring_length;
-	output_length = (base64_input_length / 4) * 3; // Estimate the output length
-	buf = (unsigned char *)calloc(1, (output_length + 1) * sizeof(unsigned char));
-	if (NULL == buf)
-	{
-		status = STATUS_ALLOCATION_ERROR;
-		goto ERROR;
-	}
-	if (BASE64_SUCCESS != base64_decode(substring, base64_input_length, buf, &output_length))
-	{
-		status = STATUS_TOKEN_DECODE_ERROR;
-		goto ERROR;
-	}
-	// load the decoded header to json
-	js = json_loads((const char *)buf, 0, &error);
-	if (!js)
-	{
-		status = STATUS_TOKEN_DECODE_ERROR;
-		goto ERROR;
-	}
-
-	js_val = json_object_get(js, "kid");
-	if (js_val == NULL)
-	{
-		status = STATUS_TOKEN_KID_NULL_ERROR;
-		goto ERROR;
-	}
-	if (json_typeof(js_val) == JSON_STRING)
-	{
-		val = json_string_value(js_val);
-	}
-	else
-	{
-		status = STATUS_INVALID_KID_ERROR;
-		goto ERROR;
-	}
-
-	*token_kid = val;
-
-ERROR:
-	if (buf != NULL)
-	{
-		free(buf);
-		buf = NULL;
-	}
-	if (substring != NULL)
-	{
-		free(substring);
-		substring = NULL;
-	}
-
-	return status;
-}
-
-TRUST_AUTHORITY_STATUS generate_pubkey_from_certificate(char *certificate,
-		EVP_PKEY **pubkey)
-{
-	char *begin_cert_header = "-----BEGIN CERTIFICATE-----\n";
-	char *end_cert_header = "\n-----END CERTIFICATE-----\n";
-	char *leaf_cert = NULL;
-	X509 *x509_certificate = NULL;
-	BIO *bio = NULL;
-
-	size_t pem_len = strlen(begin_cert_header) + strlen(certificate) + strlen(end_cert_header);
-	leaf_cert = (char *)calloc(1, (pem_len + 1) * sizeof(char));
-	if (leaf_cert == NULL)
-	{
-		ERROR("Error: Failed to allocate memory for certificate")
-		goto ERROR;
-	}
-
-	strcat(leaf_cert, begin_cert_header);
-	strcat(leaf_cert, certificate);
-	strcat(leaf_cert, end_cert_header);
-
-	bio = BIO_new(BIO_s_mem());
-	BIO_puts(bio, leaf_cert);
-	x509_certificate = PEM_read_bio_X509(bio, NULL, NULL, NULL);
-
-	*pubkey = X509_get_pubkey(x509_certificate);
-
-ERROR:
-	if (leaf_cert) {
-		free(leaf_cert);
-		leaf_cert = NULL;
-	}
-}
-
-TRUST_AUTHORITY_STATUS generate_pubkey_from_exponent_and_modulus(const char *exponent,
-		const char *modulus,
-		EVP_PKEY **pubkey)
-{
-	BIGNUM *n = bignum_base64_decode(modulus);
-	BIGNUM *e = bignum_base64_decode(exponent);
-
-	if (!e || !n)
-	{
-		ERROR("Error: Invalid encoding for public exponent or modulus\n");
-		return STATUS_GENERATE_PUBKEY_ERROR;
-	}
-
-	EVP_PKEY *pRsaKey = EVP_PKEY_new();
-	RSA *rsa = RSA_new();
-
-	if (!RSA_set0_key(rsa, n, e, NULL))
-	{
-		ERROR("Error: Failed to set RSA key components");
-		// free the rsa key components memory
-		goto ERROR;
-	}
-	// setting key type to EVP_PKEY_RSA_PSS as it follows PS384 alg
-	EVP_PKEY_assign(pRsaKey, EVP_PKEY_RSA_PSS, rsa);
-	if (pRsaKey != NULL)
-	{
-		*pubkey = pRsaKey;
-		return STATUS_OK;
-	}
-
-ERROR:
-	if (n)
-		BN_free(n);
-	if (e)
-		BN_free(e);
-	if (rsa)
-		RSA_free(rsa);
-	return STATUS_GENERATE_PUBKEY_ERROR;
-}
-
-TRUST_AUTHORITY_STATUS format_pubkey(EVP_PKEY *pkey,
-		const char **formatted_pub_key)
-{
-	TRUST_AUTHORITY_STATUS status = STATUS_OK;
-	// Create a BIO to hold the key data
-	BIO *bio = BIO_new(BIO_s_mem());
-	if (NULL == bio)
-	{
-		return STATUS_FORMAT_PUBKEY_ERROR;
-	}
-	// Write the key data to the BIO
-	if (!PEM_write_bio_PUBKEY(bio, pkey))
-	{
-		status = STATUS_FORMAT_PUBKEY_ERROR;
-		goto ERROR;
-	}
-	// Determine the length of the key data
-	size_t key_len = BIO_pending(bio);
-
-	// Allocate memory for the mutable buffer, including space for null terminator
-	char *key_str = (char *)malloc((key_len + 1) * sizeof(char));
-	if (NULL == key_str)
-	{
-		status = STATUS_ALLOCATION_ERROR;
-		goto ERROR;
-	}
-	// Read the key data from the BIO into the mutable buffer
-	if (BIO_read(bio, key_str, key_len) < 0)
-	{
-		free(key_str);
-		key_str = NULL;
-		status = STATUS_FORMAT_PUBKEY_ERROR;
-		goto ERROR;
-	}
-	// Null-terminate the mutable buffer
-	key_str[key_len] = '\0';
-
-	// Create a const char* to hold the converted key
-	*formatted_pub_key = strdup(key_str);
-
-ERROR:
-	// Cleanup
-	if (key_str)
-	{
-		free(key_str);
-		key_str = NULL;
-	}
-	BIO_free(bio);
-
-	return status;
-}
-
 TRUST_AUTHORITY_STATUS connector_free(trust_authority_connector *connector)
 {
 	if (NULL != connector)
@@ -691,7 +453,6 @@ TRUST_AUTHORITY_STATUS evidence_free(evidence *evidence)
 			evidence->event_log = NULL;
 		}
 	}
-
 	return STATUS_OK;
 }
 
@@ -704,6 +465,51 @@ TRUST_AUTHORITY_STATUS response_headers_free(response_headers *header)
 			free(header->headers);
 			header->headers = NULL;
 		}
+	}
+	return STATUS_OK;
+}
+
+TRUST_AUTHORITY_STATUS jwks_free(jwks *jwks)
+{
+	if (NULL != jwks)
+	{
+		int i=0;
+		for(i=0; i < jwks->num_of_x5c; i++)
+		{
+			if(NULL != jwks->x5c[i])
+			{
+				free((void *)jwks->x5c[i]);
+				jwks->x5c[i] = NULL;
+			}
+		}
+
+		if(NULL != jwks->alg)
+		{
+			free((void *)jwks->alg);
+			jwks->alg = NULL;
+		}
+		if(NULL != jwks->e)
+		{
+			free((void *)jwks->e);
+			jwks->e = NULL;
+		}
+		if(NULL != jwks->n)
+		{
+			free((void *)jwks->n);
+			jwks->n = NULL;
+		}
+		if(NULL != jwks->kid)
+		{
+			free((void *)jwks->kid);
+			jwks->kid = NULL;
+		}
+		if(NULL != jwks->keytype)
+		{
+			free((void *)jwks->keytype);
+			jwks->keytype = NULL;
+		}
+		free(jwks);
+		jwks = NULL;
 	}
 	return STATUS_OK;
 }

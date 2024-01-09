@@ -14,7 +14,7 @@ ifeq ($(DEBUG),1)
 endif
 
 COMMIT := $(shell git rev-parse --short HEAD)
-VERSION := v0.3.0
+VERSION := v1.0.0
 BUILDDATE := $(shell TZ=UTC date +%Y-%m-%dT%H:%M:%S%z)
 PROXY_EXISTS := $(shell if [[ "${https_proxy}" || "${http_proxy}" || "${no_proxy}" ]]; then echo 1; else echo 0; fi)
 DOCKER_PROXY_FLAGS := ""
@@ -29,10 +29,10 @@ endif
 MAKEFILE_PATH := $(realpath $(lastword $(MAKEFILE_LIST)))
 MAKEFILE_DIR := $(dir $(MAKEFILE_PATH))
 
-.PHONY: all ubuntu_20 clean
-.DEFAULT: all
+.PHONY: all clean
+.DEFAULT: ubuntu_20
 
-all: ubuntu_20
+all: ubuntu_20 sgx_token_docker tdx_token_docker azure_tdx_token_docker
 
 ubuntu_20: 
 	DOCKER_BUILDKIT=1 docker build \
@@ -62,7 +62,7 @@ test-coverage: test-image
 		/bin/bash -c "lcov --list /tmp/filtered_coverage.info"
 	docker rmi $(ORGNAME)/$(APPNAME)-ubuntu_20-unit-test:$(VERSION) || true
 
-sgx_token_docker: ubuntu_20
+sgx_token_docker:
 	DOCKER_BUILDKIT=1 docker build \
 		--build-arg ENABLE_DEBUG=${ENABLE_DEBUG} \
 		${DOCKER_PROXY_FLAGS} \
@@ -74,7 +74,7 @@ sgx_token_docker: ubuntu_20
 		--build-arg VERSION=${VERSION} \
 		--build-arg COMMIT=${COMMIT} .
 
-tdx_token_docker: ubuntu_20
+tdx_token_docker:
 	DOCKER_BUILDKIT=1 docker build \
 		--build-arg ENABLE_DEBUG=${ENABLE_DEBUG} \
 		${DOCKER_PROXY_FLAGS} \

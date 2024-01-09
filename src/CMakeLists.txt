@@ -6,9 +6,9 @@ add_subdirectory(token_provider)
 add_subdirectory(token_verifier)
 
 if (${BUILD_SGX})
-add_subdirectory(sgx)
+    add_subdirectory(sgx)
 endif()
 
 if (${BUILD_TDX})
-add_subdirectory(tdx)
+    add_subdirectory(tdx)
 endif()

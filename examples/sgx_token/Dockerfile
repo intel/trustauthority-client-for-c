@@ -87,10 +87,6 @@ WORKDIR /sgx_token
 COPY --from=build /usr/local/lib/libjwt* /usr/local/lib/
 COPY --from=build /trustauthority-client/minimal-enclave/enclave.signed.so .
 COPY --from=build /trustauthority-client/minimal-enclave/libutils.so .
-COPY --from=build /trustauthority-client/bin/ubuntu_20/libtrustauthority_connector.a .
-COPY --from=build /trustauthority-client/bin/ubuntu_20/libtrustauthority_token_provider.a .
-COPY --from=build /trustauthority-client/bin/ubuntu_20/libtrustauthority_token_verifier.a .
-COPY --from=build /trustauthority-client/bin/ubuntu_20/libtrustauthority_sgx.a .
 COPY --from=build /trustauthority-client/build/examples/sgx_token/sgx_token .
 USER $USERNAME
 CMD ["env",  "LD_LIBRARY_PATH=/sgx_token:/usr/local/lib/", "./sgx_token"]
