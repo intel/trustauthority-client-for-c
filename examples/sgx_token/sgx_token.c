@@ -64,12 +64,6 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (NULL == policy_id || !strlen(policy_id))
-	{
-		ERROR("ERROR: Environment variable is required %s\n", ENV_TRUSTAUTHORITY_POLICY_ID);
-		return 1;
-	}
-
 	if (NULL == retry_max_str)
 	{
 		retry_max = DEFAULT_RETRY_MAX;
@@ -99,9 +93,9 @@ int main(int argc, char *argv[])
 		
 	}
 
-	if (0 != is_valid_uuid(policy_id))
+	if (policy_id != NULL && 0 != is_valid_uuid(policy_id))
 	{
-		ERROR("ERROR: Invalid UUID format");
+		ERROR("ERROR: Invalid TRUSTAUTHORITY_POLICY_ID format, must be UUID");
 		return 1;
 	}
 
@@ -186,7 +180,7 @@ int main(int argc, char *argv[])
 	}
 
 	LOG("Info: trust authority token: %s\n", token.jwt);
-	LOG("Info: Headers returned: %s\n",headers);
+	LOG("Info: Headers returned: %s\n",headers.headers);
 
 	status = verify_token(&token, ta_base_url, NULL, &parsed_token, retry_max, retry_wait_time);
 	if (STATUS_OK != status)

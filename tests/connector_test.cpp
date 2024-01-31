@@ -87,7 +87,7 @@ TEST(TANewTest, InvalidLongApiKeyParameter)
 {
 	trust_authority_connector *api = nullptr;
 	const char *apiKey =
-		"SGVsbG8sIFdvcmxkIW==_that_is_too_long*******************************************************";
+		"djE6OThkMzc2M2ItODg4OS00ZmVmLTgzOTItMTJlZGU3MTM0OTRmOmFhYWFhYWFhYWFhYWFhYWFhYWRkZGRkZGRkZGRkRWVyZXJlcmRkZGRkMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDEyMjIyMjIyMjIyMjIwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDkzOWtrSGVsbG8sIFdvcmxkIW==_that_is_too_long";
 	const char *apiUrl = "https://example.com";
 
 	// Call the trust_authority_connector_new function with an invalid api_key parameter

@@ -9,7 +9,7 @@
 #include <stddef.h>
 
 #define SHA512_LEN 64
-#define API_KEY_MAX_LEN 64
+#define API_KEY_MAX_LEN 256
 #define API_URL_MAX_LEN 128
 #define MAX_USER_DATA_LEN 1024	  // 1k
 #define MAX_EVIDENCE_LEN 8 * 1024 // 8k
