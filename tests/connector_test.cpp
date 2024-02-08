@@ -224,7 +224,7 @@ TEST(UUIDTest, InvalidUUID)
 // Test case for negative scenario - api is null
 TEST(TokenTest, ApiNullError)
 {
-	TRUST_AUTHORITY_STATUS result = get_token(NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+	TRUST_AUTHORITY_STATUS result = get_token(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 	// Should throw error - api is null
 	ASSERT_EQ(result, STATUS_NULL_CONNECTOR);
@@ -234,7 +234,7 @@ TEST(TokenTest, ApiNullError)
 TEST(TokenTest, TokenNullError)
 {
 	trust_authority_connector api;
-	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, NULL, NULL, NULL, NULL, NULL);
+	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 	// Should throw error - token is null
 	ASSERT_EQ(result, STATUS_NULL_TOKEN);
@@ -246,7 +246,7 @@ TEST(TokenTest, EvidenceNullError)
 	trust_authority_connector api;
 	token token;
 	policies policy;
-	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, &token, &policy, NULL, NULL, NULL);
+	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, &token, &policy, NULL, NULL, NULL, NULL);
 
 	// Should throw error - Evidence is null
 	ASSERT_EQ(result, STATUS_NULL_EVIDENCE);
@@ -262,7 +262,7 @@ TEST(TokenTest, EvidenceDataNullError)
 	evidence evidenceObj;
 	ta_evidence = &evidenceObj;
 	ta_evidence->evidence = NULL;
-	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, &token, &policy, ta_evidence, NULL, NULL);
+	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, &token, &policy, ta_evidence, NULL, NULL, NULL);
 
 	// Should throw error - Evidence data is null
 	ASSERT_EQ(result, STATUS_INVALID_PARAMETER);
@@ -281,7 +281,7 @@ TEST(TokenTest, EvidenceDataError)
 	ta_evidence->evidence_len = MAX_EVIDENCE_LEN + 1;	// Exceed the maximum length
 	ta_evidence->evidence = new uint8_t[ta_evidence->evidence_len];
 	strncpy((char *) ta_evidence->evidence, "data1", ta_evidence->evidence_len);
-	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, &token, &policy, ta_evidence, NULL, NULL);
+	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, &token, &policy, ta_evidence, NULL, NULL, NULL);
 
 	// Should throw error - Evidence data exceeds maximum length
 	ASSERT_EQ(result, STATUS_INVALID_PARAMETER);
@@ -300,7 +300,7 @@ TEST(TokenTest, NonceNullError)
 	ta_evidence->evidence_len = MAX_EVIDENCE_LEN;
 	ta_evidence->evidence = new uint8_t[ta_evidence->evidence_len];
 	strncpy((char *) ta_evidence->evidence, "data1", ta_evidence->evidence_len);
-	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, &token, &policy, ta_evidence, NULL, NULL);
+	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, &token, &policy, ta_evidence, NULL, NULL, NULL);
 
 	// Should throw error - nonce is null
 	ASSERT_EQ(result, STATUS_NULL_NONCE);
@@ -334,6 +334,7 @@ TEST(TokenTest, RetrieveTokenSuccess)
 	policies policiesObj = { 0 };
 	evidence evidenceObj = { 0 };
 	nonce nonceObj = { 0 };
+	char attestation_url[API_KEY_MAX_LEN + 1] = { 0 };
 
 	ta_token = &tokenObj;
 	ta_policies = &policiesObj;
@@ -365,8 +366,10 @@ TEST(TokenTest, RetrieveTokenSuccess)
 	ta_nonce->signature = new uint8_t[10];
 	strncpy((char *) ta_nonce->signature, "sign1", 6);
 
+	strncat(attestation_url, "/appraisal/v1/attest", API_URL_MAX_LEN);
+
 	// Call the get_token function
-	TRUST_AUTHORITY_STATUS getTokenStatus = get_token(api, &resp_headers, ta_token, ta_policies, ta_evidence, ta_nonce, NULL);
+	TRUST_AUTHORITY_STATUS getTokenStatus = get_token(api, &resp_headers, ta_token, ta_policies, ta_evidence, ta_nonce, NULL, attestation_url);
 
 	// Verify the return status is STATUS_OK
 	ASSERT_EQ(getTokenStatus, STATUS_OK);

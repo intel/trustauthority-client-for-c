@@ -27,11 +27,11 @@ tdx_attest_error_t tdx_att_get_quote(
     uint8_t **pp_quote,
     uint32_t *p_quote_size,
     uint32_t flags){
-        return STATUS_TDX_ERROR_BASE;
+        return TDX_ATTEST_ERROR_QUOTE_FAILURE;;
 }
 
 tdx_attest_error_t tdx_att_free_quote(
     uint8_t *p_quote){
-        return STATUS_TDX_ERROR_BASE;
+        return TDX_ATTEST_ERROR_UNEXPECTED;
 }
     

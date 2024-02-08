@@ -662,6 +662,29 @@ TRUST_AUTHORITY_STATUS json_marshal_appraisal_request(appraisal_request *request
 		free(b64);
 		b64 = NULL;
 	}
+
+	// userdata
+	if (request->user_data_len > 0)
+	{
+		input_length = request->user_data_len;
+		output_length = ((input_length + 2) / 3) * 4 + 1;
+		b64 = (char *)calloc(1, output_length * sizeof(char));
+		if (b64 == NULL)
+		{
+			return STATUS_ALLOCATION_ERROR;
+		}
+		result = base64_encode(request->user_data, input_length, b64, output_length, false);
+		if (BASE64_SUCCESS != result)
+		{
+			status = STATUS_JSON_ENCODING_ERROR;
+			goto ERROR;
+		}
+
+		json_object_set(jansson_request, "user_data", json_string(b64));
+		free(b64);
+		b64 = NULL;
+	}
+
 	// policy_ids
 	policies = json_array();
 	json_object_set_new(jansson_request, "policy_ids", policies);

@@ -141,7 +141,7 @@ int base64_decode(const char *input,
 	if (input_length % 4 != 0)
 	{
 		// Invalid Base64 string length
-		ERROR("Decoding error: Invalid message recieved\n");
+		ERROR("Decoding error: Invalid message received\n");
 		return BASE64_INVALID_INPUT;
 	}
 

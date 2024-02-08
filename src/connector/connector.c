@@ -28,7 +28,7 @@ TRUST_AUTHORITY_STATUS trust_authority_connector_new(trust_authority_connector *
 {
 	size_t base64_input_length = 0, output_length = 0;
 	unsigned char *buf = NULL;
-	TRUST_AUTHORITY_STATUS status = STATUS_INVALID_API_KEY;
+	TRUST_AUTHORITY_STATUS status = STATUS_OK;
 
 	if (NULL == connector)
 	{
@@ -80,6 +80,7 @@ TRUST_AUTHORITY_STATUS trust_authority_connector_new(trust_authority_connector *
 
 	strncpy((*connector)->api_key, api_key, API_KEY_MAX_LEN);
 	strncpy((*connector)->api_url, api_url, API_URL_MAX_LEN);
+
 	if (retry_max != 0)
 	{
 		(*connector)->retries->retry_max = retry_max;
@@ -158,7 +159,8 @@ TRUST_AUTHORITY_STATUS get_token(trust_authority_connector *connector,
 		policies *policies,
 		evidence *evidence,
 		nonce *nonce,
-		const char *request_id)
+		const char *request_id,
+		char *attestation_endpoint)
 {
 	int result = STATUS_OK;
 	appraisal_request request = {0};
@@ -200,14 +202,16 @@ TRUST_AUTHORITY_STATUS get_token(trust_authority_connector *connector,
 	}
 
 	strncat(url, connector->api_url, API_URL_MAX_LEN);
-	strncat(url, "/appraisal/v1/attest", API_URL_MAX_LEN);
+	strncat(url, attestation_endpoint, API_URL_MAX_LEN);
 	DEBUG("Token url: %s\n", url);
 	
 	request.quote_len = evidence->evidence_len;
 	request.quote = evidence->evidence;
 	request.verifier_nonce = nonce;
-	request.runtime_data_len = evidence->user_data_len;
-	request.runtime_data = evidence->user_data;
+	request.runtime_data_len = evidence->runtime_data_len;
+	request.runtime_data = evidence->runtime_data;
+	request.user_data_len = evidence->user_data_len;
+	request.user_data = evidence->user_data;
 	request.policy_ids = policies;
 	request.event_log_len = evidence->event_log_len;
 	request.event_log = evidence->event_log;
@@ -223,7 +227,7 @@ TRUST_AUTHORITY_STATUS get_token(trust_authority_connector *connector,
 	status = post_request(url, connector->api_key, ACCEPT_APPLICATION_JSON, request_id, CONTENT_TYPE_APPLICATION_JSON, json, &response, &headers, connector->retries);
 	if (NULL == response || CURLE_OK != status)
 	{
-		ERROR("Error: GET request to %s failed", url);
+		ERROR("Error: POST request to %s failed", url);
 		result = STATUS_POST_TOKEN_ERROR ;
 		goto ERROR;
 	}

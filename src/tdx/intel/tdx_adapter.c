@@ -11,6 +11,17 @@
 #include <openssl/evp.h>
 #include <log.h>
 
+/**
+ * callback to get TDX report
+ */
+typedef tdx_attest_error_t (*tdx_get_quote_fx)(const tdx_report_data_t *p_tdx_report_data,
+		const tdx_uuid_t att_key_id_list[],
+		uint32_t list_size,
+		tdx_uuid_t *p_att_key_id,
+		uint8_t **pp_quote,
+		uint32_t *p_quote_size,
+		uint32_t flags);
+
 int tdx_adapter_new(evidence_adapter **adapter)
 {
 	tdx_adapter_context *ctx = NULL;
@@ -97,7 +108,7 @@ int tdx_collect_evidence(void *ctx,
 		{
 			return STATUS_ALLOCATION_ERROR;
 		}
-		
+
 		memcpy(nonce_data, nonce->val, nonce->val_len);
 		memcpy(nonce_data + nonce->val_len, nonce->iat, nonce->iat_len);
 	}
@@ -121,14 +132,14 @@ int tdx_collect_evidence(void *ctx,
 	tdx_uuid_t selected_att_key_id = {0};
 	memcpy(report_data.d, md_value, TDX_REPORT_DATA_SIZE);
 
-	if (tdx_ctx->tdx_att_get_quote_cb == NULL){
+	if (tdx_ctx->tdx_att_get_quote_cb == NULL)
+	{
 		ERROR("Error: callback function is empty");
 		status = STATUS_TDX_ERROR_BASE;
 		goto ERROR;
 	}
-	
-	
-	uint32_t ret = tdx_ctx->tdx_att_get_quote_cb(&report_data, NULL, 0, &selected_att_key_id, &p_quote_buf, &quote_size, 0);
+
+	uint32_t ret = ((tdx_get_quote_fx)tdx_ctx->tdx_att_get_quote_cb)(&report_data, NULL, 0, &selected_att_key_id, &p_quote_buf, &quote_size, 0);
 	if (TDX_ATTEST_SUCCESS != ret)
 	{
 		ERROR("Error: In tdx_att_get_quote. 0x%04x\n", ret);
@@ -137,7 +148,6 @@ int tdx_collect_evidence(void *ctx,
 	}
 
 	evidence->type = EVIDENCE_TYPE_TDX;
-
 	// Populating Evidence with TDQuote
 	evidence->evidence = (uint8_t *)calloc(quote_size, sizeof(uint8_t));
 	if (NULL == evidence->evidence)
@@ -150,21 +160,21 @@ int tdx_collect_evidence(void *ctx,
 	tdx_att_free_quote(p_quote_buf);
 
 	// Populating Evidence with UserData
-	evidence->user_data = (uint8_t *)calloc(user_data_len, sizeof(uint8_t));
-	if (NULL == evidence->user_data)
+	evidence->runtime_data = (uint8_t *)calloc(user_data_len, sizeof(uint8_t));
+	if (NULL == evidence->runtime_data)
 	{
 		free(evidence->evidence);
 		evidence->evidence = NULL;
-		status = STATUS_NULL_CALLBACK; 
+		status = STATUS_ALLOCATION_ERROR;
 		goto ERROR;
 	}
-	memcpy(evidence->user_data, user_data, user_data_len);
-	evidence->user_data_len = user_data_len;
-	evidence->event_log=NULL;
-	evidence->event_log_len=0;
+	memcpy(evidence->runtime_data, user_data, user_data_len);
+	evidence->runtime_data_len = user_data_len;
+	evidence->event_log = NULL;
+	evidence->event_log_len = 0;
 
 ERROR:
-	if(nonce_data)
+	if (nonce_data)
 	{
 		free(nonce_data);
 		nonce_data = NULL;

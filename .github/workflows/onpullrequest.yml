@@ -19,6 +19,8 @@ jobs:
         run: make sgx_token_docker
       - name: Build tdx example
         run: make tdx_token_docker
+      - name: Build azure tdx example
+        run: make azure_tdx_token_docker  
 
       - name: Unit Test Coverage
         run: |

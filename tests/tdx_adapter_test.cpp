@@ -235,7 +235,7 @@ TEST(TdxCollectEvidenceTest, TestInvalidTdxData)
 	{
 		ERROR("Error: In memory allocation for ctx\n");
 	}
-	ctx->tdx_att_get_quote_cb = tdx_att_get_quote_fail_mock;
+	ctx->tdx_att_get_quote_cb = (void *)tdx_att_get_quote_fail_mock;
 
 	uint8_t user_data[] = { 0x01, 0x02, 0x03 };	// Set an example user data
 	uint32_t user_data_len = sizeof(user_data);
@@ -297,7 +297,7 @@ TEST(TdxCollectEvidenceTest, TestValidTdxData)
 	{
 		ERROR("Error: In memory allocation for context\n");
 	}
-	ctx->tdx_att_get_quote_cb = tdx_att_get_quote_mock;
+	ctx->tdx_att_get_quote_cb = (void *)tdx_att_get_quote_mock;
 
 	uint8_t user_data[] = { 0x01, 0x02, 0x03 };	// Set an example user data
 	uint32_t user_data_len = sizeof(user_data);

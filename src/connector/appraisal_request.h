@@ -16,6 +16,8 @@ typedef struct appraisal_request
 	nonce *verifier_nonce;
 	uint8_t *runtime_data;
 	uint32_t runtime_data_len;
+	uint8_t *user_data;
+	uint32_t user_data_len;
 	policies *policy_ids;
 	uint8_t *event_log;
 	uint32_t event_log_len;

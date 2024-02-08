@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 
 	if (NULL == retry_max_str)
 	{
-		retry_max = DEFAULT_RETRY_MAX;	
+		retry_max = DEFAULT_RETRY_MAX;
 	}
 	else
 	{
@@ -66,7 +66,6 @@ int main(int argc, char *argv[])
 			ERROR("ERROR: Invalid RETRY_MAX format. RETRY_MAX should be an integer.\n");
 			return 1;
 		}
-		
 	}
 
 	if (NULL == retry_wait_time_str)
@@ -81,7 +80,6 @@ int main(int argc, char *argv[])
 			ERROR("ERROR: Invalid RETRY_WAIT_TIME format. RETRY_WAIT_TIME should be an integer.\n");
 			return 1;
 		}
-		
 	}
 
 	if (policy_id != NULL && 0 != is_valid_uuid(policy_id))
@@ -112,6 +110,21 @@ int main(int argc, char *argv[])
 		goto ERROR;
 	}
 
+#ifdef AZURE_TDX
+	result = azure_tdx_adapter_new(&adapter);
+	if (STATUS_OK != result)
+	{
+		ERROR("ERROR: Failed to create Azure TDX Adapter: 0x%04x\n", result);
+		goto ERROR;
+	}
+
+	result = tdx_collect_evidence_azure(adapter->ctx, &evidence, NULL, user_data, user_data_len);
+	if (STATUS_OK != result)
+	{
+		ERROR("Error: Failed to collect evidence from Azure adapter 0x%04x\n", result);
+		goto ERROR;
+	}
+#else
 	result = tdx_adapter_new(&adapter);
 	if (STATUS_OK != result)
 	{
@@ -125,6 +138,7 @@ int main(int argc, char *argv[])
 		ERROR("Error: Failed to collect evidence from adapter 0x%04x\n", result);
 		goto ERROR;
 	}
+#endif
 
 	int output_length = ((evidence.evidence_len + 2) / 3) * 4 + 1;
 	char *b64 = NULL;
@@ -143,8 +157,15 @@ int main(int argc, char *argv[])
 	LOG("Info: quote: %s\n", b64);
 
 	memset(b64, 0, evidence.evidence_len);
+
+#ifdef AZURE_TDX
 	output_length = ((evidence.user_data_len + 2) / 3) * 4 + 1;
 	result = base64_encode(evidence.user_data, evidence.user_data_len, b64, output_length, 0);
+#else
+	output_length = ((evidence.runtime_data_len + 2) / 3) * 4 + 1;
+	result = base64_encode(evidence.runtime_data, evidence.runtime_data_len, b64, output_length, 0);
+#endif
+
 	if (BASE64_SUCCESS != result)
 	{
 		ERROR("Error: Failed to base64 encode user-data 0x%04x\n", result)
@@ -152,7 +173,12 @@ int main(int argc, char *argv[])
 	}
 	LOG("Info: user-data: %s\n", b64);
 
+#ifdef AZURE_TDX
+	result = collect_token_azure(connector, &headers, &token, &policies, request_id, adapter, user_data, user_data_len);
+#else
 	result = collect_token(connector, &headers, &token, &policies, request_id, adapter, user_data, user_data_len);
+#endif
+
 	if (STATUS_OK != result)
 	{
 		ERROR("ERROR: Failed to collect trust authority token: 0x%04x\n", result);
@@ -160,7 +186,7 @@ int main(int argc, char *argv[])
 	}
 
 	LOG("Info: Intel Trust Authority Token: %s\n", token.jwt);
-	LOG("Info: Headers returned: %s\n",headers.headers);
+	LOG("Info: Headers returned: %s\n", headers.headers);
 
 	result = verify_token(&token, ta_base_url, NULL, &parsed_token, retry_max, retry_wait_time);
 	if (STATUS_OK != result)
@@ -180,7 +206,8 @@ ERROR:
 		tdx_adapter_free(adapter);
 		adapter = NULL;
 	}
-	if (NULL != b64) {
+	if (NULL != b64)
+	{
 		free(b64);
 		b64 = NULL;
 	}

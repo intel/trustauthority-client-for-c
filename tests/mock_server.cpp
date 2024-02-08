@@ -111,6 +111,9 @@ string MockServer::generateResponse(const http_request & request,
 	} else if (httpMethod == methods::POST
 			&& path == "/appraisal/v1/attest") {
 		httpResponse = validTokenResponse();
+	} else if (httpMethod == methods::POST
+			&& path == "/appraisal/v1/attest/azure/tdxvm") {
+		httpResponse = validTokenResponse();
 	} else {
 		httpResponse = "Invalid POST request";
 	}

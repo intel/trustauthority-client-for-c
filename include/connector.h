@@ -60,6 +60,7 @@ extern "C"
 	 * @param evidence quote generated
 	 * @param nonce nonce value returned by Intel Trust Authority
 	 * @param request_id id to uniquely identify the request
+	 * @param attestation_url url to be used for attestation
 	 * @return return status
 	 */
 	TRUST_AUTHORITY_STATUS get_token(trust_authority_connector *connector,
@@ -68,7 +69,8 @@ extern "C"
 			policies *policies,
 			evidence *evidence,
 			nonce *nonce,
-			const char *request_id);
+			const char *request_id,
+			char *attestation_url);
 
 	/**
 	 * Get a token signing certificate from Intel Trust Authority.

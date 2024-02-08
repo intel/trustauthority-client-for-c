@@ -75,7 +75,70 @@ TRUST_AUTHORITY_STATUS collect_token_callback(trust_authority_connector *connect
 
 	DEBUG("Evidence[%d] @%p", evidence.evidence_len, evidence.evidence);
 
-	result = get_token(connector, resp_headers, token, policies, &evidence, &nonce, request_id);
+	result = get_token(connector, resp_headers, token, policies, &evidence, &nonce, request_id, "/appraisal/v1/attest");
+	if (STATUS_OK != result)
+	{
+		ERROR("Error: Failed to get Trust Authority token 0x%04x\n", result);
+		goto ERROR;
+	}
+
+	result = STATUS_OK;
+
+ERROR:
+	nonce_free(&nonce);
+	response_headers_free(&nonce_headers);
+	evidence_free(&evidence);
+	return result;
+}
+
+TRUST_AUTHORITY_STATUS collect_token_azure(trust_authority_connector *connector,
+		response_headers *resp_headers,
+		token *token,
+		policies *policies,
+		const char *request_id,
+		evidence_adapter *adapter,
+		uint8_t *user_data,
+		uint32_t user_data_len)
+{
+	int result;
+	nonce nonce = {0};
+	response_headers nonce_headers = {0};
+	evidence evidence = {0};
+	uint8_t hash[SHA512_LEN] = {0};
+
+	if (NULL == connector)
+	{
+		return STATUS_NULL_CONNECTOR;
+	}
+
+	if (NULL == token)
+	{
+		return STATUS_NULL_TOKEN;
+	}
+
+	if (NULL == adapter->ctx)
+	{
+		return STATUS_INVALID_PARAMETER;
+	}
+
+	result = get_nonce(connector, &nonce, request_id, &nonce_headers);
+	if (result != STATUS_OK)
+	{
+		ERROR("Error: Failed to get Trust Authority nonce 0x%04x\n", result);
+		goto ERROR;
+	}
+
+	//This calls tdx_collect_evidence_azure to get the quote.
+	result = adapter->collect_evidence(adapter->ctx, &evidence, &nonce, user_data, user_data_len);
+	if (result != STATUS_OK)
+	{
+		ERROR("Error: Failed to collect evidence from adapter 0x%04x\n", result);
+		goto ERROR;
+	}
+
+	DEBUG("Evidence[%d] @%p", evidence.evidence_len, evidence.evidence);
+
+	result = get_token(connector, resp_headers, token, policies, &evidence, &nonce, request_id, "/appraisal/v1/attest/azure/tdxvm");
 	if (STATUS_OK != result)
 	{
 		ERROR("Error: Failed to get Trust Authority token 0x%04x\n", result);

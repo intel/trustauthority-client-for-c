@@ -4,6 +4,8 @@ APPNAME := trustauthority-client
 REPO := localhost:5000
 DCAP_VERSION := 1.19.100.3-focal1
 PSW_VERSION := 2.22.100.3
+USE_AZURE_TDX_ADAPTER := OFF
+TDX_TOKEN_BUILD_PREFIX := intel
 
 # By default set the build in release mode
 ENABLE_DEBUG ?= Release
@@ -77,11 +79,17 @@ tdx_token_docker: ubuntu_20
 		--build-arg ENABLE_DEBUG=${ENABLE_DEBUG} \
 		${DOCKER_PROXY_FLAGS} \
 		-f examples/tdx_token/Dockerfile \
-		-t $(ORGNAME)/tdx_token:$(VERSION) \
+		--target ${TDX_TOKEN_BUILD_PREFIX}_tdx_token \
+		-t $(ORGNAME)/${TDX_TOKEN_BUILD_PREFIX}_tdx_token:$(VERSION) \
+		--build-arg USE_AZURE_TDX_ADAPTER=${USE_AZURE_TDX_ADAPTER} \
 		--build-arg DCAP_VERSION=${DCAP_VERSION} \
 		--build-arg MAKEFILE_DIR=${MAKEFILE_DIR} \
 		--build-arg VERSION=${VERSION} \
 		--build-arg COMMIT=${COMMIT} .
+
+azure_tdx_token_docker: USE_AZURE_TDX_ADAPTER = ON
+azure_tdx_token_docker: TDX_TOKEN_BUILD_PREFIX = azure
+azure_tdx_token_docker: tdx_token_docker
 
 clean:
 	rm -rf ${MAKEFILE_DIR}bin

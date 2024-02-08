@@ -97,7 +97,19 @@ Running the sample requires the following steps...
     EOF
     #Make sure the Intel(R) TDX driver device is set with the following permissions:
     #crw-rw---- root <user-group> /dev/tdx_guest
-    sudo docker run -it --rm --device=/dev/tdx_guest --env-file tdx_token.env --group-add $(getent group <user-group> | cut -d: -f3)  taas/tdx_token:v0.3.0
+    sudo docker run -it --rm --device=/dev/tdx_guest --env-file tdx_token.env --group-add $(getent group <user-group> | cut -d: -f3)  taas/intel_tdx_token:v0.3.0
+    ```
+
+- Use docker to run the Azure TDX Token example...
+    ```
+    cat <<EOF | tee tdx_token.env
+    TRUSTAUTHORITY_API_KEY=<trustauthority-api-key>
+    TRUSTAUTHORITY_POLICY_ID=<trustauthority-policy-id>
+    TRUSTAUTHORITY_API_URL=<trustauthority-api-url>
+    TRUSTAUTHORITY_BASE_URL=<trustauthority-base-url>
+    EOF
+
+    sudo docker run -it --rm --device=/dev/tpm0 --device=/dev/tpmrm0 --env-file tdx_token.env --group-add $(getent group tss | cut -d: -f3) taas/azure_tdx_token:v0.3.0
     ```
 
 ### Output when TDX example is run...

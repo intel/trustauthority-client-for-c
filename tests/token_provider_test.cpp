@@ -99,9 +99,13 @@ TEST(CollectToken, ApiNullParameters)
 	mock_adapter_new(&adapter, 10, NULL);
 
 	TRUST_AUTHORITY_STATUS status = collect_token(NULL, NULL, &token, &policies, NULL, adapter, user_data, user_data_len);
+	ASSERT_EQ(status, STATUS_NULL_CONNECTOR);
+
+	status = collect_token_azure(NULL, NULL, &token, &policies, NULL, adapter, user_data, user_data_len);
+	ASSERT_EQ(status, STATUS_NULL_CONNECTOR);
+
 	delete[] user_data;
 	mock_adapter_free(adapter);
-	ASSERT_EQ(status, STATUS_NULL_CONNECTOR);
 }
 
 TEST(CollectToken, TokenNullError)
@@ -128,10 +132,12 @@ TEST(CollectToken, TokenNullError)
 	strncpy(api.api_key, "your_api_key", API_KEY_MAX_LEN);
 
 	TRUST_AUTHORITY_STATUS status = collect_token(&api, NULL, NULL, &policies, NULL, adapter, user_data, user_data_len);
-	delete[] user_data;
-	mock_adapter_free(adapter);
 	ASSERT_EQ(status, STATUS_NULL_TOKEN);
 
+	status = collect_token_azure(&api, NULL, NULL, &policies, NULL, adapter, user_data, user_data_len);
+	ASSERT_EQ(status, STATUS_NULL_TOKEN);
+	delete[] user_data;
+	mock_adapter_free(adapter);
 	mockServer.stop();
 }
 
@@ -174,10 +180,13 @@ TEST(CollectToken, NullCtxParamater)
 
 	TRUST_AUTHORITY_STATUS status = collect_token(&api, NULL, &token, policies, NULL, adapter, user_data, user_data_len);
 	ASSERT_EQ(status, STATUS_INVALID_PARAMETER);
+
+	status = collect_token_azure(&api, NULL, &token, policies, NULL, adapter, user_data, user_data_len);
+	ASSERT_EQ(status, STATUS_INVALID_PARAMETER);
+
 	mock_adapter_free(adapter);
 	token_free(&token);
 	delete[] user_data;
-
 	mockServer.stop();
 }
 
@@ -214,12 +223,14 @@ TEST(CollectToken, NullNonceError)
 	strncpy((char *) user_data, "data1", 6);
 
 	TRUST_AUTHORITY_STATUS status = collect_token(&api, NULL, &token, policies, NULL, adapter, user_data, user_data_len);
+	ASSERT_EQ(status, STATUS_GET_NONCE_ERROR);
+
+	status = collect_token(&api, NULL, &token, policies, NULL, adapter, user_data, user_data_len);
+	ASSERT_EQ(status, STATUS_GET_NONCE_ERROR);
 
 	mock_adapter_free(adapter);
 	token_free(&token);
 	delete[] user_data;
-
-	ASSERT_EQ(status, STATUS_GET_NONCE_ERROR);
 }
 
 TEST(CollectToken, ValidData)
@@ -263,8 +274,11 @@ TEST(CollectToken, ValidData)
 
 	TRUST_AUTHORITY_STATUS status = collect_token(&api, &headers, &token, policies, NULL, adapter, user_data, user_data_len);
 	ASSERT_EQ(status, STATUS_OK);
-	mock_adapter_free(adapter);
 
+	status = collect_token_azure(&api, &headers, &token, policies, NULL, adapter, user_data, user_data_len);
+	ASSERT_EQ(status, STATUS_OK);
+
+	mock_adapter_free(adapter);
 	token_free(&token);
 	delete[] user_data;
 	mockServer.stop();

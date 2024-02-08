@@ -13,7 +13,25 @@ ARG PSW_VERSION
 
 RUN apt-get update; \
     apt-get upgrade -y; \
-    apt-get install -y --no-install-recommends gnupg wget git autoconf automake libtool openssl libssl-dev pkg-config cmake libjansson-dev=2.12-1build1 build-essential ca-certificates
+    apt-get install -y --no-install-recommends gnupg \
+    wget \
+    git \
+    autoconf \
+    automake \
+    libtool \
+    openssl \
+    libssl-dev \
+    pkg-config \
+    cmake \
+    libjansson-dev=2.12-1build1 \
+    build-essential \
+    ca-certificates \
+    autoconf-archive \
+    libltdl-dev \
+    libjson-c-dev \
+    libcurl4-openssl-dev \
+    uuid-dev
+
 RUN echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu focal main' > /etc/apt/sources.list.d/intel-sgx.list
 RUN wget https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key -O /tmp/intel-sgx-deb.key; \
     apt-key add /tmp/intel-sgx-deb.key; \
@@ -29,6 +47,11 @@ RUN apt-get autoremove -y
 RUN git clone https://github.com/benmcollins/libjwt.git 
 WORKDIR /libjwt 
 RUN git checkout c276dc7 && autoreconf -i && ./configure && make all && make install
+
+WORKDIR /
+RUN git clone https://github.com/tpm2-software/tpm2-tss.git
+WORKDIR /tpm2-tss
+RUN git checkout 4.0.1 && ./bootstrap && ./configure && make install
 
 WORKDIR /opt/intel
 RUN wget -q https://download.01.org/intel-sgx/sgx-linux/2.22/distro/ubuntu20.04-server/sgx_linux_x64_sdk_${PSW_VERSION}.bin; \
@@ -62,10 +85,10 @@ RUN  cmake -DCMAKE_BUILD_TYPE=$ENABLE_DEBUG .. \
 FROM scratch as export-stage
 COPY --from=build /trustauthority-client/build/src/connector/libtrustauthority_connector.a .
 COPY --from=build /trustauthority-client/build/src/sgx/libtrustauthority_sgx.a .
-COPY --from=build /trustauthority-client/build/src/tdx/libtrustauthority_tdx.a .
+COPY --from=build /trustauthority-client/build/src/tdx/intel/libtrustauthority_tdx.a .
+COPY --from=build /trustauthority-client/build/src/tdx/azure/libtrustauthority_tdx_azure.a .
 COPY --from=build /trustauthority-client/build/src/token_provider/libtrustauthority_token_provider.a .
 COPY --from=build /trustauthority-client/build/src/token_verifier/libtrustauthority_token_verifier.a .
-
 
 FROM ubuntu:20.04 as test-image
 ARG DEBIAN_FRONTEND=noninteractive

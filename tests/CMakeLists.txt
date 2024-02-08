@@ -28,7 +28,7 @@ set(TEST_SOURCES
     ../src/connector/base64.c
     ../src/connector/appraisal_request.h
     ../src/sgx/sgx_adapter.c
-    ../src/tdx/tdx_adapter.c
+    ../src/tdx/intel/tdx_adapter.c
     ../src/token_provider/token_provider.c
     ../src/token_verifier/token_verifier.c
     ../include/connector.h

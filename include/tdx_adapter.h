@@ -6,7 +6,6 @@
 #define __TDX_ADAPTER_H__
 
 #include <types.h>
-#include <tdx_attest.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -14,21 +13,17 @@ extern "C"
 #endif
 
 #define STATUS_TDX_ERROR_BASE 0x3000
-
-	/**
-	 * callback to get TDX report
-	 */
-	typedef tdx_attest_error_t (*tdx_get_quote_fx)(const tdx_report_data_t *p_tdx_report_data,
-			const tdx_uuid_t att_key_id_list[],
-			uint32_t list_size,
-			tdx_uuid_t *p_att_key_id,
-			uint8_t **pp_quote,
-			uint32_t *p_quote_size,
-			uint32_t flags);
+#define TD_REPORT_OFFSET 32
+#define TD_REPORT_SIZE 1024
+#define RUNTIME_DATA_SIZE_OFFSET 1232
+#define RUNTIME_DATA_OFFSET 1236
+#define REPORT_DATA_NVINDEX 0x01400002
+#define TD_REPORT_NVINDEX 0x01400001
+#define TDX_REPORT_DATA_SIZE 64
 
 	typedef struct tdx_adapter_context
 	{
-		tdx_get_quote_fx tdx_att_get_quote_cb;
+		void* tdx_att_get_quote_cb;
 	} tdx_adapter_context;
 
 	/**
@@ -37,6 +32,13 @@ extern "C"
 	 * @return int containing status
 	 */
 	int tdx_adapter_new(evidence_adapter **adapter);
+
+	/**
+	 * Create a new adapter to get Quote from Azure tdx platform.
+	 * @param adapter to evidence
+	 * @return int containing status
+	 */
+	int azure_tdx_adapter_new(evidence_adapter **adapter);
  
 	// Delete/free a adapter.
 	int tdx_adapter_free(evidence_adapter *adapter);
@@ -51,6 +53,12 @@ extern "C"
 	 * @return int containing status
 	 */
 	int tdx_collect_evidence(void *ctx,
+			evidence *evidence,
+			nonce *nonce,
+			uint8_t *user_data,
+			uint32_t user_data_len);
+
+	int tdx_collect_evidence_azure(void *ctx,
 			evidence *evidence,
 			nonce *nonce,
 			uint8_t *user_data,

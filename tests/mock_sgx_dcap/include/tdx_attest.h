@@ -44,7 +44,6 @@
 #include <stdint.h>
 
 typedef enum _tdx_attest_error_t {
-    STATUS_TDX_ERROR_BASE = 0x3000,
     TDX_ATTEST_SUCCESS = 0x0000,                        ///< Success
     TDX_ATTEST_ERROR_MIN = 0x0001,                      ///< Indicate min error to allow better translation.
     TDX_ATTEST_ERROR_UNEXPECTED = 0x0001,               ///< Unexpected error

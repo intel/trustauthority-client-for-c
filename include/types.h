@@ -16,6 +16,8 @@
 #define MAX_ATS_CERT_CHAIN_LEN 10
 #define DEFAULT_RETRY_MAX 2;
 #define DEFAULT_RETRY_WAIT_TIME 2;
+#define COMMAND_LEN 1000
+#define TPM_OUTPUT_BUFFER 10000
 
 typedef struct token
 {
@@ -34,6 +36,8 @@ typedef struct evidence
 	uint32_t evidence_len;
 	uint8_t *user_data;
 	uint32_t user_data_len;
+	uint8_t *runtime_data;
+	uint32_t runtime_data_len;
 	uint8_t *event_log;
 	uint32_t event_log_len;
 } evidence;
@@ -47,6 +51,11 @@ typedef struct nonce
 	uint8_t *signature;
 	uint32_t signature_len;
 } nonce;
+
+typedef struct quote_request {
+	char * report;
+	uint32_t report_len;
+} quote_request;
 
 typedef struct policies
 {
@@ -130,12 +139,14 @@ typedef enum
 	STATUS_INVALID_PARAMETER,
 	STATUS_NULL_ADAPTER_CTX,
 	STATUS_QUOTE_ERROR,
+	STATUS_USER_DATA_MISMATCH_ERROR,
 
 	STATUS_REST_ERROR = 0x500,
 	STATUS_GET_VERSION_ERROR,
 	STATUS_GET_NONCE_ERROR,
 	STATUS_POST_TOKEN_ERROR,
 	STATUS_GET_SIGNING_CERT_ERROR,
+	STATUS_GET_AZURE_TD_QUOTE_ERROR,
 
 	STATUS_JSON_ERROR = 0x600,
 	STATUS_JSON_ENCODING_ERROR,
@@ -159,18 +170,23 @@ typedef enum
 
 	STATUS_TOKEN_VERIFICATION_FAILED_ERROR = 0x700,
 
+	STATUS_TPM_NV_ERROR = 0x800,
+	STATUS_TPM_NV_DEFINE_FAILED_ERROR,
+	STATUS_TPM_NV_READ_FAILED_ERROR,
+	STATUS_TPM_NV_READ_PUBLIC_FAILED_ERROR,
+	STATUS_TPM_NV_WRITE_FAILED_ERROR,
+	STATUS_TPM_CONTEXT_INIT_ERROR,
+
 	STATUS_MAX
 } TRUST_AUTHORITY_STATUS;
 
 enum BASE64STATUS
 {
 	BASE64_SUCCESS,
-	BASE64_MEMORY_ALLOCATION_FAILED,
 	BASE64_INVALID_INPUT,
 	BASE64_INVALID_CHAR,
 	BASE64_INVALID_OUTPUT_BUFFER_SIZE,
 	BASE64_INVALID_PADDING,
 	BASE64_DECODE_FAILED
 };
-
 #endif
