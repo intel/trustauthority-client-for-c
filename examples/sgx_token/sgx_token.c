@@ -163,8 +163,8 @@ int main(int argc, char *argv[])
 	LOG("Info: quote: %s\n", b64);
 
 	memset(b64, 0, evidence.evidence_len);
-	output_length = ((evidence.user_data_len + 2) / 3) * 4 + 1;
-	status = base64_encode(evidence.user_data, evidence.user_data_len, b64, output_length, 0);
+	output_length = ((evidence.runtime_data_len + 2) / 3) * 4 + 1;
+	status = base64_encode(evidence.runtime_data, evidence.runtime_data_len, b64, output_length, 0);
 	if (BASE64_SUCCESS != status)
 	{
 		ERROR("Error: Failed to base64 encode user-data 0x%04x\n", status)

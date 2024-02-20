@@ -169,8 +169,8 @@ int sgx_collect_evidence(void *ctx,
 	evidence->evidence_len = quote_size;
 
 	// Populating Evidence with UserData
-	evidence->user_data = (uint8_t *)calloc(user_data_len, sizeof(uint8_t));
-	if (NULL == evidence->user_data)
+	evidence->runtime_data = (uint8_t *)calloc(user_data_len, sizeof(uint8_t));
+	if (NULL == evidence->runtime_data)
 	{
 		
 		free(evidence->evidence);
@@ -178,8 +178,8 @@ int sgx_collect_evidence(void *ctx,
 		status = STATUS_SGX_ERROR_BASE | STATUS_ALLOCATION_ERROR;
 		goto ERROR;
 	}
-	memcpy(evidence->user_data, user_data, user_data_len);
-	evidence->user_data_len = user_data_len;
+	memcpy(evidence->runtime_data, user_data, user_data_len);
+	evidence->runtime_data_len = user_data_len;
 	evidence->event_log=NULL;
 	evidence->event_log_len=0;
 
