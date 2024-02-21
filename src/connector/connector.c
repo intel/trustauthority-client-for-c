@@ -490,6 +490,40 @@ ERROR:
 	return status;
 }
 
+TRUST_AUTHORITY_STATUS generate_pubkey_from_certificate(char *certificate,
+		EVP_PKEY **pubkey)
+{
+	char *begin_cert_header = "-----BEGIN CERTIFICATE-----\n";
+	char *end_cert_header = "\n-----END CERTIFICATE-----\n";
+	char *leaf_cert = NULL;
+	X509 *x509_certificate = NULL;
+	BIO *bio = NULL;
+
+	size_t pem_len = strlen(begin_cert_header) + strlen(certificate) + strlen(end_cert_header);
+	leaf_cert = (char *)calloc(1, (pem_len + 1) * sizeof(char));
+	if (leaf_cert == NULL)
+	{
+		ERROR("Error: Failed to allocate memory for certificate")
+		goto ERROR;
+	}
+
+	strcat(leaf_cert, begin_cert_header);
+	strcat(leaf_cert, certificate);
+	strcat(leaf_cert, end_cert_header);
+
+	bio = BIO_new(BIO_s_mem());
+	BIO_puts(bio, leaf_cert);
+	x509_certificate = PEM_read_bio_X509(bio, NULL, NULL, NULL);
+
+	*pubkey = X509_get_pubkey(x509_certificate);
+
+ERROR:
+	if (leaf_cert) {
+		free(leaf_cert);
+		leaf_cert = NULL;
+	}
+}
+
 TRUST_AUTHORITY_STATUS generate_pubkey_from_exponent_and_modulus(const char *exponent,
 		const char *modulus,
 		EVP_PKEY **pubkey)

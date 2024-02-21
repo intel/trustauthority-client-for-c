@@ -253,7 +253,7 @@ TRUST_AUTHORITY_STATUS verify_token(token *token,
 		goto ERROR;
 	}
 
-	result = generate_pubkey_from_exponent_and_modulus(jwks->e, jwks->n, &pubkey);
+	result = generate_pubkey_from_certificate(jwks->x5c[0], &pubkey);
 	if (result != STATUS_OK || pubkey == NULL)
 	{
 		status = STATUS_GENERATE_PUBKEY_ERROR;

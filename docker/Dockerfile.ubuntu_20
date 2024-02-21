@@ -30,7 +30,8 @@ RUN apt-get update; \
     libltdl-dev \
     libjson-c-dev \
     libcurl4-openssl-dev \
-    uuid-dev
+    uuid-dev \
+    libgnutls28-dev
 
 RUN echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu focal main' > /etc/apt/sources.list.d/intel-sgx.list
 RUN wget https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key -O /tmp/intel-sgx-deb.key; \
@@ -46,7 +47,7 @@ RUN apt-get autoremove -y
 ###############################################
 RUN git clone https://github.com/benmcollins/libjwt.git 
 WORKDIR /libjwt 
-RUN git checkout c276dc7 && autoreconf -i && ./configure && make all && make install
+RUN git checkout v1.17.0 && autoreconf -i && ./configure --without-openssl && make all && make install
 
 WORKDIR /
 RUN git clone https://github.com/tpm2-software/tpm2-tss.git
@@ -113,7 +114,8 @@ RUN apt-get update &&  apt-get install -y --no-install-recommends \
     ca-certificates \
     googletest \
     pkg-config \
-    libgtest-dev
+    libgtest-dev \
+    libgnutls28-dev
 
 ####################NOTE:TODO###################
 #Staged libraries libjwt-dev can't be used due to following git issue:
@@ -123,7 +125,7 @@ RUN apt-get update &&  apt-get install -y --no-install-recommends \
 ###############################################
 RUN git clone https://github.com/benmcollins/libjwt.git 
 WORKDIR /libjwt 
-RUN git checkout c276dc7 && autoreconf -i && ./configure && make all && make install
+RUN git checkout v1.17.0 && autoreconf -i && ./configure --without-openssl && make all && make install
 
 USER $USERNAME
 WORKDIR /trustauthority-client/

@@ -8,8 +8,8 @@ SET(JANSSON_BUILD_DOCS OFF CACHE BOOL "Build documentation (uses python-sphinx).
 #file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/jansson )
 
 execute_process (
-    COMMAND sudo apt-get install -y libjansson-dev
-    COMMAND bash -c "git clone https://github.com/benmcollins/libjwt.git && cd libjwt && git checkout c276dc7 && autoreconf -i && ./configure && make all && sudo make install"
+    COMMAND sudo apt-get install -y libjansson-dev libgnutls28-dev
+    COMMAND bash -c "git clone https://github.com/benmcollins/libjwt.git && cd libjwt && git checkout v1.17.0 && autoreconf -i && ./configure --without-openssl && make all && sudo make install"
 
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     OUTPUT_VARIABLE outVar
@@ -33,4 +33,4 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ../log
 )
 
-target_link_libraries(${PROJECT_NAME} PUBLIC jansson jwt -lssl -lcrypto)
+target_link_libraries(${PROJECT_NAME} PUBLIC jansson jwt -lcrypto)

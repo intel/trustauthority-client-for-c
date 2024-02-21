@@ -31,14 +31,15 @@ RUN apt-get update; \
     ca-certificates \
     apt-utils \
     gnupg \
-    curl
+    curl \
+    libgnutls28-dev
 
 ##TODO - Below lines need to be removed upon libjwt release
 ###########
 WORKDIR /
 RUN git clone https://github.com/benmcollins/libjwt.git 
 WORKDIR /libjwt 
-RUN git checkout c276dc7 && autoreconf -i && ./configure && make all && make install
+RUN git checkout v1.17.0 && autoreconf -i && ./configure --without-openssl && make all && make install
 ##########
 
 WORKDIR /
@@ -116,7 +117,7 @@ RUN groupadd --gid $USER_GID $USERNAME \
 RUN apt-get update; \
     apt-get upgrade -y; \
     apt-get autoremove -y; \
-    apt-get install -y --no-install-recommends tpm2-tools \
+    apt-get install -y --no-install-recommends tpm2-tools=4.1.1-1ubuntu0.20.04.1 \
     curl \
     libjansson4=2.12-1build1 \
     ca-certificates
