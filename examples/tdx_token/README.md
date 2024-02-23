@@ -56,6 +56,15 @@ the appropriate dependencies like DCAP have been installed).
 ```
 - When successfully built, running `docker image ls -a` includes `taas/tdx_token:v0.3.0`.
 
+**_NOTE:_** If you are building for Azure, use below commands:
+```shell
+  - To Build in release mode:
+	make azure_tdx_token_docker
+  - To Build in debug mode:
+	make DEBUG=1 azure_tdx_token_docker
+```
+- When successfully built, running `docker image ls -a` includes `taas/azure_tdx_token:v0.3.0`.
+
 ## Deployment Instructions
 - The docker image must be present inside the TD vm.  For example, it can be exported/copied 
 from a build machine as follows...

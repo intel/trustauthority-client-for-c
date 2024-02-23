@@ -34,12 +34,21 @@ extern "C"
 			const char **formatted_pub_key);
 
 	/**
+	 * Generates public key from given certificate.
+	 * @param certificate certificate provided
+	 * @param pubkey key created by using certificate provided
+	 * @return return status
+	*/
+	TRUST_AUTHORITY_STATUS generate_pubkey_from_certificate(char *certificate,
+			EVP_PKEY **pubkey);
+
+	/**
 	 * Generates public key from given exponent and modulus.
 	 * @param exponent exponent provided
 	 * @param modulus modulus provided
 	 * @param pubkey key created by using modulus and exponent provided
 	 * @return return status
-	*/	
+	*/
 	TRUST_AUTHORITY_STATUS generate_pubkey_from_exponent_and_modulus(const char *exponent,
 				const char *modulus,
 				EVP_PKEY **pubkey);
