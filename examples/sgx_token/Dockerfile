@@ -13,7 +13,7 @@ ARG PSW_VERSION
 RUN apt-get update; \
     apt-get upgrade -y; \
     apt-get autoremove -y; \
-    apt-get install -y --no-install-recommends gnupg wget curl git autoconf automake libtool openssl pkg-config cmake libssl-dev libjansson-dev=2.12-1build1 ca-certificates
+    apt-get install -y --no-install-recommends gnupg wget curl git autoconf automake libtool openssl pkg-config cmake libssl-dev libjansson-dev=2.12-1build1 ca-certificates  libgnutls28-dev
 RUN echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu focal main' > /etc/apt/sources.list.d/intel-sgx.list
 RUN curl https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key -o /tmp/intel-sgx-deb.key; \
     apt-key add /tmp/intel-sgx-deb.key; \
@@ -24,13 +24,10 @@ RUN wget -q https://download.01.org/intel-sgx/sgx-linux/2.22/distro/ubuntu20.04-
     chmod +x sgx_linux_x64_sdk_${PSW_VERSION}.bin; \
     echo 'yes' | ./sgx_linux_x64_sdk_${PSW_VERSION}.bin
 
-##TODO - Below lines need to be removed upon libjwt release
-###########
 WORKDIR /
 RUN git clone https://github.com/benmcollins/libjwt.git
 WORKDIR /libjwt 
-RUN git checkout c276dc7 && autoreconf -i && ./configure && make all && make install
-##########
+RUN git checkout v1.17.0 && autoreconf -i && ./configure --without-openssl && make all && make install
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libsgx-urts=${PSW_VERSION}-focal1 \

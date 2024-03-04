@@ -25,6 +25,7 @@ TRUST_AUTHORITY_STATUS verify_token(token *token,
 	int result;
 	char *jwks_url = NULL;
 	const char *formatted_pub_key = NULL, *token_kid = NULL;
+	jwk_set *key_set = NULL;
 	jwks *jwks = NULL;
 	EVP_PKEY *pubkey = NULL;
 	TRUST_AUTHORITY_STATUS status = STATUS_OK;
@@ -70,14 +71,22 @@ TRUST_AUTHORITY_STATUS verify_token(token *token,
 				jwks_data);
 	}
 
-	result = json_unmarshal_token_signing_cert(&jwks, jwks_data);
-	if (result != STATUS_OK || jwks == NULL)
+	result = json_unmarshal_token_signing_cert(&key_set, jwks_data);
+	if (result != STATUS_OK || key_set == NULL)
 	{
 		status = STATUS_JSON_SIGN_CERT_UNMARSHALING_ERROR;
 		goto ERROR;
 	}
-	// Lookup for Key ID matches
-	if (0 != strcmp(jwks->kid, token_kid))
+	for (int k=0; k<key_set->key_cnt; k++)
+	{
+		// Lookup for Key ID matches
+		if (strcmp(key_set->keys[k]->kid, token_kid) == 0)
+		{
+			jwks = key_set->keys[k];
+			break;
+		}
+	}
+	if (jwks == NULL)
 	{
 		status = STATUS_KID_NOT_MATCHING_ERROR;
 		goto ERROR;
@@ -125,7 +134,6 @@ ERROR:
 		free((void *)formatted_pub_key);
 		formatted_pub_key = NULL;
 	}
-	jwks_free(jwks);
-
+	jwks_free(key_set);
 	return status;
 }

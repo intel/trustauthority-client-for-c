@@ -417,14 +417,14 @@ TRUST_AUTHORITY_STATUS json_marshal_token(token *token,
 	return STATUS_OK;
 }
 
-TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwks **cert,
+TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwk_set **key_sets,
 		const char *json)
 {
 	json_t *jansson_sign_cert;
 	json_t *tmp;
 	json_error_t error;
 
-	if (NULL == cert)
+	if (NULL == key_sets)
 	{
 		return STATUS_INVALID_PARAMETER;
 	}
@@ -452,14 +452,25 @@ TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwks **cert,
 	}
 
 	size_t keys_count = json_array_size(keys_arr);
-	*cert = (jwks *)malloc(keys_count * sizeof(jwks));
-	if (NULL == *cert)
+	*key_sets = (jwk_set *)malloc(sizeof(jwk_set));
+	if (NULL == *key_sets)
+	{
+		return STATUS_ALLOCATION_ERROR;
+	}
+	(*key_sets)->key_cnt = keys_count;
+	(*key_sets)->keys = (jwks **)calloc(keys_count, sizeof(jwks *));
+	if (NULL == (*key_sets)->keys)
 	{
 		return STATUS_ALLOCATION_ERROR;
 	}
 
+	jwks *key = NULL;
+
 	for (size_t i = 0; i < keys_count; i++)
 	{
+		(*key_sets)->keys[i] = (jwks *)calloc(1, sizeof(jwks));
+		key = (*key_sets)->keys[i];
+		
 		json_t *key_obj = json_array_get(keys_arr, i);
 		json_t *kty_obj = json_object_get(key_obj, "kty");
 		json_t *kid_obj = json_object_get(key_obj, "kid");
@@ -485,9 +496,9 @@ TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwks **cert,
 		}
 
 		size_t x5c_count = json_array_size(x5c_arr_obj);
-		(*cert[i]).num_of_x5c = x5c_count;
-		(*cert[i]).x5c = (char **)calloc(x5c_count, sizeof(char *));
-		if (NULL == (*cert[i]).x5c)
+		key->num_of_x5c = x5c_count;
+		key->x5c = (char **)calloc(x5c_count, sizeof(char *));
+		if (NULL == key->x5c)
 		{
 			return STATUS_ALLOCATION_ERROR;
 		}
@@ -502,13 +513,13 @@ TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwks **cert,
 			const char *x5c = json_string_value(x5c_obj);
 			size_t x5c_length = strlen(x5c);
 
-			(*cert[i]).x5c[j] = (char *)malloc((x5c_length + 1) * sizeof(char));
-			if ((*cert[i]).x5c[j] == NULL)
+			key->x5c[j] = (char *)malloc((x5c_length + 1) * sizeof(char));
+			if (key->x5c[j] == NULL)
 			{
 				return STATUS_ALLOCATION_ERROR;
 			}
-			strncpy((char *)(*cert[i]).x5c[j], x5c, x5c_length);
-			(*cert[i]).x5c[j][x5c_length] = '\0';
+			strncpy((char *)key->x5c[j], x5c, x5c_length);
+			key->x5c[j][x5c_length] = '\0';
 		}
 
 		// Copy values to the cert structure
@@ -523,50 +534,50 @@ TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwks **cert,
 		size_t e_length = strlen(e);
 		size_t alg_length = strlen(alg);
 
-		(*cert[i]).keytype = (char *)malloc((kty_length + 1) * sizeof(char));
-		if ((*cert[i]).keytype == NULL)
+		key->keytype = (char *)malloc((kty_length + 1) * sizeof(char));
+		if (key->keytype == NULL)
 		{
 			return STATUS_ALLOCATION_ERROR;
 		}
 
-		strncpy((char *)(*cert[i]).keytype, kty, kty_length);
-		(*cert[i]).keytype[kty_length] = '\0';
+		strncpy((char *)key->keytype, kty, kty_length);
+		key->keytype[kty_length] = '\0';
 
-		(*cert[i]).kid = (char *)malloc((kid_length + 1) * sizeof(char));
-		if ((*cert[i]).kid == NULL)
+		key->kid = (char *)malloc((kid_length + 1) * sizeof(char));
+		if (key->kid == NULL)
 		{
 			return STATUS_ALLOCATION_ERROR;
 		}
 
-		strncpy((char *)(*cert[i]).kid, kid, kid_length);
-		(*cert[i]).kid[kid_length] = '\0';
+		strncpy((char *)key->kid, kid, kid_length);
+		key->kid[kid_length] = '\0';
 
-		(*cert[i]).n = (char *)malloc((n_length + 1) * sizeof(char));
-		if ((*cert[i]).n == NULL)
+		key->n = (char *)malloc((n_length + 1) * sizeof(char));
+		if (key->n == NULL)
 		{
 			return STATUS_ALLOCATION_ERROR;
 		}
 
-		strncpy((char *)(*cert[i]).n, n, n_length);
-		(*cert[i]).n[n_length] = '\0';
+		strncpy((char *)key->n, n, n_length);
+		key->n[n_length] = '\0';
 
-		(*cert[i]).e = (char *)malloc((e_length + 1) * sizeof(char));
-		if ((*cert[i]).e == NULL)
+		key->e = (char *)malloc((e_length + 1) * sizeof(char));
+		if (key->e == NULL)
 		{
 			return STATUS_ALLOCATION_ERROR;
 		}
 
-		strncpy((char *)(*cert[i]).e, e, e_length);
-		(*cert[i]).e[e_length] = '\0';
+		strncpy((char *)key->e, e, e_length);
+		key->e[e_length] = '\0';
 
-		(*cert[i]).alg = (char *)malloc((alg_length + 1) * sizeof(char));
-		if ((*cert[i]).alg == NULL)
+		key->alg = (char *)malloc((alg_length + 1) * sizeof(char));
+		if (key->alg == NULL)
 		{
 			return STATUS_ALLOCATION_ERROR;
 		}
 
-		strncpy((char *)(*cert[i]).alg, alg, alg_length);
-		(*cert[i]).alg[alg_length] = '\0';
+		strncpy((char *)key->alg, alg, alg_length);
+		key->alg[alg_length] = '\0';
 	}
 
 	if (jansson_sign_cert)

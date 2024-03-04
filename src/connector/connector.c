@@ -469,47 +469,55 @@ TRUST_AUTHORITY_STATUS response_headers_free(response_headers *header)
 	return STATUS_OK;
 }
 
-TRUST_AUTHORITY_STATUS jwks_free(jwks *jwks)
+TRUST_AUTHORITY_STATUS jwks_free(jwk_set *key_set)
 {
-	if (NULL != jwks)
+	if (NULL != key_set)
 	{
-		int i=0;
-		for(i=0; i < jwks->num_of_x5c; i++)
+		jwks *jwks = NULL;
+		for (int k=0; k<key_set->key_cnt; k++)
 		{
-			if(NULL != jwks->x5c[i])
+			jwks = key_set->keys[k];
+			for(int i=0; i < jwks->num_of_x5c; i++)
 			{
-				free((void *)jwks->x5c[i]);
-				jwks->x5c[i] = NULL;
+				if(NULL != jwks->x5c[i])
+				{
+					free((void *)jwks->x5c[i]);
+					jwks->x5c[i] = NULL;
+				}
 			}
-		}
 
-		if(NULL != jwks->alg)
-		{
-			free((void *)jwks->alg);
-			jwks->alg = NULL;
+			if(NULL != jwks->alg)
+			{
+				free((void *)jwks->alg);
+				jwks->alg = NULL;
+			}
+			if(NULL != jwks->e)
+			{
+				free((void *)jwks->e);
+				jwks->e = NULL;
+			}
+			if(NULL != jwks->n)
+			{
+				free((void *)jwks->n);
+				jwks->n = NULL;
+			}
+			if(NULL != jwks->kid)
+			{
+				free((void *)jwks->kid);
+				jwks->kid = NULL;
+			}
+			if(NULL != jwks->keytype)
+			{
+				free((void *)jwks->keytype);
+				jwks->keytype = NULL;
+			}
+			free(jwks);
+			jwks = NULL;
 		}
-		if(NULL != jwks->e)
-		{
-			free((void *)jwks->e);
-			jwks->e = NULL;
-		}
-		if(NULL != jwks->n)
-		{
-			free((void *)jwks->n);
-			jwks->n = NULL;
-		}
-		if(NULL != jwks->kid)
-		{
-			free((void *)jwks->kid);
-			jwks->kid = NULL;
-		}
-		if(NULL != jwks->keytype)
-		{
-			free((void *)jwks->keytype);
-			jwks->keytype = NULL;
-		}
-		free(jwks);
-		jwks = NULL;
+		free(key_set->keys);
+		key_set->keys = NULL;
+		free(key_set);
+		key_set = NULL;
 	}
 	return STATUS_OK;
 }

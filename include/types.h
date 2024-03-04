@@ -87,6 +87,11 @@ typedef struct jwks
 	size_t num_of_x5c;
 } jwks;
 
+typedef struct jwk_set {
+	jwks **keys;
+	size_t key_cnt;
+}jwk_set;
+
 // The evidence_adapter defines an abstraction for collecting evidence
 // for difference implementations (ex. SGX, TDX, TPM, SPDM, etc.).
 #define EVIDENCE_TYPE_SGX 0x53475800 // 'SGX0'

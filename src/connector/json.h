@@ -78,7 +78,7 @@ extern "C"
 	 * @param json data to be unmarshalled
 	 * @return return status
 	 */		
-	TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwks **cert,
+	TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwk_set **cert,
 			const char *json);
 
 #ifdef __cplusplus

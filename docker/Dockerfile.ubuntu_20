@@ -39,12 +39,6 @@ RUN wget https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key -O 
     rm /tmp/intel-sgx-deb.key
 RUN apt-get autoremove -y
 
-####################NOTE:TODO###################
-#Staged libraries libjwt-dev can't be used due to following git issue:
-#https://github.com/benmcollins/libjwt/issues/175
-#Till above issue is not packaged and released in UBUNTU focal, trustauthority client will be cloning and building a specific commit.
-#Below lines will be removed post resolution of above issue.
-###############################################
 RUN git clone https://github.com/benmcollins/libjwt.git 
 WORKDIR /libjwt 
 RUN git checkout v1.17.0 && autoreconf -i && ./configure --without-openssl && make all && make install
@@ -117,12 +111,6 @@ RUN apt-get update &&  apt-get install -y --no-install-recommends \
     libgtest-dev \
     libgnutls28-dev
 
-####################NOTE:TODO###################
-#Staged libraries libjwt-dev can't be used due to following git issue:
-#https://github.com/benmcollins/libjwt/issues/175
-#Till above issue is not packaged and released in UBUNTU focal, trustauthority client will be cloning and building a specific commit.
-#Below lines will be removed post resolution of above issue.
-###############################################
 RUN git clone https://github.com/benmcollins/libjwt.git 
 WORKDIR /libjwt 
 RUN git checkout v1.17.0 && autoreconf -i && ./configure --without-openssl && make all && make install

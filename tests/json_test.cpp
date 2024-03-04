@@ -243,7 +243,7 @@ TEST(JsonUnmarshalTAJwksTest, EmptyCertParameterReturnsInvalidParameter)
 
 TEST(JsonUnmarshalTAJwksTest, EmptyKeyError)
 {
-	jwks *cert = nullptr;
+	jwk_set *cert = nullptr;
 	const char *json = "{}";
 	TRUST_AUTHORITY_STATUS status = json_unmarshal_token_signing_cert(&cert, json);
 
@@ -254,7 +254,7 @@ TEST(JsonUnmarshalTAJwksTest, EmptyKeyError)
 
 TEST(JsonUnmarshalTAJwksTest, EmptyJsonDataReturnsInvalidParameter)
 {
-	jwks *cert = nullptr;
+	jwk_set *cert = nullptr;
 	const char *json = nullptr;
 	TRUST_AUTHORITY_STATUS status = json_unmarshal_token_signing_cert(&cert, json);
 
@@ -266,7 +266,7 @@ TEST(JsonUnmarshalTAJwksTest, EmptyJsonDataReturnsInvalidParameter)
 TEST(JsonUnmarshalTAJwksTest, ValidJsonReturnsOk)
 {
 	// Arrange
-	jwks *cert = nullptr;
+	jwk_set *cert = nullptr;
 	const char *json = R"({
         "keys": [
             {
@@ -285,14 +285,15 @@ TEST(JsonUnmarshalTAJwksTest, ValidJsonReturnsOk)
 	// Assert
 	EXPECT_EQ(status, STATUS_OK);
 	ASSERT_NE(cert, nullptr);
-	EXPECT_STREQ(cert[0].keytype, "RSA");
-	EXPECT_STREQ(cert[0].kid, "123");
-	EXPECT_STREQ(cert[0].n, "abc");
-	EXPECT_STREQ(cert[0].e, "def");
-	EXPECT_STREQ(cert[0].alg, "RS256");
-	EXPECT_EQ(cert[0].num_of_x5c, 2);
-	EXPECT_STREQ(cert[0].x5c[0], "cert1");
-	EXPECT_STREQ(cert[0].x5c[1], "cert2");
+	ASSERT_NE(cert->keys[0], nullptr);
+	EXPECT_STREQ(cert->keys[0]->keytype, "RSA");
+	EXPECT_STREQ(cert->keys[0]->kid, "123");
+	EXPECT_STREQ(cert->keys[0]->n, "abc");
+	EXPECT_STREQ(cert->keys[0]->e, "def");
+	EXPECT_STREQ(cert->keys[0]->alg, "RS256");
+	EXPECT_EQ(cert->keys[0]->num_of_x5c, 2);
+	EXPECT_STREQ(cert->keys[0]->x5c[0], "cert1");
+	EXPECT_STREQ(cert->keys[0]->x5c[1], "cert2");
 }
 
 TEST(JsonAppraisalRequestMarshalTest, EmptyRequestTest)

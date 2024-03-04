@@ -89,7 +89,7 @@ extern "C"
 	TRUST_AUTHORITY_STATUS response_headers_free(response_headers *header);
 
 	// Delete/free jwks.
-	TRUST_AUTHORITY_STATUS jwks_free(jwks *jwks);
+	TRUST_AUTHORITY_STATUS jwks_free(jwk_set *jwks_set);
 
 #ifdef __cplusplus
 }
