@@ -12,6 +12,27 @@ extern "C"
 {
 #endif
 
+	// get_token_args holds the request parameters needed for getting token from Intel Trust Authority
+	typedef struct get_token_args {
+		nonce *nonce;
+		evidence *evidence;
+		policies *policies;
+		const char *request_id;
+		const char *token_signing_alg;
+	}get_token_args;
+
+	// collect_token_args structure holds user provided request paramaters used in nonce/token rest calls
+	typedef struct collect_token_args {
+		policies *policies;
+		const char *request_id;
+		const char *token_signing_alg;
+	}collect_token_args;
+
+	//get_nonce_args holds the request parameters needed for getting nonce from Intel Trust Authority
+	typedef struct get_nonce_args {
+		const char *request_id;
+	}get_nonce_args;
+
 	/**
 	 * Create a new trust authority connector client to make REST calls to Intel Trust Authority
 	 * @param api_key a char pointer containing Intel Trust Authority api key
@@ -30,13 +51,13 @@ extern "C"
 	 * Get a nonce from Intel Trust Authority.
 	 * @param connector instance to connect to Intel Trust Authority
 	 * @param nonce nonce value returned by Intel Trust Authority
-	 * @param request_id id to uniquely identify the request
+	 * @param nonce_args args required to pass in nonce request
 	 * @param resp_header a char pointer containing response headers returned from Intel Trust Authority 
 	 * @return return status
 	 */
 	TRUST_AUTHORITY_STATUS get_nonce(trust_authority_connector *connector,
 			nonce *nonce,
-			const char *request_id,
+			get_nonce_args *nonce_args,
 			response_headers *resp_header);
 
 	/**
@@ -44,20 +65,14 @@ extern "C"
 	 * @param connector a trust_authority_connector pointer
 	 * @param resp_header a char pointer containing response headers returned from Intel Trust Authority
 	 * @param token token returned from Intel Trust Authority
-	 * @param policies policy id created in Intel Trust Authority passed here to be used
-	 * @param evidence quote generated
-	 * @param nonce nonce value returned by Intel Trust Authority
-	 * @param request_id id to uniquely identify the request
+	 * @param token_args args required pass in token requrest 
 	 * @param attestation_url url to be used for attestation
 	 * @return return status
 	 */
 	TRUST_AUTHORITY_STATUS get_token(trust_authority_connector *connector,
 			response_headers *resp_headers,
 			token *token,
-			policies *policies,
-			evidence *evidence,
-			nonce *nonce,
-			const char *request_id,
+			get_token_args *token_args,
 			char *attestation_url);
 
 	/**

@@ -93,7 +93,7 @@ TRUST_AUTHORITY_STATUS trust_authority_connector_new(trust_authority_connector *
 
 TRUST_AUTHORITY_STATUS get_nonce(trust_authority_connector *connector,
 		nonce *nonce,
-		const char *request_id,
+		get_nonce_args *args,
 		response_headers *resp_headers)
 {
 	int result = STATUS_OK;
@@ -118,7 +118,7 @@ TRUST_AUTHORITY_STATUS get_nonce(trust_authority_connector *connector,
 
 	//Get nonce from Intel Trust Authority
 	status = get_request(url, connector->api_key, ACCEPT_APPLICATION_JSON, 
-			request_id, NULL, &json ,&headers, connector->retries);
+			args->request_id, NULL, &json ,&headers, connector->retries);
 	if (NULL == json || CURLE_OK != status)
 	{
 		ERROR("Error: GET request to %s failed", url);
@@ -154,10 +154,7 @@ TRUST_AUTHORITY_STATUS get_nonce(trust_authority_connector *connector,
 TRUST_AUTHORITY_STATUS get_token(trust_authority_connector *connector,
 		response_headers *resp_headers,
 		token *token,
-		policies *policies,
-		evidence *evidence,
-		nonce *nonce,
-		const char *request_id,
+		get_token_args *args,
 		char *attestation_endpoint)
 {
 	int result = STATUS_OK;
@@ -172,29 +169,31 @@ TRUST_AUTHORITY_STATUS get_token(trust_authority_connector *connector,
 	{
 		return STATUS_NULL_CONNECTOR;
 	}
-
 	if (NULL == token)
 	{
 		return STATUS_NULL_TOKEN;
 	}
+	if (NULL == args)
+	{
+		return STATUS_NULL_ARGS;
+	}
 
-	if (NULL == evidence)
+	if (NULL == args->evidence)
 	{
 		return STATUS_NULL_EVIDENCE;
 	}
 
-	if (NULL == evidence->evidence)
+	if (NULL == args->evidence->evidence)
 	{
 		return STATUS_INVALID_PARAMETER;
 	}
-
-	if (evidence->evidence_len > MAX_EVIDENCE_LEN)
+	if (args->evidence->evidence_len > MAX_EVIDENCE_LEN)
 	{
-		ERROR("Error: Evidence data size %d exceeds maximum length %d\n", evidence->evidence_len, MAX_EVIDENCE_LEN);
+		ERROR("Error: Evidence data size %d exceeds maximum length %d\n", args->evidence->evidence_len, MAX_EVIDENCE_LEN);
 		return STATUS_INVALID_PARAMETER;
 	}
 
-	if (NULL == nonce)
+	if (NULL == args->nonce)
 	{
 		return STATUS_NULL_NONCE;
 	}
@@ -203,16 +202,17 @@ TRUST_AUTHORITY_STATUS get_token(trust_authority_connector *connector,
 	strncat(url, attestation_endpoint, API_URL_MAX_LEN);
 	DEBUG("Token url: %s\n", url);
 	
-	request.quote_len = evidence->evidence_len;
-	request.quote = evidence->evidence;
-	request.verifier_nonce = nonce;
-	request.runtime_data_len = evidence->runtime_data_len;
-	request.runtime_data = evidence->runtime_data;
-	request.user_data_len = evidence->user_data_len;
-	request.user_data = evidence->user_data;
-	request.policy_ids = policies;
-	request.event_log_len = evidence->event_log_len;
-	request.event_log = evidence->event_log;
+	request.quote_len = args->evidence->evidence_len;
+	request.quote = args->evidence->evidence;
+	request.verifier_nonce = args->nonce;
+	request.runtime_data_len = args->evidence->runtime_data_len;
+	request.runtime_data = args->evidence->runtime_data;
+	request.user_data_len = args->evidence->user_data_len;
+	request.user_data = args->evidence->user_data;
+	request.policy_ids = args->policies;
+	request.event_log_len = args->evidence->event_log_len;
+	request.event_log = args->evidence->event_log;
+	request.token_signing_alg = args->token_signing_alg;
 	//Marshal the request in JSON form to be sent to Intel Trust Authority
 	result = json_marshal_appraisal_request(&request, &json);
 	if (STATUS_OK != result)
@@ -222,7 +222,7 @@ TRUST_AUTHORITY_STATUS get_token(trust_authority_connector *connector,
 	}
 
 	//Get token from Intel Trust Authority
-	status = post_request(url, connector->api_key, ACCEPT_APPLICATION_JSON, request_id, CONTENT_TYPE_APPLICATION_JSON, json, &response, &headers, connector->retries);
+	status = post_request(url, connector->api_key, ACCEPT_APPLICATION_JSON, args->request_id, CONTENT_TYPE_APPLICATION_JSON, json, &response, &headers, connector->retries);
 	if (NULL == response || CURLE_OK != status)
 	{
 		ERROR("Error: POST request to %s failed", url);
@@ -303,6 +303,17 @@ int is_valid_uuid(const char *uuid_str)
 	}
 
 	return ret;
+}
+TRUST_AUTHORITY_STATUS is_valid_token_sigining_alg(const char *input)
+{
+	if (input == NULL)
+	{
+		return STATUS_INPUT_ERROR;
+	}
+	if ((strcmp(input, PS384) != 0) && (strcmp(input, RS256) != 0)){
+		return STATUS_INVALID_TOKEN_SIGNING_ALG;
+	}
+	return STATUS_OK;
 }
 
 // Validate format of api_key

@@ -695,6 +695,10 @@ TRUST_AUTHORITY_STATUS json_marshal_appraisal_request(appraisal_request *request
 		free(b64);
 		b64 = NULL;
 	}
+	if (request->token_signing_alg != NULL)
+	{
+		json_object_set(jansson_request, "token_signing_alg", json_string(request->token_signing_alg));
+	}
 
 	// policy_ids
 	policies = json_array();

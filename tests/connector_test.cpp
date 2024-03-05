@@ -138,6 +138,7 @@ TEST(ApiTest, GetNonce)
 	// Prepare the API and nonce structures
 	trust_authority_connector api = { 0 };
 	nonce nonce = { 0 };
+	get_nonce_args nonce_args ={0};
 	response_headers headers = { 0 };
 	api.retries = (retry_config *)calloc(1, sizeof(retry_config));
 
@@ -152,8 +153,9 @@ TEST(ApiTest, GetNonce)
 	strncpy(api.api_url, "http://localhost:8080", API_URL_MAX_LEN);
 	strncpy(api.api_key, "your_api_key", API_KEY_MAX_LEN);
 
+	nonce_args.request_id = "1234";
 	// Perform the API call and retrieve the nonce
-	TRUST_AUTHORITY_STATUS result = get_nonce(&api, &nonce, "1234", &headers);
+	TRUST_AUTHORITY_STATUS result = get_nonce(&api, &nonce, &nonce_args, &headers);
 
 	// Assert the result is successful
 	ASSERT_EQ(result, STATUS_OK);
@@ -224,7 +226,7 @@ TEST(UUIDTest, InvalidUUID)
 // Test case for negative scenario - api is null
 TEST(TokenTest, ApiNullError)
 {
-	TRUST_AUTHORITY_STATUS result = get_token(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+	TRUST_AUTHORITY_STATUS result = get_token(NULL, NULL, NULL, NULL, NULL);
 
 	// Should throw error - api is null
 	ASSERT_EQ(result, STATUS_NULL_CONNECTOR);
@@ -234,7 +236,8 @@ TEST(TokenTest, ApiNullError)
 TEST(TokenTest, TokenNullError)
 {
 	trust_authority_connector api;
-	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+	get_token_args token_args = {0};
+	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, NULL, &token_args, NULL);
 
 	// Should throw error - token is null
 	ASSERT_EQ(result, STATUS_NULL_TOKEN);
@@ -244,9 +247,11 @@ TEST(TokenTest, TokenNullError)
 TEST(TokenTest, EvidenceNullError)
 {
 	trust_authority_connector api;
+	get_token_args token_args = {0};
 	token token;
 	policies policy;
-	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, &token, &policy, NULL, NULL, NULL, NULL);
+	token_args.policies = &policy;
+	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, &token, &token_args, NULL);
 
 	// Should throw error - Evidence is null
 	ASSERT_EQ(result, STATUS_NULL_EVIDENCE);
@@ -257,12 +262,16 @@ TEST(TokenTest, EvidenceDataNullError)
 {
 	trust_authority_connector api;
 	token token;
+	get_token_args  token_args = {0};
 	policies policy;
 	evidence *ta_evidence;
 	evidence evidenceObj;
 	ta_evidence = &evidenceObj;
 	ta_evidence->evidence = NULL;
-	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, &token, &policy, ta_evidence, NULL, NULL, NULL);
+
+	token_args.policies = &policy;
+	token_args.evidence = ta_evidence;
+	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, &token, &token_args, NULL);
 
 	// Should throw error - Evidence data is null
 	ASSERT_EQ(result, STATUS_INVALID_PARAMETER);
@@ -273,6 +282,7 @@ TEST(TokenTest, EvidenceDataError)
 {
 	trust_authority_connector api;
 	token token;
+	get_token_args token_args = {0};
 	policies policy;
 	evidence *ta_evidence;
 	evidence evidenceObj;
@@ -281,7 +291,10 @@ TEST(TokenTest, EvidenceDataError)
 	ta_evidence->evidence_len = MAX_EVIDENCE_LEN + 1;	// Exceed the maximum length
 	ta_evidence->evidence = new uint8_t[ta_evidence->evidence_len];
 	strncpy((char *) ta_evidence->evidence, "data1", ta_evidence->evidence_len);
-	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, &token, &policy, ta_evidence, NULL, NULL, NULL);
+
+	token_args.policies = &policy;
+	token_args.evidence = ta_evidence;
+	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, &token, &token_args, NULL);
 
 	// Should throw error - Evidence data exceeds maximum length
 	ASSERT_EQ(result, STATUS_INVALID_PARAMETER);
@@ -292,6 +305,7 @@ TEST(TokenTest, NonceNullError)
 {
 	trust_authority_connector api;
 	token token;
+	get_token_args token_args = {0};
 	policies policy;
 	evidence *ta_evidence;
 	evidence evidenceObj;
@@ -300,7 +314,9 @@ TEST(TokenTest, NonceNullError)
 	ta_evidence->evidence_len = MAX_EVIDENCE_LEN;
 	ta_evidence->evidence = new uint8_t[ta_evidence->evidence_len];
 	strncpy((char *) ta_evidence->evidence, "data1", ta_evidence->evidence_len);
-	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, &token, &policy, ta_evidence, NULL, NULL, NULL);
+	token_args.policies = &policy;
+	token_args.evidence = ta_evidence;
+	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, &token, &token_args, NULL);
 
 	// Should throw error - nonce is null
 	ASSERT_EQ(result, STATUS_NULL_NONCE);
@@ -318,6 +334,7 @@ TEST(TokenTest, RetrieveTokenSuccess)
 	const char *apiKey = "SGVsbG8sIFdvcmxkIW==";
 	const char *apiUrl = "https://localhost:8080";
 	token *ta_token = nullptr;
+	get_token_args token_args = {0};
 	response_headers resp_headers = { 0 };
 	policies *ta_policies = nullptr;
 	evidence *ta_evidence = nullptr;
@@ -368,8 +385,12 @@ TEST(TokenTest, RetrieveTokenSuccess)
 
 	strncat(attestation_url, "/appraisal/v1/attest", API_URL_MAX_LEN);
 
+	token_args.policies = ta_policies;
+	token_args.nonce = ta_nonce;
+	token_args.evidence = ta_evidence;
+
 	// Call the get_token function
-	TRUST_AUTHORITY_STATUS getTokenStatus = get_token(api, &resp_headers, ta_token, ta_policies, ta_evidence, ta_nonce, NULL, attestation_url);
+	TRUST_AUTHORITY_STATUS getTokenStatus = get_token(api, &resp_headers, ta_token, &token_args, attestation_url);
 
 	// Verify the return status is STATUS_OK
 	ASSERT_EQ(getTokenStatus, STATUS_OK);

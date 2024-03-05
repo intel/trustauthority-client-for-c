@@ -19,6 +19,10 @@
 #define COMMAND_LEN 1000
 #define TPM_OUTPUT_BUFFER 10000
 
+//Intel Trust Authority supported token signing algorithms
+#define RS256 "RS256"
+#define PS384 "PS384"
+
 typedef struct token
 {
 	char *jwt;
@@ -127,6 +131,8 @@ typedef enum
 	STATUS_NULL_TOKEN,
 	STATUS_INVALID_USER_DATA,
 	STATUS_NULL_CALLBACK,
+	STATUS_NULL_ARGS,
+	STATUS_INVALID_TOKEN_SIGNING_ALG,
 
 	STATUS_CERTIFICATES_DECODE_ERROR = 0x200,
 	STATUS_CREATE_STORE_ERROR,

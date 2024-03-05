@@ -33,6 +33,15 @@ extern "C"
 	*/	
 	TRUST_AUTHORITY_STATUS is_valid_api_key(const char *api_key);
 
+
+	/**
+	 * Verifies if token signing algorithm are supported 
+	 * @param input alg to be verified
+	 * @return return status
+	*/	
+	TRUST_AUTHORITY_STATUS is_valid_token_sigining_alg(const char *input);
+
+
 #ifdef __cplusplus
 }
 #endif

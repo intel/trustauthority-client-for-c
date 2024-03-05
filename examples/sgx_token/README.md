@@ -87,6 +87,7 @@ Running the sample requires the following steps...
     |TRUSTAUTHORITY_POLICY_ID	|The policy id created using Intel Trust Authority portal.	|
     |TRUSTAUTHORITY_BASE_URL	|The base url of Intel Trust Authority certificate management authority to download certificate to verify token in Azure. (ex. 'https://intel-trust-authority.com')|
     |REQUEST_ID			|An optional parameter to trace the request.			|
+    |TOKEN_SIGNING_ALG|An optional parameter to specify token signing algorithm, supported algorithms are RS256, PS384.|
     |RETRY_WAIT_TIME		|Wait time between retries. Default value is 2 seconds.		|
     |RETRY_MAX			|Maximum number of retries. Default value is 2 seconds.		|
 

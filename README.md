@@ -48,18 +48,19 @@ Use the adapter created with following piece of code:
 ```C
 token token = {0};
 policies policies = {0};
+collect_token_args token_args ={0};
 evidence_adapter *adapter = NULL;
 char *ids[] = {policy_id};
 policies.ids = ids;
 policies.count = //Number of policies provided
+token_args.polices = policies;
 
 /**
  * Gets the token from Intel Trust Authority
  * connector[input] - an HTTPClient interface to communicate with Intel Trust Authority via REST APIs(created using above code)
  *  header[output] - parameter containing all response headers from Intel Trust Authority
  *  token[output] - token struct that will contain the token recieved from Intel Trust Authority
- *  policies[input] - policies defined in Intel Trust Authority
- *  request_id[input] - optional parameter containing user defined id to uniquely identify attestation request
+ *  args[input] - request paramater that will part of token request
  *  adapter[input] - sgx/tdx adapter created.
  *  user_data[input] - any additional data user wants to embed into the quote
  *  user_data_len[input] - length of user data
@@ -67,8 +68,7 @@ policies.count = //Number of policies provided
 status = collect_token(connector,
                     &header,
                     &token, 
-                    &policies,
-                    &request_id, //optional        
+                    &args,
                     adapter, // recieved from adapter
                     user_data, // any extra data user wants to send.
                     user_data_len);  // length of user data.

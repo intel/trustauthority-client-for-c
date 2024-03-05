@@ -93,15 +93,18 @@ TEST(CollectToken, ApiNullParameters)
 	evidence_adapter *adapter = NULL;
 	uint8_t *user_data = NULL;
 	uint32_t user_data_len = 5;
+	collect_token_args token_args ={0};
+
+	token_args.policies = &policies;
 	user_data = new uint8_t[10];
 	strncpy((char *) user_data, "data1", 6);
 
 	mock_adapter_new(&adapter, 10, NULL);
 
-	TRUST_AUTHORITY_STATUS status = collect_token(NULL, NULL, &token, &policies, NULL, adapter, user_data, user_data_len);
+	TRUST_AUTHORITY_STATUS status = collect_token(NULL, NULL, &token, &token_args, adapter, user_data, user_data_len);
 	ASSERT_EQ(status, STATUS_NULL_CONNECTOR);
 
-	status = collect_token_azure(NULL, NULL, &token, &policies, NULL, adapter, user_data, user_data_len);
+	status = collect_token_azure(NULL, NULL, &token, &token_args, adapter, user_data, user_data_len);
 	ASSERT_EQ(status, STATUS_NULL_CONNECTOR);
 
 	delete[] user_data;
@@ -117,6 +120,7 @@ TEST(CollectToken, TokenNullError)
 	uint8_t *user_data = NULL;
 	uint32_t user_data_len = 5;
 	user_data = new uint8_t[10];
+	collect_token_args token_args ={0};
 	strncpy((char *) user_data, "data1", 6);
 
 	mock_adapter_new(&adapter, 10, NULL);
@@ -131,10 +135,11 @@ TEST(CollectToken, TokenNullError)
 	strncpy(api.api_url, "http://localhost:8080", API_URL_MAX_LEN);
 	strncpy(api.api_key, "your_api_key", API_KEY_MAX_LEN);
 
-	TRUST_AUTHORITY_STATUS status = collect_token(&api, NULL, NULL, &policies, NULL, adapter, user_data, user_data_len);
+	token_args.policies = &policies;
+	TRUST_AUTHORITY_STATUS status = collect_token(&api, NULL, NULL, &token_args, adapter, user_data, user_data_len);
 	ASSERT_EQ(status, STATUS_NULL_TOKEN);
 
-	status = collect_token_azure(&api, NULL, NULL, &policies, NULL, adapter, user_data, user_data_len);
+	status = collect_token_azure(&api, NULL, NULL, &token_args, adapter, user_data, user_data_len);
 	ASSERT_EQ(status, STATUS_NULL_TOKEN);
 	delete[] user_data;
 	mock_adapter_free(adapter);
@@ -148,6 +153,8 @@ TEST(CollectToken, NullCtxParamater)
 	evidence_adapter *adapter = NULL;
 	uint8_t *user_data = NULL;
 	uint32_t user_data_len = 5;
+	collect_token_args token_args ={0};
+
 	user_data = new uint8_t[10];
 	strncpy((char *) user_data, "data1", 6);
 
@@ -157,6 +164,7 @@ TEST(CollectToken, NullCtxParamater)
 	policies->ids = new char *[1];
 	policies->ids[0] = new char[10];
 	strncpy(policies->ids[0], "policy1", 10);
+	token_args.policies = policies;
 
 	// Start the mock server
 	MockServer
@@ -178,10 +186,10 @@ TEST(CollectToken, NullCtxParamater)
 		ERROR("Error: In memory allocation for jwt\n");
 	}
 
-	TRUST_AUTHORITY_STATUS status = collect_token(&api, NULL, &token, policies, NULL, adapter, user_data, user_data_len);
+	TRUST_AUTHORITY_STATUS status = collect_token(&api, NULL, &token, &token_args, adapter, user_data, user_data_len);
 	ASSERT_EQ(status, STATUS_INVALID_PARAMETER);
 
-	status = collect_token_azure(&api, NULL, &token, policies, NULL, adapter, user_data, user_data_len);
+	status = collect_token_azure(&api, NULL, &token, &token_args, adapter, user_data, user_data_len);
 	ASSERT_EQ(status, STATUS_INVALID_PARAMETER);
 
 	mock_adapter_free(adapter);
@@ -199,6 +207,7 @@ TEST(CollectToken, NullNonceError)
 	uint32_t user_data_len = 0;
 
 	policies policiesObj;
+	collect_token_args token_args = {0};
 	policies *policies = &policiesObj;
 	policies->count = 1;
 	policies->ids = new char *[1];
@@ -221,11 +230,12 @@ TEST(CollectToken, NullNonceError)
 	user_data_len = 5;
 	user_data = new uint8_t[10];
 	strncpy((char *) user_data, "data1", 6);
+	token_args.policies = policies;
 
-	TRUST_AUTHORITY_STATUS status = collect_token(&api, NULL, &token, policies, NULL, adapter, user_data, user_data_len);
+	TRUST_AUTHORITY_STATUS status = collect_token(&api, NULL, &token, &token_args, adapter, user_data, user_data_len);
 	ASSERT_EQ(status, STATUS_GET_NONCE_ERROR);
 
-	status = collect_token_azure(&api, NULL, &token, policies, NULL, adapter, user_data, user_data_len);
+	status = collect_token_azure(&api, NULL, &token, &token_args, adapter, user_data, user_data_len);
 	ASSERT_EQ(status, STATUS_GET_NONCE_ERROR);
 
 	mock_adapter_free(adapter);
@@ -241,6 +251,7 @@ TEST(CollectToken, ValidData)
 	uint8_t *user_data = NULL;
 	uint32_t user_data_len = 0;
 	response_headers headers = { 0 };
+	collect_token_args token_args = {0};
 
 	policies policiesObj;
 	policies *policies = &policiesObj;
@@ -272,10 +283,11 @@ TEST(CollectToken, ValidData)
 	user_data = new uint8_t[10];
 	strncpy((char *) user_data, "data1", 6);
 
-	TRUST_AUTHORITY_STATUS status = collect_token(&api, &headers, &token, policies, NULL, adapter, user_data, user_data_len);
+	token_args.policies = policies;
+	TRUST_AUTHORITY_STATUS status = collect_token(&api, &headers, &token, &token_args, adapter, user_data, user_data_len);
 	ASSERT_EQ(status, STATUS_OK);
 
-	status = collect_token_azure(&api, &headers, &token, policies, NULL, adapter, user_data, user_data_len);
+	status = collect_token_azure(&api, &headers, &token, &token_args, adapter, user_data, user_data_len);
 	ASSERT_EQ(status, STATUS_OK);
 
 	mock_adapter_free(adapter);

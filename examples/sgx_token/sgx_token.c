@@ -19,6 +19,7 @@
 #define ENV_RETRY_MAX "RETRY_MAX"
 #define ENV_RETRY_WAIT_TIME "RETRY_WAIT_TIME"
 #define ENV_REQUEST_ID "REQUEST_ID"
+#define ENV_TOKEN_SIG_ALG "TOKEN_SIGNING_ALG"
 #define ENCLAVE_PATH "enclave.signed.so"
 
 int main(int argc, char *argv[])
@@ -35,6 +36,7 @@ int main(int argc, char *argv[])
 	char *ta_key = getenv(ENV_TRUSTAUTHORITY_API_KEY);
 	char *policy_id = getenv(ENV_TRUSTAUTHORITY_POLICY_ID);
 	char *retry_max_str = getenv(ENV_RETRY_MAX);
+	char *token_sign_alg_str = getenv(ENV_TOKEN_SIG_ALG);
 	char *retry_wait_time_str = getenv(ENV_RETRY_WAIT_TIME);
 	char *request_id = getenv(ENV_REQUEST_ID);
 	int retry_max, retry_wait_time = 0;
@@ -45,6 +47,7 @@ int main(int argc, char *argv[])
 	uint8_t *key_buf = NULL;
 	// Store Parsed Token
 	jwt_t *parsed_token = NULL;
+	collect_token_args token_args = {0};
 
 	if (NULL == ta_api_url || !strlen(ta_api_url))
 	{
@@ -102,6 +105,13 @@ int main(int argc, char *argv[])
 	if (0 != is_valid_url(ta_base_url))
 	{
 		ERROR("ERROR: Invalid TRUSTAUTHORITY_BASE_URL format\n");
+		return 1;
+	}
+
+
+	if (token_sign_alg_str != NULL && STATUS_OK != is_valid_token_sigining_alg(token_sign_alg_str))
+	{
+		ERROR("ERROR: Unsupported Token Signing Algorithm, supported algorithms are RS256/PS384\n");
 		return 1;
 	}
 
@@ -171,8 +181,11 @@ int main(int argc, char *argv[])
 		goto ERROR;
 	}
 	LOG("Info: user-data: %s\n", b64);
+	token_args.policies = &policies;
+	token_args.request_id = request_id;
+	token_args.token_signing_alg = token_sign_alg_str;
 
-	status = collect_token(connector, &headers, &token, &policies, request_id, adapter, key_buf, key_size);
+	status = collect_token(connector, &headers, &token, &token_args, adapter, key_buf, key_size);
 	if (STATUS_OK != status)
 	{
 		ERROR("ERROR: Failed to collect trust authority token: 0x%04x\n", status);

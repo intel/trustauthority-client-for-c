@@ -15,6 +15,7 @@
 #define ENV_RETRY_MAX "RETRY_MAX"
 #define ENV_RETRY_WAIT_TIME "RETRY_WAIT_TIME"
 #define ENV_REQUEST_ID "REQUEST_ID"
+#define ENV_TOKEN_SIG_ALG "TOKEN_SIGNING_ALG"
 
 int main(int argc, char *argv[])
 {
@@ -32,9 +33,11 @@ int main(int argc, char *argv[])
 	char *retry_max_str = getenv(ENV_RETRY_MAX);
 	char *retry_wait_time_str = getenv(ENV_RETRY_WAIT_TIME);
 	char *request_id = getenv(ENV_REQUEST_ID);
+	char *token_signing_alg_str = getenv(ENV_TOKEN_SIG_ALG);
 	int retry_max, retry_wait_time = 0;
 	// Store Parsed Token
 	jwt_t *parsed_token = NULL;
+	collect_token_args token_args = {0};
 
 	if (NULL == ta_api_url || !strlen(ta_api_url))
 	{
@@ -94,6 +97,12 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	if (token_signing_alg_str != NULL && STATUS_OK != is_valid_token_sigining_alg(token_signing_alg_str))
+	{
+		ERROR("ERROR: Unsupported Token Signing Algorithm, supported algorithms are RS256/PS384\n");
+		return 1;
+	}
+
 	char *ids[] = {policy_id};
 	policies.ids = ids;
 	policies.count = 1;
@@ -109,6 +118,10 @@ int main(int argc, char *argv[])
 		ERROR("ERROR: Failed to create Trust Authority Connector: 0x%04x\n", result);
 		goto ERROR;
 	}
+
+	token_args.policies = &policies;
+	token_args.request_id = request_id;
+	token_args.token_signing_alg = token_signing_alg_str;
 
 #ifdef AZURE_TDX
 	result = azure_tdx_adapter_new(&adapter);
@@ -174,9 +187,9 @@ int main(int argc, char *argv[])
 	LOG("Info: user-data: %s\n", b64);
 
 #ifdef AZURE_TDX
-	result = collect_token_azure(connector, &headers, &token, &policies, request_id, adapter, user_data, user_data_len);
+	result = collect_token_azure(connector, &headers, &token, &token_args, adapter, user_data, user_data_len);
 #else
-	result = collect_token(connector, &headers, &token, &policies, request_id, adapter, user_data, user_data_len);
+	result = collect_token(connector, &headers, &token, &token_args, adapter, user_data, user_data_len);
 #endif
 
 	if (STATUS_OK != result)

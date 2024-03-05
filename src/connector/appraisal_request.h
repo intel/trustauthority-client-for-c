@@ -23,6 +23,7 @@ typedef struct appraisal_request
 	policies *policy_ids;
 	uint8_t *event_log;
 	uint32_t event_log_len;
+	char *token_signing_alg;
 } appraisal_request;
 
 #endif

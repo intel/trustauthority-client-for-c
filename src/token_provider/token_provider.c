@@ -10,8 +10,7 @@
 TRUST_AUTHORITY_STATUS collect_token(trust_authority_connector *connector,
 		response_headers *resp_headers,
 		token *token,
-		policies *policies,
-		const char *request_id,
+		collect_token_args *token_args,
 		evidence_adapter *adapter,
 		uint8_t *user_data,
 		uint32_t user_data_len)
@@ -19,8 +18,7 @@ TRUST_AUTHORITY_STATUS collect_token(trust_authority_connector *connector,
 	return collect_token_callback(connector,
 			resp_headers,
 			token,
-			policies,
-			request_id,
+			token_args,
 			adapter->collect_evidence,
 			adapter->ctx,
 			user_data,
@@ -30,8 +28,7 @@ TRUST_AUTHORITY_STATUS collect_token(trust_authority_connector *connector,
 TRUST_AUTHORITY_STATUS collect_token_callback(trust_authority_connector *connector,
 		response_headers *resp_headers,
 		token *token,
-		policies *policies,
-		const char *request_id,
+		collect_token_args *collect_token_args,
 		evidence_callback callback,
 		void *ctx,
 		uint8_t *user_data,
@@ -42,6 +39,8 @@ TRUST_AUTHORITY_STATUS collect_token_callback(trust_authority_connector *connect
 	response_headers nonce_headers = {0};
 	evidence evidence = {0};
 	uint8_t hash[SHA512_LEN] = {0};
+	get_nonce_args nonce_args = {0};
+	get_token_args token_args = {0};
 
 	if (NULL == connector)
 	{
@@ -58,7 +57,8 @@ TRUST_AUTHORITY_STATUS collect_token_callback(trust_authority_connector *connect
 		return STATUS_INVALID_PARAMETER;
 	}
 
-	result = get_nonce(connector, &nonce, request_id, &nonce_headers);
+	nonce_args.request_id = collect_token_args->request_id;
+	result = get_nonce(connector, &nonce, &nonce_args, &nonce_headers);
 	if (result != STATUS_OK)
 	{
 		ERROR("Error: Failed to get Trust Authority nonce 0x%04x\n", result);
@@ -75,7 +75,13 @@ TRUST_AUTHORITY_STATUS collect_token_callback(trust_authority_connector *connect
 
 	DEBUG("Evidence[%d] @%p", evidence.evidence_len, evidence.evidence);
 
-	result = get_token(connector, resp_headers, token, policies, &evidence, &nonce, request_id, "/appraisal/v1/attest");
+	token_args.token_signing_alg = collect_token_args->token_signing_alg;
+	token_args.request_id = collect_token_args->request_id;
+	token_args.policies = collect_token_args->policies;
+	token_args.evidence = &evidence;
+	token_args.nonce = &nonce;
+
+	result = get_token(connector, resp_headers, token, &token_args, "/appraisal/v1/attest");
 	if (STATUS_OK != result)
 	{
 		ERROR("Error: Failed to get Trust Authority token 0x%04x\n", result);
@@ -94,8 +100,7 @@ ERROR:
 TRUST_AUTHORITY_STATUS collect_token_azure(trust_authority_connector *connector,
 		response_headers *resp_headers,
 		token *token,
-		policies *policies,
-		const char *request_id,
+		collect_token_args *collect_token_args,
 		evidence_adapter *adapter,
 		uint8_t *user_data,
 		uint32_t user_data_len)
@@ -105,6 +110,8 @@ TRUST_AUTHORITY_STATUS collect_token_azure(trust_authority_connector *connector,
 	response_headers nonce_headers = {0};
 	evidence evidence = {0};
 	uint8_t hash[SHA512_LEN] = {0};
+	get_nonce_args nonce_args = {0};
+	get_token_args token_args = {0};
 
 	if (NULL == connector)
 	{
@@ -121,7 +128,8 @@ TRUST_AUTHORITY_STATUS collect_token_azure(trust_authority_connector *connector,
 		return STATUS_INVALID_PARAMETER;
 	}
 
-	result = get_nonce(connector, &nonce, request_id, &nonce_headers);
+	nonce_args.request_id = collect_token_args->request_id;
+	result = get_nonce(connector, &nonce, &nonce_args, &nonce_headers);
 	if (result != STATUS_OK)
 	{
 		ERROR("Error: Failed to get Trust Authority nonce 0x%04x\n", result);
@@ -137,8 +145,13 @@ TRUST_AUTHORITY_STATUS collect_token_azure(trust_authority_connector *connector,
 	}
 
 	DEBUG("Evidence[%d] @%p", evidence.evidence_len, evidence.evidence);
+	token_args.evidence = &evidence;
+	token_args.nonce = &nonce;
+	token_args.token_signing_alg = collect_token_args->token_signing_alg;
+	token_args.request_id = collect_token_args->request_id;
+	token_args.policies = collect_token_args->policies;
 
-	result = get_token(connector, resp_headers, token, policies, &evidence, &nonce, request_id, "/appraisal/v1/attest/azure/tdxvm");
+	result = get_token(connector, resp_headers, token, &token_args, "/appraisal/v1/attest/azure/tdxvm");
 	if (STATUS_OK != result)
 	{
 		ERROR("Error: Failed to get Trust Authority token 0x%04x\n", result);
