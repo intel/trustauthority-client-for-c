@@ -85,7 +85,7 @@ Running the sample requires the following steps...
     |TRUSTAUTHORITY_API_KEY	|The Intel Trust Authority API key.				|
     |TRUSTAUTHORITY_API_URL	|The Intel Trust Authority API URL.				|
     |TRUSTAUTHORITY_POLICY_ID	|The policy id created using Intel Trust Authority portal.	|
-    |TRUSTAUTHORITY_BASE_URL	|The base url of Intel Trust Authority certificate management authority to download certificate to verify token in Azure. (ex. 'https://intel-trust-authority.com')|
+    |TRUSTAUTHORITY_BASE_URL	|The base url of Intel Trust Authority certificate management authority to download certificate to verify token in Azure. (ex. 'https://portal.trustauthority.intel.com')|
     |REQUEST_ID			|An optional parameter to trace the request.			|
     |TOKEN_SIGNING_ALG|An optional parameter to specify token signing algorithm, supported algorithms are RS256, PS384.|
     |RETRY_WAIT_TIME		|Wait time between retries. Default value is 2 seconds.		|
@@ -97,8 +97,8 @@ Running the sample requires the following steps...
 cat <<EOF | tee sgx_token.env
 TRUSTAUTHORITY_API_KEY=<trustauthority-api-key>
 TRUSTAUTHORITY_POLICY_ID=<trustauthority-policy-id>
-TRUSTAUTHORITY_API_URL=<trustauthority-api-url>
-TRUSTAUTHORITY_BASE_URL=<trustauthority-base-url>
+TRUSTAUTHORITY_API_URL="https://api.trustauthority.intel.com"
+TRUSTAUTHORITY_BASE_URL="https://portal.trustauthority.intel.com"
 SGX_AESM_ADDR=1
 EOF
 #Use docker to run the SGX Token example...

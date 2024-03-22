@@ -30,7 +30,7 @@ trust_authority_connector *connector = NULL;
  * Creates a new connector client to connect to Intel Trust Authority
  * connector[output] - provides an HTTPClient interface to communicate with Intel Trust Authority via REST APIs.
  * ta_key[input] - API key for Intel Trust Authority
- * ta_api_url[input] - Intel Trust Authority URL 
+ * ta_api_url[input] - Intel Trust Authority URL https://api.trustauthority.intel.com
  * retry_max[input] -  Maximum retires allowed
  * retry_wait_sec[input] - Waiting time in seconds between retries
  */
@@ -115,7 +115,7 @@ if (STATUS_OK != status)
 ```C
 /**
  * Gets token sigining certificate from Intel Trust Authority
- * jwks_url[input] -  Intel Trust Authority URL to get certificates
+ * jwks_url[input] -  Intel Trust Authority URL to get certificates - https://portal.trustauthority.intel.com/certs
  * jwks_resp[output] - response from Intel Trust Authority
  * retry_max[input] - maximum retires allowed
  * retry_wait_sec[input] - waiting time in seconds between retries
