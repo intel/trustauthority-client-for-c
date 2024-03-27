@@ -75,6 +75,7 @@ TRUST_AUTHORITY_STATUS collect_token_callback(trust_authority_connector *connect
 
 	DEBUG("Evidence[%d] @%p", evidence.evidence_len, evidence.evidence);
 
+	token_args.policy_must_match = collect_token_args->policy_must_match;
 	token_args.token_signing_alg = collect_token_args->token_signing_alg;
 	token_args.request_id = collect_token_args->request_id;
 	token_args.policies = collect_token_args->policies;
@@ -147,6 +148,7 @@ TRUST_AUTHORITY_STATUS collect_token_azure(trust_authority_connector *connector,
 	DEBUG("Evidence[%d] @%p", evidence.evidence_len, evidence.evidence);
 	token_args.evidence = &evidence;
 	token_args.nonce = &nonce;
+	token_args.policy_must_match = collect_token_args->policy_must_match;
 	token_args.token_signing_alg = collect_token_args->token_signing_alg;
 	token_args.request_id = collect_token_args->request_id;
 	token_args.policies = collect_token_args->policies;

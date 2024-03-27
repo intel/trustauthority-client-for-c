@@ -213,6 +213,7 @@ TRUST_AUTHORITY_STATUS get_token(trust_authority_connector *connector,
 	request.event_log_len = args->evidence->event_log_len;
 	request.event_log = args->evidence->event_log;
 	request.token_signing_alg = args->token_signing_alg;
+	request.policy_must_match = args->policy_must_match;
 	//Marshal the request in JSON form to be sent to Intel Trust Authority
 	result = json_marshal_appraisal_request(&request, &json);
 	if (STATUS_OK != result)
@@ -312,6 +313,23 @@ TRUST_AUTHORITY_STATUS is_valid_token_sigining_alg(const char *input)
 	}
 	if ((strcmp(input, PS384) != 0) && (strcmp(input, RS256) != 0)){
 		return STATUS_INVALID_TOKEN_SIGNING_ALG;
+	}
+	return STATUS_OK;
+}
+
+TRUST_AUTHORITY_STATUS validate_and_get_policy_must_match(const char *input, bool *policy_must_match)
+{
+	if (input == NULL || (strcmp(input, "false") == 0))
+	{
+		*policy_must_match = false;
+	}
+	else if (strcmp(input, "true") == 0)
+	{ 
+		*policy_must_match = true;
+	}
+	else 
+	{
+		return STATUS_INVALID_POLICY_MUST_MATCH; 
 	}
 	return STATUS_OK;
 }

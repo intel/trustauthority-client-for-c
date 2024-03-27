@@ -6,6 +6,7 @@
 #define __CONNECTOR_H__
 
 #include "types.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -19,6 +20,7 @@ extern "C"
 		policies *policies;
 		const char *request_id;
 		const char *token_signing_alg;
+		bool policy_must_match;
 	}get_token_args;
 
 	// collect_token_args structure holds user provided request paramaters used in nonce/token rest calls
@@ -26,6 +28,7 @@ extern "C"
 		policies *policies;
 		const char *request_id;
 		const char *token_signing_alg;
+		bool policy_must_match;
 	}collect_token_args;
 
 	//get_nonce_args holds the request parameters needed for getting nonce from Intel Trust Authority

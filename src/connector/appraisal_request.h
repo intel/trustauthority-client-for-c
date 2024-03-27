@@ -7,6 +7,7 @@
 #define __APPRAISAL_REQUEST_H__
 
 #include "types.h"
+#include <stdbool.h>
 
 /**
  * struct containing request sent to Intel Trust Authority for attestation.
@@ -24,6 +25,7 @@ typedef struct appraisal_request
 	uint8_t *event_log;
 	uint32_t event_log_len;
 	char *token_signing_alg;
+	bool policy_must_match;
 } appraisal_request;
 
 #endif

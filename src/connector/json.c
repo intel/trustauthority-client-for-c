@@ -699,6 +699,7 @@ TRUST_AUTHORITY_STATUS json_marshal_appraisal_request(appraisal_request *request
 	{
 		json_object_set(jansson_request, "token_signing_alg", json_string(request->token_signing_alg));
 	}
+	json_object_set(jansson_request, "policy_must_match", json_boolean(request->policy_must_match));
 
 	// policy_ids
 	policies = json_array();

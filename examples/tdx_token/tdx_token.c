@@ -16,6 +16,7 @@
 #define ENV_RETRY_WAIT_TIME "RETRY_WAIT_TIME"
 #define ENV_REQUEST_ID "REQUEST_ID"
 #define ENV_TOKEN_SIG_ALG "TOKEN_SIGNING_ALG"
+#define ENV_POLICY_MUST_MATCH "POLICY_MUST_MATCH"
 
 int main(int argc, char *argv[])
 {
@@ -34,7 +35,9 @@ int main(int argc, char *argv[])
 	char *retry_wait_time_str = getenv(ENV_RETRY_WAIT_TIME);
 	char *request_id = getenv(ENV_REQUEST_ID);
 	char *token_signing_alg_str = getenv(ENV_TOKEN_SIG_ALG);
+	char *policy_must_match_str = getenv(ENV_POLICY_MUST_MATCH);
 	int retry_max, retry_wait_time = 0;
+	bool policy_must_match;
 	// Store Parsed Token
 	jwt_t *parsed_token = NULL;
 	collect_token_args token_args = {0};
@@ -103,6 +106,12 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	if (STATUS_OK != validate_and_get_policy_must_match(policy_must_match_str, &policy_must_match))
+	{
+		ERROR("ERROR: Unsupported Policy Match Value, supported values are true/false\n");
+		return 1;
+	}
+
 	char *ids[] = {policy_id};
 	policies.ids = ids;
 	policies.count = 1;
@@ -122,6 +131,7 @@ int main(int argc, char *argv[])
 	token_args.policies = &policies;
 	token_args.request_id = request_id;
 	token_args.token_signing_alg = token_signing_alg_str;
+	token_args.policy_must_match = policy_must_match;
 
 #ifdef AZURE_TDX
 	result = azure_tdx_adapter_new(&adapter);
