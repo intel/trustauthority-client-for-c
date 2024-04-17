@@ -30,8 +30,6 @@ TRUST_AUTHORITY_STATUS parse_token_header_for_kid(token *token,
 	json_t *js, *js_val;
 	const char *val = NULL;
 	TRUST_AUTHORITY_STATUS status = STATUS_OK;
-	int include_char = 0;
-	char equal='=';
 
 	// Check if token or token jwt pointer is NULL
 	if (token == NULL || token->jwt == NULL)
@@ -46,36 +44,27 @@ TRUST_AUTHORITY_STATUS parse_token_header_for_kid(token *token,
 	// Calculate the length of the substring
 	substring_length = period_pos - token->jwt;
 
-	if((substring_length % 4) != 0)
+	base64_input_length = substring_length;
+	if((base64_input_length % 4) != 0)
 	{
-		substring_length += 1;
-		if((substring_length % 4) != 0)
-		{
-			return STATUS_TOKEN_INVALID_ERROR;
-		}
-		include_char = 1;
+		base64_input_length += (4 - (base64_input_length % 4));
 	}
 
 	// Allocate memory for the substring
-	substring = calloc(1, (substring_length + 1) * sizeof(char));
+	substring = calloc(1, (base64_input_length + 1) * sizeof(char));
 	if (NULL == substring)
 	{
 		return STATUS_ALLOCATION_ERROR;
 	}
 
 	// Copy the substring
-	if (include_char == 0)
+	memcpy(substring, token->jwt, substring_length);
+	for (int i = 0; i < base64_input_length - substring_length; i++)
 	{
-		memcpy(substring, token->jwt, substring_length);
-	}
-	else
-	{
-		memcpy(substring, token->jwt, (substring_length-1));
-		memcpy(substring+(substring_length-1), &equal, 1);
+		strcat(substring, "=");
 	}
 
 	// Do base64 decode.
-	base64_input_length = substring_length;
 	output_length = (base64_input_length / 4) * 3; // Estimate the output length
 	buf = (unsigned char *)calloc(1, (output_length + 1) * sizeof(unsigned char));
 	if (NULL == buf)
