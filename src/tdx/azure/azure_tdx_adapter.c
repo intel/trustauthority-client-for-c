@@ -553,6 +553,7 @@ int get_td_quote(uint8_t *td_report, uint8_t **td_quote, uint16_t *quote_size)
 		ERROR("Failed to decode base64 encoded TD quote");
 		goto ERROR;
 	}
+	*quote_size = output_length;
 
 ERROR:
 
