@@ -54,7 +54,7 @@ the appropriate dependencies like DCAP have been installed).
   - To Build in debug mode:  
 	make DEBUG=1 tdx_token_docker
 ```
-- When successfully built, running `docker image ls -a` includes `taas/tdx_token:v1.0.0`.
+- When successfully built, running `docker image ls -a` includes `taas/tdx_token:v1.1.0`.
 
 **_NOTE:_** If you are building for Azure, use below commands:
 ```shell
@@ -63,7 +63,7 @@ the appropriate dependencies like DCAP have been installed).
   - To Build in debug mode:
 	make DEBUG=1 azure_tdx_token_docker
 ```
-- When successfully built, running `docker image ls -a` includes `taas/azure_tdx_token:v1.0.0`.
+- When successfully built, running `docker image ls -a` includes `taas/azure_tdx_token:v1.1.0`.
 
 ## Deployment Instructions
 - The docker image must be present inside the TD vm.  For example, it can be exported/copied 
@@ -108,7 +108,7 @@ Running the sample requires the following steps...
     EOF
     #Make sure the Intel(R) TDX driver device is set with the following permissions:
     #crw-rw---- root <user-group> /dev/tdx_guest
-    sudo docker run -it --rm --device=/dev/tdx_guest --env-file tdx_token.env --group-add $(getent group <user-group> | cut -d: -f3)  taas/intel_tdx_token:v1.0.0
+    sudo docker run -it --rm --device=/dev/tdx_guest --env-file tdx_token.env --group-add $(getent group <user-group> | cut -d: -f3)  taas/intel_tdx_token:v1.1.0
     ```
 
 - Use docker to run the Azure TDX Token example...
@@ -120,7 +120,7 @@ Running the sample requires the following steps...
     TRUSTAUTHORITY_BASE_URL="https://portal.trustauthority.intel.com"
     EOF
 
-    sudo docker run -it --rm --device=/dev/tpm0 --device=/dev/tpmrm0 --env-file tdx_token.env --group-add $(getent group tss | cut -d: -f3) taas/azure_tdx_token:v1.0.0
+    sudo docker run -it --rm --device=/dev/tpm0 --device=/dev/tpmrm0 --env-file tdx_token.env --group-add $(getent group tss | cut -d: -f3) taas/azure_tdx_token:v1.1.0
     ```
 
 ### Output when TDX example is run...
