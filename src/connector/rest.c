@@ -179,6 +179,8 @@ CURLcode make_http_request(const char *url,
 
 			//TODO: Try to increase sleep time exponentially.
 			const int sleep_secs = retries->retry_wait_time;
+			memset(write_result.data, 0x00, sizeof(write_result.data));
+			write_result.pos=0;
 			sleep(sleep_secs);
 		}
 		else
@@ -226,6 +228,7 @@ CURLcode make_http_request(const char *url,
 ERROR:
 	if (data)
 	{
+		ERROR("Error, response from server: %s", data);
 		free(data);
 		data = NULL;
 	}
