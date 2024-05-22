@@ -405,6 +405,9 @@ int get_td_report(uint8_t *report_data, uint8_t **tpm_report)
 	}
 	remove(filename);
 
+	// Adding a sleep time of 3s for the user data to be reflected in 0x1400001 nv index
+	sleep(3);
+
 	/*Convert the NVIndex from TPM2_HR_NV_INDEX to ESYS_TR*/
 	rval = Esys_TR_FromTPMPublic(
 			esys_context,
