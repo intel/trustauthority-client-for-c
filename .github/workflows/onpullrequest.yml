@@ -27,7 +27,7 @@ jobs:
           fi
           COVERAGE=$(make test-coverage | grep 'Total:|' | awk -F\| '{print $2}' | awk -F. '{print $1}')
           echo "Unit test coverage for Client is - $COVERAGE%"
-          if [[ $COVERAGE -lt 79 ]]; then
-            echo "Unit test coverage must be above 79%"
+          if [[ $COVERAGE -lt 80 ]]; then
+            echo "Unit test coverage must be above 80%"
             exit 1
           fi

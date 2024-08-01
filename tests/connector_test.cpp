@@ -499,3 +499,62 @@ TEST(EvidenceFree, SuccessCase)
 	// Result should be status_ok
 	ASSERT_EQ(result, STATUS_OK);
 }
+
+// Test case to check Token Signing Algorithm - Null Token Signing Algorithm
+TEST(TokenSigningAlgorithmTest, NullAlgorithm)
+{
+	char *signing_alg = NULL;
+	int status = is_valid_token_sigining_alg(signing_alg);
+	ASSERT_NE(status,0);
+}
+
+// Test case to check Token Signing Algorithm - Invalid Token Signing Algorithm
+TEST(TokenSigningAlgorithmTest, InvalidAlgorithm)
+{
+	char *signing_alg = "NEG_ALG";
+	int status = is_valid_token_sigining_alg(signing_alg);
+	ASSERT_NE(status,0);
+}
+
+// Test case to check Token Signing Algorithm - Valid Token Signing Algorithm
+TEST(TokenSigningAlgorithmTest, SuccessCase)
+{
+	char *signing_alg = "PS384";
+	int status = is_valid_token_sigining_alg(signing_alg);
+	ASSERT_EQ(status,0);
+}
+
+// Test case to check policy must match function - True input
+TEST(PolicyMustMatchTest, TrueInput)
+{
+    bool policy_must_match;
+    int result = validate_and_get_policy_must_match("true", &policy_must_match);
+    ASSERT_EQ(result, 0);
+    ASSERT_TRUE(policy_must_match);
+}
+
+// Test case to check policy must match function - False input
+TEST(PolicyMustMatchTest, FalseInput)
+{
+    bool policy_must_match;
+    int result = validate_and_get_policy_must_match("false", &policy_must_match);
+    ASSERT_EQ(result, 0);
+    ASSERT_FALSE(policy_must_match);
+}
+
+// Test case to check policy must match function - Null Input
+TEST(PolicyMustMatchTest, NullInput)
+{
+    bool policy_must_match;
+    int result = validate_and_get_policy_must_match(NULL, &policy_must_match);
+    ASSERT_EQ(result, 0);
+    ASSERT_FALSE(policy_must_match);
+}
+
+// Test case to check policy must match function - Invalid Input
+TEST(PolicyMustMatchTest, InvalidInput)
+{
+    bool policy_must_match;
+    int result = validate_and_get_policy_must_match("invalid", &policy_must_match);
+    ASSERT_NE(result, 0);
+}

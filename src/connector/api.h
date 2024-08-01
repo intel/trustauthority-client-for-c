@@ -42,6 +42,15 @@ extern "C"
 	TRUST_AUTHORITY_STATUS is_valid_token_sigining_alg(const char *input);
 
 
+	/**
+	 * Verifies if the input string is "true" or "false"
+	 * @param input input string
+	 * @param policy_must_match variable to copy the boolean value
+	 * @return return status
+	*/
+	TRUST_AUTHORITY_STATUS validate_and_get_policy_must_match(const char *input, bool *policy_must_match);
+
+
 #ifdef __cplusplus
 }
 #endif

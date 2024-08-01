@@ -123,3 +123,4 @@ RUN  cmake .. &&  cmake --build .
 RUN env LD_LIBRARY_PATH=/trustauthority-client:/usr/local/lib/ ./trustauthorityclienttest 
 RUN lcov -o /tmp/coverage.info -c -d /trustauthority-client/tests/build/CMakeFiles/trustauthorityclienttest.dir 
 RUN lcov --extract /tmp/coverage.info '/trustauthority-client/src/*' --output-file /tmp/filtered_coverage.info
+RUN lcov --list /tmp/filtered_coverage.info

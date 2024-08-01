@@ -137,10 +137,32 @@ TEST(base64_decodeTest, DecodingSingleCharacter)
 	buffer = NULL;
 }
 
+TEST(base64_decodeTest, DecodingInvalidCharacter)
+{
+	// Test case for decoding a Invalid character string
+	const char *b64message = "@@@@";
+	unsigned char *buffer = NULL;
+	size_t length = strlen(b64message);
+	size_t output_length = (length / 4) * 3;
+	buffer = (unsigned char *) calloc(output_length + 1, sizeof(unsigned char));
+
+	if (NULL == buffer)
+	{
+		ERROR("Error: In memory allocation for buffer\n");
+	}
+
+	int result = base64_decode(b64message, length, buffer, &output_length);
+
+	ASSERT_NE(result, BASE64_SUCCESS);
+
+	free(buffer);
+	buffer = NULL;
+}
+
 TEST(base64_decodeTest, DecodingMultipleCharacters)
 {
 	// Test case for decoding multiple characters
-	const char *b64message = "SGVsbG8sIFdvcmxkIW==";
+	const char *b64message = "SGVsbG8sI+-_/FdvcmxkIW==";
 	size_t length = strlen(b64message);
 	size_t output_length = (length / 4) * 3;
 	unsigned char *buffer = (unsigned char *) calloc(output_length + 1, sizeof(unsigned char));
