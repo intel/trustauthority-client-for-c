@@ -132,7 +132,7 @@ TEST(CollectToken, TokenNullError)
 	mockServer.start();
 
 	// Prepare test data
-	strncpy(api.api_url, "http://localhost:8080", API_URL_MAX_LEN);
+	strncpy(api.api_url, "http://localhost:8081", API_URL_MAX_LEN);
 	strncpy(api.api_key, "your_api_key", API_KEY_MAX_LEN);
 
 	token_args.policies = &policies;
@@ -176,7 +176,7 @@ TEST(CollectToken, NullCtxParamater)
 	adapter->ctx = NULL;
 
 	// Prepare test data
-	strncpy(api.api_url, "http://localhost:8080", API_URL_MAX_LEN);
+	strncpy(api.api_url, "http://localhost:8081", API_URL_MAX_LEN);
 	strncpy(api.api_key, "your_api_key", API_KEY_MAX_LEN);
 
 	token.jwt = (char *) malloc(100 * sizeof(char));
@@ -217,7 +217,7 @@ TEST(CollectToken, NullNonceError)
 	mock_adapter_new(&adapter, 10, NULL);
 
 	// Prepare test data
-	strncpy(api.api_url, "http://localhost:8080", API_URL_MAX_LEN);
+	strncpy(api.api_url, "http://localhost:8081", API_URL_MAX_LEN);
 	strncpy(api.api_key, "your_api_key", API_KEY_MAX_LEN);
 
 	token.jwt = (char *) malloc(100 * sizeof(char));
@@ -269,7 +269,7 @@ TEST(CollectToken, ValidData)
 	mock_adapter_new(&adapter, 10, NULL);
 
 	// Prepare test data
-	strncpy(api.api_url, "http://localhost:8080", API_URL_MAX_LEN);
+	strncpy(api.api_url, "http://localhost:8081", API_URL_MAX_LEN);
 	strncpy(api.api_key, "your_api_key", API_KEY_MAX_LEN);
 
 	token.jwt = (char *) malloc(100 * sizeof(char));

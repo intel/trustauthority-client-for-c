@@ -25,6 +25,7 @@ private:
     void handlePostRequest(http_request request, const string &responseJson);
     char *validTokenResponse();
     string generateResponse(const http_request &request, const string &httpMethod, const string &responseJson);
+    string generateResponseCRL(const http_request & request, const string & httpMethod, const string & responseJson);
     bool started;
     string responseJson;
     http_listener listener;

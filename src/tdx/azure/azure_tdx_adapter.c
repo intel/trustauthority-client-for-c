@@ -522,8 +522,8 @@ int get_td_quote(uint8_t *td_report, uint8_t **td_quote, uint16_t *quote_size)
 
 	retryConfig.retry_max = 0;
 	retryConfig.retry_wait_time = 0;
-
-	status = post_request(azure_tdquote_url, NULL, ACCEPT_APPLICATION_JSON, NULL, CONTENT_TYPE_APPLICATION_JSON, json_request, &response, &headers, &retryConfig);
+	int response_length = 0;
+	status = post_request(azure_tdquote_url, NULL, ACCEPT_APPLICATION_JSON, NULL, CONTENT_TYPE_APPLICATION_JSON, json_request, &response, &response_length, &headers, &retryConfig);
 	if (NULL == response || CURLE_OK != status)
 	{
 		ERROR("Error: POST request to %s failed", azure_tdquote_url);

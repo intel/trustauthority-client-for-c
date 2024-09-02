@@ -40,6 +40,7 @@ extern "C"
 	 * @param request_id id to uniquely identify the request
 	 * @param content_type content type header
 	 * @param response containing response recieved from Intel Trust Authority
+	 * @param response_length length of response
 	 * @param response_headers response headers recieved from Intel Trust Authority
 	 * @param retries struct containing retry information
 	 * @return enum containing status from CURL command
@@ -50,6 +51,7 @@ extern "C"
 			const char *request_id,
 			const char *content_type,
 			char **response,
+			int *response_length,
 			char **response_headers,
 			retry_config *retries);
 
@@ -61,6 +63,7 @@ extern "C"
 	 * @param request_id id to uniquely identify the request
 	 * @param content_type content type header
 	 * @param response containing response recieved from Intel Trust Authority
+	 * @param response_length length of response
 	 * @param response_headers response headers recieved from Intel Trust Authority
 	 * @param retries struct containing retry information
 	 * @return enum containing status from CURL command
@@ -72,6 +75,7 @@ extern "C"
 			const char *content_type,
 			const char *body,
 			char **response,
+			int *response_length,
 			char **response_headers,
 			retry_config *retries);
 

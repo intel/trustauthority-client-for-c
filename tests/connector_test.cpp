@@ -150,7 +150,7 @@ TEST(ApiTest, GetNonce)
 	api.retries->retry_wait_time = DEFAULT_RETRY_WAIT_TIME;
 
 	// Set the values of the `api` structure
-	strncpy(api.api_url, "http://localhost:8080", API_URL_MAX_LEN);
+	strncpy(api.api_url, "http://localhost:8081", API_URL_MAX_LEN);
 	strncpy(api.api_key, "your_api_key", API_KEY_MAX_LEN);
 
 	nonce_args.request_id = "1234";
@@ -332,7 +332,7 @@ TEST(TokenTest, RetrieveTokenSuccess)
 	mockServer.start();
 	trust_authority_connector *api = nullptr;
 	const char *apiKey = "SGVsbG8sIFdvcmxkIW==";
-	const char *apiUrl = "https://localhost:8080";
+	const char *apiUrl = "https://localhost:8081";
 	token *ta_token = nullptr;
 	get_token_args token_args = {0};
 	response_headers resp_headers = { 0 };
@@ -344,7 +344,7 @@ TEST(TokenTest, RetrieveTokenSuccess)
 
 	ASSERT_EQ(createStatus, STATUS_OK);
 	ASSERT_NE(api, nullptr);
-	strncpy(api->api_url, "http://localhost:8080", API_URL_MAX_LEN);	
+	strncpy(api->api_url, "http://localhost:8081", API_URL_MAX_LEN);	
 
 	// Set up the necessary structures and data for the test
 	token tokenObj = { 0 };
@@ -409,7 +409,7 @@ TEST(TokenTest, RetrieveTokenSuccess)
 // Test case for failure to retrieve token signing certificate
 TEST(GetJwksTest, RetrieveCertificateFailure)
 {
-	const char *certUrl = "http://localhost:8080/token_signing_cert1";
+	const char *certUrl = "http://localhost:8081/token_signing_cert1";
 	char *pemCertificate = nullptr;
 
 	// Call the get_token_signing_certificate function
@@ -429,7 +429,7 @@ TEST(GetJwksTest, RetrieveCertificateSuccess)
 	MockServer mockServer("Mock Cert data");
 	mockServer.start();
 
-	const char *certUrl = "http://localhost:8080/token_signing_cert";
+	const char *certUrl = "http://localhost:8081/token_signing_cert";
 	char *pemCertificate = nullptr;
 	retry_config retries = { .retry_wait_time=1, .retry_max=1 };
 

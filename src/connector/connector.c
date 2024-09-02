@@ -97,11 +97,10 @@ TRUST_AUTHORITY_STATUS get_nonce(trust_authority_connector *connector,
 		response_headers *resp_headers)
 {
 	int result = STATUS_OK;
-	char *json = NULL;
+	char *response = NULL;
 	char *headers = NULL;
 	char url[API_URL_MAX_LEN + 1] = {0};
 	CURLcode status = CURLE_OK;
-
 	if (NULL == connector)
 	{
 		return STATUS_NULL_CONNECTOR;
@@ -117,22 +116,21 @@ TRUST_AUTHORITY_STATUS get_nonce(trust_authority_connector *connector,
 	DEBUG("Nonce url: %s\n", url);
 
 	//Get nonce from Intel Trust Authority
+	int response_length = 0;
 	status = get_request(url, connector->api_key, ACCEPT_APPLICATION_JSON, 
-			args->request_id, NULL, &json ,&headers, connector->retries);
-	if (NULL == json || CURLE_OK != status)
+			args->request_id, NULL, &response ,&response_length, &headers, connector->retries);
+	if (NULL == response || CURLE_OK != status)
 	{
 		ERROR("Error: GET request to %s failed", url);
 		return STATUS_GET_NONCE_ERROR;
 	}
-
 	//Unmarshal nonce as per struct nonce.
-	result = json_unmarshal_nonce(nonce, json);
+	result = json_unmarshal_nonce(nonce, response);
 	if (STATUS_OK != result)
 	{
 		ERROR("Error: Unmarshalling Nonce - %d\n", result);
 		return result;
 	}
-
 	//Fetch all the headers recieved.
 	size_t size = strlen(headers);
 	resp_headers->headers = (char *)calloc(size + 1, sizeof(char));
@@ -141,11 +139,10 @@ TRUST_AUTHORITY_STATUS get_nonce(trust_authority_connector *connector,
 		return STATUS_ALLOCATION_ERROR;
 	}
 	memcpy(resp_headers->headers, headers, size);
-
-	if (json)
+	if (response)
 	{
-		free(json);
-		json = NULL;
+		free(response);
+		response = NULL;
 	}
 
 	return result;
@@ -223,7 +220,8 @@ TRUST_AUTHORITY_STATUS get_token(trust_authority_connector *connector,
 	}
 
 	//Get token from Intel Trust Authority
-	status = post_request(url, connector->api_key, ACCEPT_APPLICATION_JSON, args->request_id, CONTENT_TYPE_APPLICATION_JSON, json, &response, &headers, connector->retries);
+	int response_length = 0;
+	status = post_request(url, connector->api_key, ACCEPT_APPLICATION_JSON, args->request_id, CONTENT_TYPE_APPLICATION_JSON, json, &response, &response_length, &headers, connector->retries);
 	if (NULL == response || CURLE_OK != status)
 	{
 		ERROR("Error: POST request to %s failed", url);
@@ -389,7 +387,8 @@ TRUST_AUTHORITY_STATUS get_token_signing_certificate(const char *jwks_url,
 	{
 		retries->retry_wait_time = retry_wait_time;
 	}
-	status = get_request(jwks_url, NULL, ACCEPT_APPLICATION_JSON, NULL, NULL, jwks, &header, retries);
+	int jwks_length = 0;
+	status = get_request(jwks_url, NULL, ACCEPT_APPLICATION_JSON, NULL, NULL, jwks, &jwks_length, &header, retries);
 	if (CURLE_OK != status || *jwks == NULL)
 	{
 		ret = STATUS_GET_SIGNING_CERT_ERROR;

@@ -9,6 +9,7 @@
 #include <types.h>
 #include <log.h>
 #include <util.h>
+#include "mock_server.h"
 #include <openssl/evp.h>
 
 TEST(ExtractPubkeyFromCertTest, ValidInput)
@@ -244,4 +245,63 @@ TEST(VerifyJwksCertChainTest, VerifyCertChainRootCANotfoundError)
 
 	free (certArray);
 	certArray = NULL;
+}
+
+// CRL verification should fail as certificate and CRL data are NULL.
+TEST(VerifyCRLTest, NULLCertData)
+{
+    	X509_CRL *crl = NULL;
+    	X509 *ca_cert = NULL;
+    	int status = verify_crl(crl,ca_cert);
+    	ASSERT_NE(status,0);
+}
+
+// CRL verification should fail as CRL cannot be verified with provided certificate.
+TEST(VerifyCRLTest, InvalidCRLData)
+{
+	char *cert_data = "MIIE4jCCA0qgAwIBAgIBATANBgkqhkiG9w0BAQ0FADBhMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ0ExGjAYBgNVBAoMEUludGVsIENvcnBvcmF0aW9uMSkwJwYDVQQDDCBEZXZlbG9wbWVudCBBbWJlciBBVFMgU2lnbmluZyBDQTAeFw0yNDA2MTEwMzM3MThaFw0yOTA3MDUwMzM3MThaMGwxCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDQTEaMBgGA1UECgwRSW50ZWwgQ29ycG9yYXRpb24xNDAyBgNVBAMMK0RldmVsb3BtZW50IEFtYmVyIEF0dGVzdGF0aW9uIFRva2VuIFNpZ25pbmcwggGiMA0GCSqGSIb3DQEBAQUAA4IBjwAwggGKAoIBgQC8opXu/tzM4dqlDbZmdbrvuLgGRAi7FVMuT3feNq99nIvOkztk/8yG+71Coeuv6IoSoIMG5fWyUv+GgHR9MIYaegVNnWVOoF2aEXKwiCDm7MCoxYvZIl3Nhf1En9lcwWe/NPOc75vaMl3zrilQjrLvaavN9OpC+DD/rR9re2Nz3OMk+KpPXJp0pqvcblzR8mqDsBSihO4yQirb3W0eqg2F9jPOyFkJIVX93lGu6F5UyO+Ay6fHXMhKJnlE1GNzLf0bv7TxRMIiVIoT8Z2wsM1WIeoALPrQFben6RJjlh2iyXAq8NQ4meRVkykk191gOgEiIgaAovaPkfxqseaFLDUDWSXrph0OXsfk9rjqqngHYWtLlCm3UP0L5JleRY3fDMMhAuwcqzR7zpHmC4sxL39Zx+w8JwcIuOoxl7pL7XxJ2PDMIriFufm8sJlhTMjJUQhxhPx/eZLezcjVTElFbndZk4QqTIZUooZMXy5HFqSwVUash1bRDjVajeYHfQ3a2osCAwEAAaOBmTCBljAMBgNVHRMBAf8EAjAAMB0GA1UdDgQWBBTjQ4pQOmjW6jIKg5w2lIaHlmix7zAfBgNVHSMEGDAWgBRe9XoBzt6MDePrZXOGVsaW8IPWKzALBgNVHQ8EBAMCBPAwOQYDVR0fBDIwMDAuoCygKoYoaHR0cDovL2xvY2FsaG9zdDo4MDgxL2NybC9hdHMtY2EtY3JsLmRlcjANBgkqhkiG9w0BAQ0FAAOCAYEAV6N8UW555RGvoQDlgPZY61RNiTLv1koNAsKR5otSVp021vtvCx9C3IJZTdjmL0VI/LfEmWS8Of6wBNOrTXZ8hfXKYnwxxLHHYRHlRrh+QSnjao3riEbFdKfiSR4qRO8FmliA0BNh1E22KFe+AGH2L7IiJMOLXo2OnsHYZtUmu99VK4cRLETuGZdgi1YeYAShjXmiOGGPx9qSYlojvFFcc094PX4s6ehjAInalkKegHlkPEu0rUStpX/goAoufVysU491T7wJT91JMMGxHEH1KOntQOF0102fsOVfVhWn2kTL6+B+tjFF7vQymdMhu4XJ5FahAtgCPB3b7iQwyibT6RQByaMTmWvz60E43NoZNMt4vzXt8SZX1TXBIDjlsnR/cHguuiHuihIjJDxQEwCco+uUzTr9hDepL72Mc461Fh/fnFinPvh8Tdhw1Yy78Nipv3wo3mo0Z/br79QPbUtXbNSiL9njrjjmU8BM4HO86+f18e3eAbetr6lCSrKbnFQ7";
+    	char *begin_cert_header = "-----BEGIN CERTIFICATE-----\n";
+    	char *end_cert_header = "\n-----END CERTIFICATE-----\n";
+	char *final_cert = NULL;
+	size_t pem_len = strlen(begin_cert_header) + strlen(cert_data) + strlen(end_cert_header);
+	final_cert = (char *)malloc((pem_len + 1) * sizeof(char));
+	memset(final_cert, 0, (pem_len + 1) * sizeof(char));
+	strcat(final_cert, begin_cert_header);
+	strcat(final_cert, cert_data);
+	strcat(final_cert, end_cert_header);
+	BIO *bio = BIO_new_mem_buf(final_cert, -1);
+	X509 *cert = PEM_read_bio_X509(bio, NULL, 0, NULL);
+	
+    	FILE *file = fopen("../ats-ca-crl.der", "rb");
+    	fseek(file, 0, SEEK_END);
+    	long file_size = ftell(file);
+    	fseek(file, 0, SEEK_SET);
+    	unsigned char *buffer = (unsigned char *)malloc(file_size);
+    	fread(buffer, 1, file_size, file);
+    	fclose(file);
+    	const unsigned char *p = buffer;
+    	X509_CRL *crl = d2i_X509_CRL(NULL, &p, file_size);
+
+	int status = verify_crl(crl,cert);
+    	ASSERT_NE(status,0);
+}
+
+// download CRL with invalid url.
+TEST(DownloadCRLTest, MalformedCRLData)
+{
+	MockServer mockServer("");
+	mockServer.start();
+    	const char *url = "http://localhost:8081/invalid-crl";
+	retry_config retries = { .retry_wait_time = 2, .retry_max = 3 };
+    	X509_CRL *crl = download_crl(url,&retries);
+    	ASSERT_EQ(crl, nullptr);
+	// Stop the mock server
+	mockServer.stop();
+}
+
+// Test Get CRL using NULL certificate.
+TEST(GetCRLTest, NULLCert)
+{
+	int status = get_crl(X509_new(), NULL, nullptr);
+	ASSERT_NE(status,0);
 }

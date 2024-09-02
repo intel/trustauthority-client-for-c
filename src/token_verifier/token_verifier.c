@@ -108,7 +108,7 @@ TRUST_AUTHORITY_STATUS verify_token(token *token,
 	result = extract_pubkey_from_certificate(jwks->x5c[0], &pubkey);
 	if (result != STATUS_OK || pubkey == NULL)
 	{
-		status = STATUS_GENERATE_PUBKEY_ERROR;
+		status = STATUS_EXTRACT_PUBKEY_ERROR;
 		goto ERROR;
 	}
 	// Format the received public key

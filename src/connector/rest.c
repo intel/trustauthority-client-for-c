@@ -21,16 +21,13 @@ size_t write_response(void *ptr,
 		void *stream)
 {
 	struct write_result *result = (struct write_result *)stream;
-
 	if (result->pos + size * nmemb >= BUFFER_SIZE - 1)
 	{
 		ERROR("Error: Too small buffer\n");
 		return 0;
 	}
-
 	memcpy(result->data + result->pos, ptr, size * nmemb);
 	result->pos += size * nmemb;
-
 	return size * nmemb;
 }
 
@@ -95,6 +92,7 @@ CURLcode make_http_request(const char *url,
 		const char *content_type,
 		const char *body,
 		char **response,
+		int *response_length,
 		char **response_headers,
 		retry_config *retries)
 {
@@ -146,7 +144,6 @@ CURLcode make_http_request(const char *url,
 
 	req_headers = build_headers(req_headers, api_key, accept, request_id, content_type);
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, req_headers);
-
 	if (NULL != body)
 	{
 		req_type = "POST";
@@ -157,6 +154,7 @@ CURLcode make_http_request(const char *url,
 	{
 		req_type = "GET";
 	}
+
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &write_result);
 
@@ -192,7 +190,6 @@ CURLcode make_http_request(const char *url,
 			}
 			break;
 		}
-
 		status = curl_easy_perform(curl);
 		retry_count++;
 	}
@@ -202,15 +199,14 @@ CURLcode make_http_request(const char *url,
 		ERROR("%s request to %s returned %s", req_type, url, curl_easy_strerror(status));
 		goto ERROR;
 	}
-
-	*response = (char *)calloc(strlen(data) + 1, sizeof(char));
+	*response_length = write_result.pos;
+	*response = (char *)calloc(*response_length + 1, sizeof(char));
 	if (NULL == *response)
 	{
 		status = CURLE_OUT_OF_MEMORY;
 		goto ERROR;
 	}
-	memcpy(*response, data, strlen(data));
-
+	memcpy(*response, data, *response_length);
 	*response_headers = (char *)calloc(strlen(resp_headers) + 1, sizeof(char));
 	if (NULL == *response_headers)
 	{
@@ -218,7 +214,7 @@ CURLcode make_http_request(const char *url,
 		goto ERROR;
 	}
 	memcpy(*response_headers, resp_headers, strlen(resp_headers));
-
+	
 	curl_easy_cleanup(curl);
 	curl_slist_free_all(req_headers);
 	curl_global_cleanup();
@@ -252,10 +248,11 @@ CURLcode get_request(const char *url,
 		const char *request_id,
 		const char *content_type,
 		char **response,
+		int *response_length,
 		char **response_headers,
 		retry_config *retries)
 {
-	return make_http_request(url, api_key, accept, request_id, content_type, NULL, response, response_headers, retries);
+	return make_http_request(url, api_key, accept, request_id, content_type, NULL, response, response_length, response_headers, retries);
 }
 
 CURLcode post_request(const char *url,
@@ -265,8 +262,9 @@ CURLcode post_request(const char *url,
 		const char *content_type,
 		const char *body,
 		char **response,
+		int *response_length,
 		char **response_headers,
 		retry_config *retries)
 {
-	return make_http_request(url, api_key, accept, request_id, content_type, body, response, response_headers, retries);
+	return make_http_request(url, api_key, accept, request_id, content_type, body, response, response_length, response_headers, retries);
 }
