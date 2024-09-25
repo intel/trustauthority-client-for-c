@@ -7,6 +7,10 @@
 #include <token_verifier.h>
 #include <jwt.h>
 #include <log.h>
+#include <openssl/rsa.h>
+#include <openssl/bio.h>
+#include <openssl/pem.h>
+#include <openssl/err.h>
 
 #define ENV_TRUSTAUTHORITY_API_URL "TRUSTAUTHORITY_API_URL"
 #define ENV_TRUSTAUTHORITY_BASE_URL "TRUSTAUTHORITY_BASE_URL"
@@ -17,6 +21,98 @@
 #define ENV_REQUEST_ID "REQUEST_ID"
 #define ENV_TOKEN_SIG_ALG "TOKEN_SIGNING_ALG"
 #define ENV_POLICY_MUST_MATCH "POLICY_MUST_MATCH"
+
+
+int gen_public_key(int key_bits, unsigned char **key_buffer, int* key_buffer_len) {
+    	RSA *rsa = NULL;
+    	BIGNUM *bne = NULL;
+    	int ret = 0;
+    	int key_len = 0;
+
+    	// Initialize OpenSSL
+    	OpenSSL_add_all_algorithms();
+    	ERR_load_crypto_strings();
+
+    	// Set RSA public exponent
+    	bne = BN_new();
+    	if (bne == NULL) {
+        	ERROR("BN_new failed\n");
+        	ret = -1;
+        	goto cleanup;
+    	}
+
+    	ret = BN_set_word(bne, RSA_F4);
+    	if (ret != 1) {
+        	ERROR("BN_set_word failed\n");
+        	ret = -1;
+        	goto cleanup;
+    	}
+
+    	// Generate RSA key pair
+    	rsa = RSA_new();
+    	if (rsa == NULL) {
+        	ERROR("RSA_new failed\n");
+        	ret = -1;
+        	goto cleanup;
+    	}
+    	
+    	ret = RSA_generate_key_ex(rsa, key_bits, bne, NULL);
+    	if (ret != 1) {
+		ERROR("RSA_generate_key_ex failed\n");
+        	ret = -1;
+        	goto cleanup;
+    	}
+	
+    	// Extract the modulus and exponent
+    	const BIGNUM *n = RSA_get0_n(rsa); // Modulus
+    	const BIGNUM *e = RSA_get0_e(rsa); // Public Exponent
+    	// Convert the public exponent to a 4-byte array
+    	unsigned char *exponent_bytes = calloc(4,  sizeof(unsigned char));
+	if (exponent_bytes == NULL) {
+        	ERROR("Memory allocation error\n");
+        	ret = -1;
+        	goto cleanup;
+    	}
+        if (BN_bn2bin(e, exponent_bytes) == NULL) {
+		ERROR("Conversion of exponent failed\n");
+		ret = -1;
+		goto cleanup;
+	}
+
+    	// Convert the modulus to a byte array
+    	int n_len = BN_num_bytes(n);
+    	unsigned char *modulus_bytes = malloc(n_len);
+    	if (modulus_bytes == NULL) {
+        	ERROR("Memory allocation error\n");
+        	ret = -1;
+        	goto cleanup;
+    	}
+    	if (BN_bn2bin(n, modulus_bytes) == NULL) {
+		ERROR("Conversion of Modulus failed\n");
+        	ret = -1;
+        	goto cleanup;
+	}
+
+    	// Combine the exponent and modulus into a single byte array
+    	key_len = 4 + n_len;
+    	*key_buffer = malloc(key_len);
+    	if (*key_buffer == NULL) {
+                ERROR("Memory allocation error\n");
+                ret = -1;
+                goto cleanup;
+        }
+        memcpy(*key_buffer, exponent_bytes, 4);        // Copy exponent
+        memcpy(*key_buffer + 4, modulus_bytes, n_len); // Copy modulus
+        *key_buffer_len = key_len;
+
+cleanup:
+        if (bne) BN_free(bne);
+        if (rsa) RSA_free(rsa);
+        if (modulus_bytes) free(modulus_bytes);
+        if (exponent_bytes) free(exponent_bytes);
+	ERR_free_strings();
+        return ret;
+}
 
 int main(int argc, char *argv[])
 {
@@ -116,11 +212,14 @@ int main(int argc, char *argv[])
 	policies.ids = ids;
 	policies.count = 1;
 
-	char *user_data = "data generated inside tee";
-	int user_data_len = strnlen(user_data, MAX_USER_DATA_LEN);
-
+	unsigned char* user_data = NULL;
+	int user_data_len;
+	result = gen_public_key(3072, &user_data, &user_data_len);
+	if( result != 1 ){
+		ERROR("ERROR: User Data generation failed\n");
+		return 1;
+	}
 	LOG("Info: connecting to %s\n", ta_api_url);
-
 	result = trust_authority_connector_new(&connector, ta_key, ta_api_url, retry_max, retry_wait_time);
 	if (STATUS_OK != result)
 	{
@@ -145,7 +244,7 @@ int main(int argc, char *argv[])
 	if (STATUS_OK != result)
 	{
 		ERROR("Error: Failed to collect evidence from Azure adapter 0x%04x\n", result);
-		goto ERROR;
+       		goto ERROR;
 	}
 #else
 	result = tdx_adapter_new(&adapter);
@@ -237,6 +336,10 @@ ERROR:
 	response_headers_free(&headers);
 	connector_free(connector);
 	token_free(&token);
-
+	if (NULL != user_data)
+	{
+		free(user_data);
+		user_data = NULL;
+	}
 	return result;
 }
