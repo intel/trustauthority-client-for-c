@@ -4,6 +4,7 @@ option (BUILD_TDX "Build TDX adapter." OFF)
 add_subdirectory(connector)
 add_subdirectory(token_provider)
 add_subdirectory(token_verifier)
+add_subdirectory(configfs_tsm)
 
 if (${BUILD_SGX})
     add_subdirectory(sgx)

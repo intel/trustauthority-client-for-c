@@ -58,8 +58,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsgx-pce-logic=${DCAP_VERSION} \
     libsgx-dcap-ql=${DCAP_VERSION} \
     libsgx-dcap-ql-dev=${DCAP_VERSION} \
-    libtdx-attest-dev=${DCAP_VERSION} \
-    libtdx-attest=${DCAP_VERSION} \
     cmake \
     libcurl4-openssl-dev
 
@@ -69,8 +67,9 @@ ARG USER_UID=2000
 ARG USER_GID=$USER_UID
 
 RUN groupadd --gid $USER_GID $USERNAME \
-    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
+&& useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
 USER $USERNAME
+
 WORKDIR /trustauthority-client/
 COPY . .
 WORKDIR /trustauthority-client/build
@@ -82,8 +81,10 @@ COPY --from=build /trustauthority-client/build/src/connector/libtrustauthority_c
 COPY --from=build /trustauthority-client/build/src/sgx/libtrustauthority_sgx.a .
 COPY --from=build /trustauthority-client/build/src/tdx/intel/libtrustauthority_tdx.a .
 COPY --from=build /trustauthority-client/build/src/tdx/azure/libtrustauthority_tdx_azure.a .
+COPY --from=build /trustauthority-client/build/src/configfs_tsm/libtrustauthority_configfs_tsm.a .
 COPY --from=build /trustauthority-client/build/src/token_provider/libtrustauthority_token_provider.a .
 COPY --from=build /trustauthority-client/build/src/token_verifier/libtrustauthority_token_verifier.a .
+
 
 FROM ubuntu:20.04 as test-image
 ARG DEBIAN_FRONTEND=noninteractive

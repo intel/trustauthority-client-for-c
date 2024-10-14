@@ -21,6 +21,7 @@ set(TEST_SOURCES
     ../src/connector/rest.c
     ../src/connector/json.c
     ../src/connector/base64.c
+    ../src/configfs_tsm/report.c
     ../src/sgx/sgx_adapter.c
     ../src/tdx/intel/tdx_adapter.c
     ../src/token_provider/token_provider.c
@@ -34,10 +35,12 @@ set(TEST_SOURCES
     tdx_adapter_test.cpp
     token_provider_test.cpp
     token_verifier_test.cpp
+    report_test.cpp
 )
 
 # Create the test target and link against the Google Test library
 add_executable(trustauthorityclienttest ${TEST_SOURCES})
+target_compile_definitions(trustauthorityclienttest PRIVATE TEST_MODE)
 find_package(CURL REQUIRED)
 target_link_libraries(trustauthorityclienttest PUBLIC ${GTEST_BOTH_LIBRARIES} jansson jwt CURL::libcurl -lcurl mocksgxdcap -lssl -lcrypto pthread -lcpprest)
 target_include_directories(trustauthorityclienttest PRIVATE
@@ -47,6 +50,7 @@ target_include_directories(trustauthorityclienttest PRIVATE
     jansson/android
     ../src/connector
     ../src/token_verifier
+    ../src/configfs_tsm
     mock_sgx_dcap/include
 )
 

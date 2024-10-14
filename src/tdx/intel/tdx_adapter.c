@@ -7,20 +7,14 @@
 #include <string.h>
 #include <tdx_adapter.h>
 #include <types.h>
-#include <tdx_attest.h>
 #include <openssl/evp.h>
 #include <log.h>
+#include <report.h>
 
 /**
  * callback to get TDX report
  */
-typedef tdx_attest_error_t (*tdx_get_quote_fx)(const tdx_report_data_t *p_tdx_report_data,
-		const tdx_uuid_t att_key_id_list[],
-		uint32_t list_size,
-		tdx_uuid_t *p_att_key_id,
-		uint8_t **pp_quote,
-		uint32_t *p_quote_size,
-		uint32_t flags);
+typedef  TRUST_AUTHORITY_STATUS(*tdx_get_quote_fx)(Request *req, Response **res);
 
 int tdx_adapter_new(evidence_adapter **adapter)
 {
@@ -43,7 +37,7 @@ int tdx_adapter_new(evidence_adapter **adapter)
 		*adapter = NULL;
 		return STATUS_TDX_ERROR_BASE | STATUS_ALLOCATION_ERROR;
 	}
-	ctx->tdx_att_get_quote_cb = tdx_att_get_quote;
+	ctx->tdx_att_get_quote_cb = get_report;
 
 	(*adapter)->ctx = ctx;
 	(*adapter)->collect_evidence = tdx_collect_evidence;
@@ -125,12 +119,11 @@ int tdx_collect_evidence(void *ctx,
 	EVP_DigestFinal_ex(mdctx, md_value, &md_len);
 	EVP_MD_CTX_free(mdctx);
 
-	// Fetching Quote from TD
-	uint32_t quote_size = 0;
-	uint8_t *p_quote_buf = NULL;
-	tdx_report_data_t report_data = {{0}};
-	tdx_uuid_t selected_att_key_id = {0};
-	memcpy(report_data.d, md_value, TDX_REPORT_DATA_SIZE);
+	Request req = {
+		.in_blob = md_value,
+		.in_blob_size = TDX_REPORT_DATA_SIZE,
+		.get_aux_blob = 0
+	};
 
 	if (tdx_ctx->tdx_att_get_quote_cb == NULL)
 	{
@@ -139,25 +132,26 @@ int tdx_collect_evidence(void *ctx,
 		goto ERROR;
 	}
 
-	uint32_t ret = ((tdx_get_quote_fx)tdx_ctx->tdx_att_get_quote_cb)(&report_data, NULL, 0, &selected_att_key_id, &p_quote_buf, &quote_size, 0);
-	if (TDX_ATTEST_SUCCESS != ret)
+	Response * res = NULL;
+	status = ((tdx_get_quote_fx)tdx_ctx->tdx_att_get_quote_cb)(&req, &res);
+
+	if (status != STATUS_OK || res == NULL)
 	{
-		ERROR("Error: In tdx_att_get_quote. 0x%04x\n", ret);
-		status = ret;
+		ERROR("failed to get quote from configfs-tsm.\n");
+		status = STATUS_QUOTE_ERROR;
 		goto ERROR;
 	}
 
 	evidence->type = EVIDENCE_TYPE_TDX;
 	// Populating Evidence with TDQuote
-	evidence->evidence = (uint8_t *)calloc(quote_size, sizeof(uint8_t));
+	evidence->evidence = (uint8_t *)calloc(res->out_blob_size, sizeof(uint8_t));
 	if (NULL == evidence->evidence)
 	{
 		status = STATUS_TDX_ERROR_BASE | STATUS_ALLOCATION_ERROR;
 		goto ERROR;
 	}
-	memcpy(evidence->evidence, p_quote_buf, quote_size);
-	evidence->evidence_len = quote_size;
-	tdx_att_free_quote(p_quote_buf);
+	memcpy(evidence->evidence, res->out_blob, res->out_blob_size);
+	evidence->evidence_len = res->out_blob_size;
 
 	// Populating Evidence with UserData
 	evidence->runtime_data = (uint8_t *)calloc(user_data_len, sizeof(uint8_t));
@@ -179,5 +173,7 @@ ERROR:
 		free(nonce_data);
 		nonce_data = NULL;
 	}
+
+	response_free(res);
 	return status;
 }

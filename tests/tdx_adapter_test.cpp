@@ -7,46 +7,49 @@
 #include <stdio.h>
 #include <tdx_adapter.h>
 #include <types.h>
-#include <tdx_attest.h>
 #include <openssl/rand.h>
 #include <log.h>
 #include <gtest/gtest.h>
+#include <report.h>
 
-tdx_attest_error_t tdx_att_get_quote_mock(const tdx_report_data_t *
-		p_tdx_report_data,
-		const tdx_uuid_t
-		att_key_id_list[],
-		uint32_t list_size,
-		tdx_uuid_t * p_att_key_id,
-		uint8_t ** pp_quote,
-		uint32_t * p_quote_size,
-		uint32_t flags)
+TRUST_AUTHORITY_STATUS tdx_att_get_quote_mock(Request *r, Response **response)
 {
-
-	uint8_t dummy_data[] = { 0x01, 0x02, 0x03 };
-	uint32_t dummy_data_len = sizeof(dummy_data);
-	*p_quote_size = dummy_data_len;
-	*pp_quote = (uint8_t *) calloc(1, *p_quote_size);
-	if (NULL == *pp_quote)
+	size_t size = strlen("test_out_blob");
+	const char *mock_provider = "test_provider";
+	size_t mock_provider_len = strlen(mock_provider);
+	*response = (Response *)malloc(sizeof(Response));
+	if (*response == NULL)
 	{
-		return TDX_ATTEST_ERROR_OUT_OF_MEMORY;
+		ERROR("error in allocating memory for response\n")
+		return STATUS_ALLOCATION_ERROR;
 	}
-	memcpy(*pp_quote, dummy_data, *p_quote_size);
+	(*response)->out_blob = (unsigned char *)malloc(size);
+	if ((*response)->out_blob == NULL)
+	{
+        	free(*response);
+		*response = NULL;
+		ERROR("error in allocating memory for response out_blob\n")
+		return STATUS_ALLOCATION_ERROR;
+    	}
+    	memcpy((*response)->out_blob, "test_out_blob", size);
+    	(*response)->out_blob_size = size;
+	(*response)->aux_blob = 0;
+	(*response)->provider = (char *)malloc(mock_provider_len);
+	if ((*response)->provider == NULL)
+	{
+		response_free(*response);
+		ERROR("error in allocating memory for provider\n");
+		return STATUS_ALLOCATION_ERROR;
+	}
+	memcpy(((*response)->provider), "test_provider", mock_provider_len);
+	(*response)->provider_size = mock_provider_len;
 
-	return TDX_ATTEST_SUCCESS;
+	return STATUS_OK;
 }
 
-tdx_attest_error_t tdx_att_get_quote_fail_mock(const tdx_report_data_t *
-		p_tdx_report_data,
-		const tdx_uuid_t
-		att_key_id_list[],
-		uint32_t list_size,
-		tdx_uuid_t * p_att_key_id,
-		uint8_t ** pp_quote,
-		uint32_t * p_quote_size,
-		uint32_t flags)
+TRUST_AUTHORITY_STATUS tdx_att_get_quote_fail_mock()
 {
-	return TDX_ATTEST_ERROR_OUT_OF_MEMORY;
+	return STATUS_ALLOCATION_ERROR;
 }
 
 TEST(CreateTDXAdapter, NullAdapterPointer)
@@ -244,7 +247,7 @@ TEST(TdxCollectEvidenceTest, TestInvalidTdxData)
 	int result = tdx_collect_evidence(ctx, &evidence, &nonce, user_data, user_data_len);
 
 	// Assertions
-	ASSERT_NE(result, TDX_ATTEST_SUCCESS);
+	ASSERT_NE(result, STATUS_OK);
 
 	free(nonce.val);
 	nonce.val = NULL;

@@ -43,10 +43,8 @@ apt-get update && apt-get install -y --no-install-recommends \
     libsgx-pce-logic=1.19.100.3-focal1 \  
     libsgx-dcap-default-qpl=1.19.100.3-focal1 \  
     libsgx-dcap-ql=1.19.100.3-focal1 \  
-    libsgx-dcap-ql-dev=1.19.100.3-focal1 \  
-    libtdx-attest-dev=1.19.100.3-focal1 \  
-    libtdx-attest=1.19.100.3-focal1 \  
-    cmake \  
+    libsgx-dcap-ql-dev=1.19.100.3-focal1 \
+    cmake \
     libcurl4-openssl-dev \
     libjansson-dev=2.12-1build1 \
     pkg-config \
