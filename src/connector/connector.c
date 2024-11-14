@@ -303,6 +303,7 @@ int is_valid_uuid(const char *uuid_str)
 
 	return ret;
 }
+
 TRUST_AUTHORITY_STATUS is_valid_token_sigining_alg(const char *input)
 {
 	if (input == NULL)
@@ -330,6 +331,28 @@ TRUST_AUTHORITY_STATUS validate_and_get_policy_must_match(const char *input, boo
 		return STATUS_INVALID_POLICY_MUST_MATCH; 
 	}
 	return STATUS_OK;
+}
+
+int validate_request_id(const char *req_id)
+{
+	// Define the regex pattern for allowed characters
+	regex_t regex;
+	int ret = regcomp(&regex, "^[a-zA-Z0-9_ \\/.-]{1,128}$", REG_EXTENDED);
+	if (ret) {
+		ERROR("Error: Could not compile regex\n");
+		return ret;
+	}
+
+	// Execute the regex
+	ret = regexec(&regex, req_id, 0, NULL, 0);
+	regfree(&regex);
+	if (ret)
+	{
+		ERROR("Error: Invalid REQUEST_ID\n");
+		return ret;
+	}
+
+	return ret;
 }
 
 // Validate format of api_key

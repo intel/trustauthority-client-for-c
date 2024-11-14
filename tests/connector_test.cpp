@@ -558,3 +558,17 @@ TEST(PolicyMustMatchTest, InvalidInput)
     int result = validate_and_get_policy_must_match("invalid", &policy_must_match);
     ASSERT_NE(result, 0);
 }
+
+TEST(RequestIdTest, InvalidRequestId)
+{
+	const char* request_id = "Hello#1234";
+	int ret = validate_request_id(request_id);
+	ASSERT_NE(ret, 0);
+}
+
+TEST(RequestIdTest, ValidRequestId)
+{
+	const char* request_id = "Hello 1234";
+	int ret = validate_request_id(request_id);
+	ASSERT_EQ(ret, 0);
+}

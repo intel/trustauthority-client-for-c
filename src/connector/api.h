@@ -50,6 +50,13 @@ extern "C"
 	*/
 	TRUST_AUTHORITY_STATUS validate_and_get_policy_must_match(const char *input, bool *policy_must_match);
 
+	/**
+	 * Verifies if request_id is correct i.e. atmost 128 char long and contain only alphanumeric characters,_,space,-,.,/or\
+	 * @param request_id input string
+	 * @return int containing status
+	*/
+	int validate_request_id(const char *request_id);
+
 
 #ifdef __cplusplus
 }

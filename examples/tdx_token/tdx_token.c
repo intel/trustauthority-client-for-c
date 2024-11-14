@@ -208,6 +208,12 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	if (0 != validate_request_id(request_id))
+	{
+		ERROR("ERROR: Request ID should be atmost 128 characters long and should contain only alphanumeric characters, _, space, -, ., / or \\");
+		return 1;
+	}
+
 	char *ids[] = {policy_id};
 	policies.ids = ids;
 	policies.count = 1;
