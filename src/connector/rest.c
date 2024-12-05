@@ -218,6 +218,10 @@ CURLcode make_http_request(const char *url,
 	curl_easy_cleanup(curl);
 	curl_slist_free_all(req_headers);
 	curl_global_cleanup();
+	if (data)
+		free(data);
+	if (resp_headers)
+		free(resp_headers);
 
 	return status;
 
@@ -228,6 +232,10 @@ ERROR:
 		free(data);
 		data = NULL;
 	}
+
+	if (resp_headers)
+		free(resp_headers);
+
 	if (*response_headers)
 	{
 		free(*response_headers);
