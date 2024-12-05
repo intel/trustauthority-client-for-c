@@ -749,25 +749,36 @@ int json_unmarshal_quote_response(char **quote,
 
 	char *tmp_string = (char *)json_string_value(tmp_obj);
 	size_t tmp_length = json_string_length(tmp_obj);
+	size_t padding_needed = 0;
 
-	// Calculate the size for the quote string, including any padding
-	size_t padding_needed = (4 - tmp_length % 4) % 4; // Number of '=' needed for padding
-	size_t quote_size = tmp_length + padding_needed;  // Add the padding to the length
+	// Check if tmp_length is valid before allocating memory
+	if (tmp_length > 0)
+	{
+		// Calculate the size for the quote string, including any padding
+		padding_needed = (4 - tmp_length % 4) % 4;		 // Number of '=' needed for padding
+		size_t quote_size = tmp_length + padding_needed; // Add the padding to the length
 
-	*quote = (char *)calloc(quote_size + 1, sizeof(char));
+		// Allocate memory only if quote_size is greater than 0
+		*quote = (char *)calloc(quote_size + 1, sizeof(char));
+		if (quote == NULL)
+		{
+			ERROR("Failed to allocate memory for quote string");
+			status = STATUS_ALLOCATION_ERROR;
+			goto ERROR;
+		}
+		strcat(*quote, tmp_string);
 
-	if (quote == NULL)
+		/*if base64 encoded data is not divisible by 4, add = as padding to make it a valid base64 encoding*/
+		for (int i = 0; i < padding_needed; i++)
+		{
+			strcat(*quote, "=");
+		}
+	}
+	else
 	{
 		ERROR("Failed to allocate memory for quote string");
 		status = STATUS_ALLOCATION_ERROR;
 		goto ERROR;
-	}
-	strcat(*quote, tmp_string);
-
-	/*if base64 encoded data is not divisible by 4, add = as padding to make it a valid base64 encoding*/
-	for (int i = 0; i < padding_needed; i++)
-	{
-		strcat(*quote, "=");
 	}
 
 ERROR:
