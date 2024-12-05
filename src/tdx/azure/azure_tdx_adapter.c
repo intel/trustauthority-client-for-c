@@ -379,10 +379,20 @@ int get_td_report(uint8_t *report_data, uint8_t **tpm_report)
 
 	// Get a random number to be appended to the end of file name to make it random
 	int rand_num = rand();
-	char filename[50] = {0};
 
 	// Create file name using snprintf to avoid buffer overflow
-	snprintf(filename, sizeof(filename), "/tmp/report_azure_%d.txt", rand_num);
+	size_t nbytes = snprintf(NULL, 0, "/tmp/report_azure_%d.txt", rand_num) + 1; // +1 for null terminator
+
+	// Allocate buffer with the calculated size
+	char *filename = (char *)calloc(nbytes, sizeof(char));
+	if (filename == NULL)
+	{
+		status = STATUS_ALLOCATION_ERROR;
+		goto ERROR;
+	}
+
+	// Write the filename into buffer
+	snprintf(filename, nbytes, "/tmp/report_azure_%d.txt", rand_num);
 
 	// Open the file for writing, check for failure
 	FILE *tmpFile = fopen(filename, "w");
@@ -485,7 +495,11 @@ ERROR:
 	}
 
 	if (access(filename, F_OK) == 0)
+	{
 		remove(filename);
+		free(filename);
+		filename = NULL;
+	}
 
 	if (report_string)
 	{
