@@ -15,14 +15,17 @@ extern "C"
 {
 #endif
 
+#if ENABLE_DEBUG_LOGGING
+
 	char* getFormattedTime(void);
 
 #define LOG(fmt, ...) fprintf(stdout, "[LOG:%s::%s::%d] " fmt "\n", getFormattedTime(), __FILE__, __LINE__ __VA_OPT__(, ) __VA_ARGS__);
 #define ERROR(fmt, ...) fprintf(stderr, "[ERR:%s::%s::%d] " fmt "\n", getFormattedTime(), __FILE__, __LINE__ __VA_OPT__(, ) __VA_ARGS__);
 
-#if ENABLE_DEBUG_LOGGING
 #define DEBUG(fmt, ...) fprintf(stdout, "[DBG:%s::%s::%d] " fmt "\n", getFormattedTime(), __FILE__, __LINE__ __VA_OPT__(, ) __VA_ARGS__);
 #else
+#define LOG(fmt, ...)
+#define ERROR(fmt, ...)
 #define DEBUG(fmt, ...)
 #ifdef __cplusplus
 }
