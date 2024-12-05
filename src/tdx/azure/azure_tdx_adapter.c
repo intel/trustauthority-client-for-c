@@ -138,7 +138,7 @@ int tdx_collect_evidence_azure(void *ctx,
 	status = get_td_report(report_data, &tpm_report);
 	if (status != 0)
 	{
-		ERROR("TD report fetch from TPM NV index failed");
+		ERROR("TD report fetch from TPM NV index failed %d", status);
 		goto ERROR;
 	}
 
@@ -264,22 +264,40 @@ int tdx_collect_evidence_azure(void *ctx,
 
 ERROR:
 	if (nonce_data)
+	{
 		free(nonce_data);
+		nonce_data = NULL;
+	}
 
 	if (tpm_report)
+	{
 		free(tpm_report);
+		tpm_report = NULL;
+	}
 
 	if (td_report)
+	{
 		free(td_report);
+		td_report = NULL;
+	}
 
 	if (runtime_data)
+	{
 		free(runtime_data);
+		runtime_data = NULL;
+	}
 
 	if (report_data_hex)
+	{
 		free(report_data_hex);
+		report_data_hex = NULL;
+	}
 
 	if (td_quote)
+	{
 		free(td_quote);
+		td_quote = NULL;
+	}
 
 	if (runtime_data_json)
 		json_decref(runtime_data_json);
@@ -461,25 +479,40 @@ int get_td_report(uint8_t *report_data, uint8_t **tpm_report)
 
 ERROR:
 	if (tmpFile)
+	{
 		fclose(tmpFile);
+		tmpFile = NULL;
+	}
 
 	if (access(filename, F_OK) == 0)
 		remove(filename);
 
 	if (report_string)
+	{
 		free(report_string);
+		report_string = NULL;
+	}
 
 	if (nvIndex != ESYS_TR_NONE)
 		Esys_TR_Close(esys_context, &nvIndex);
 
 	if (nvPublic != NULL)
+	{
 		Esys_Free(nvPublic);
-	
+		nvPublic = NULL;
+	}
+
 	if (nvName != NULL)
+	{
 		Esys_Free(nvName);
+		nvName = NULL;
+	}
 
 	if (esys_context)
+	{
 		Esys_Finalize(&esys_context);
+		esys_context = NULL; // Optional, for added safety
+	}
 
 	return status;
 }
@@ -575,19 +608,34 @@ int get_td_quote(uint8_t *td_report, uint8_t **td_quote, uint16_t *quote_size)
 ERROR:
 
 	if (response)
+	{
 		free(response);
-	
+		response = NULL;
+	}
+
 	if (headers)
+	{
 		free(headers);
+		headers = NULL;
+	}
 
 	if (json_request)
+	{
 		free(json_request);
+		json_request = NULL;
+	}
 
 	if (quote)
+	{
 		free(quote);
+		quote = NULL;
+	}
 
 	if (report_b64)
+	{
 		free(report_b64);
+		report_b64 = NULL;
+	}
 
 	return status;
 }
