@@ -24,11 +24,13 @@ extern "C"
 
 #define DEBUG(fmt, ...) fprintf(stdout, "[DBG:%s::%s::%d] " fmt "\n", getFormattedTime(), __FILE__, __LINE__ __VA_OPT__(, ) __VA_ARGS__);
 #else
-#define LOG(fmt, ...)
-#define ERROR(fmt, ...)
-#define DEBUG(fmt, ...)
+    #define LOG(fmt, ...)
+    #define ERROR(fmt, ...)
+    #define DEBUG(fmt, ...)
+#endif // ENABLE_DEBUG_LOGGING
+
 #ifdef __cplusplus
 }
 #endif
-#endif
-#endif
+
+#endif // __LOG_H__
