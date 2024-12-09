@@ -218,16 +218,38 @@ CURLcode make_http_request(const char *url,
 	curl_easy_cleanup(curl);
 	curl_slist_free_all(req_headers);
 	curl_global_cleanup();
+	if (data)
+	{
+		free(data);
+		data = NULL;
+	}
+
+	if (resp_headers)
+	{
+		free(resp_headers);
+		resp_headers = NULL;
+	}
 
 	return status;
 
 ERROR:
+	curl_easy_cleanup(curl);
+	curl_slist_free_all(req_headers);
+	curl_global_cleanup();
+
 	if (data)
 	{
 		ERROR("Error, response from server: %s", data);
 		free(data);
 		data = NULL;
 	}
+
+	if (resp_headers)
+	{
+		free(resp_headers);
+		resp_headers = NULL;
+	}
+
 	if (*response_headers)
 	{
 		free(*response_headers);

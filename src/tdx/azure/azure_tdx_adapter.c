@@ -23,7 +23,7 @@ int azure_tdx_adapter_new(evidence_adapter **adapter)
 		return STATUS_TDX_ERROR_BASE | STATUS_NULL_ADAPTER;
 	}
 
-	*adapter = (evidence_adapter *)malloc(sizeof(evidence_adapter));
+	*adapter = (evidence_adapter *)calloc(1, sizeof(evidence_adapter));
 	if (NULL == *adapter)
 	{
 		return STATUS_TDX_ERROR_BASE | STATUS_ALLOCATION_ERROR;
@@ -87,14 +87,15 @@ int tdx_collect_evidence_azure(void *ctx,
 	tdx_ctx = (tdx_adapter_context *)ctx;
 	uint32_t nonce_data_len = 0;
 	uint8_t *nonce_data = NULL;
-	uint8_t *tpm_report;
-	uint8_t *td_report;
-	uint8_t *runtime_data;
-	uint32_t runtime_data_len;
-	uint8_t *td_quote;
-	json_t *runtime_data_json;
-	json_t *user_data_json;
-	char *user_data_string;
+	uint8_t *tpm_report = NULL;
+	uint8_t *td_report = NULL;
+	uint8_t *runtime_data = NULL;
+	uint32_t runtime_data_len = 0;
+	uint8_t *td_quote = NULL;
+	char *report_data_hex = NULL;
+	json_t *runtime_data_json = NULL;
+	json_t *user_data_json = NULL;
+	char *user_data_string = NULL;
 	int status = STATUS_OK;
 
 	if (NULL != nonce)
@@ -105,7 +106,7 @@ int tdx_collect_evidence_azure(void *ctx,
 		}
 		// append nonce->val and nonce->iat
 		nonce_data_len = nonce->val_len + nonce->iat_len;
-		nonce_data = (uint8_t *)calloc(1, (nonce_data_len + 1) * sizeof(uint8_t));
+		nonce_data = (uint8_t *)calloc(nonce_data_len + 1, sizeof(uint8_t));
 		if (NULL == nonce_data)
 		{
 			status = STATUS_ALLOCATION_ERROR;
@@ -120,8 +121,8 @@ int tdx_collect_evidence_azure(void *ctx,
 	if (nonce_data != NULL || user_data != NULL)
 	{
 		// Hashing Nonce and UserData
-		unsigned char md_value[EVP_MAX_MD_SIZE];
-		unsigned int md_len;
+		unsigned char md_value[EVP_MAX_MD_SIZE] = {0};
+		unsigned int md_len = 0;
 		const EVP_MD *md = EVP_get_digestbyname("sha512");
 		EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
 		EVP_DigestInit_ex(mdctx, md, NULL);
@@ -137,11 +138,11 @@ int tdx_collect_evidence_azure(void *ctx,
 	status = get_td_report(report_data, &tpm_report);
 	if (status != 0)
 	{
-		ERROR("TD report fetch from TPM NV index failed");
+		ERROR("TD report fetch from TPM NV index failed %d", status);
 		goto ERROR;
 	}
 
-	td_report = (uint8_t *)malloc(TD_REPORT_SIZE * sizeof(uint8_t));
+	td_report = (uint8_t *)calloc(TD_REPORT_SIZE, sizeof(uint8_t));
 	if (td_report == NULL)
 	{
 		ERROR("Failed to allocate memory for TD report");
@@ -151,13 +152,13 @@ int tdx_collect_evidence_azure(void *ctx,
 	// Copy the actual TD report from the response recieved from TPM
 	memcpy(td_report, tpm_report + TD_REPORT_OFFSET, TD_REPORT_SIZE);
 
-	uint16_t quote_size;
-	uint8_t tmp[4];
+	uint16_t quote_size = 0;
+	uint8_t tmp[4] = {0};
 	memcpy(tmp, tpm_report + RUNTIME_DATA_SIZE_OFFSET, 4);
 	// Convert to little endian format
 	runtime_data_len = (uint32_t)tmp[0] | (uint32_t)tmp[1] << 8 | (uint32_t)(tmp[2]) << 16 | (uint32_t)(tmp[3]) << 24;
 
-	runtime_data = (uint8_t *)calloc(runtime_data_len, sizeof(uint8_t));
+	runtime_data = (uint8_t *)calloc(runtime_data_len + 1, sizeof(uint8_t));
 	if (runtime_data == NULL)
 	{
 		ERROR("Failed to allocate memory for runtime data");
@@ -190,17 +191,25 @@ int tdx_collect_evidence_azure(void *ctx,
 		status = STATUS_JSON_DECODING_ERROR;
 		goto ERROR;
 	}
-	user_data_string = (char*)json_string_value(user_data_json);
+	user_data_string = (char *)json_string_value(user_data_json);
+	if (user_data_string == NULL)
+	{
+		status = STATUS_JSON_DECODING_ERROR;
+		goto ERROR;
+	}
+
+	// Allocate memory for the hex representation of the string
+	size_t user_data_string_len = (strlen(user_data_string) * 2) + 1; // 2 chars per byte + null terminator
 
 	// Convert report data bytes to hex format
-	char *report_data_hex = (char *)calloc(1, strlen(user_data_string));
+	report_data_hex = (char *)calloc(user_data_string_len, sizeof(char));
 	if (report_data_hex == NULL)
 	{
 		ERROR("Failed to allocate memory for hex encoded report data");
 		status = STATUS_ALLOCATION_ERROR;
 		goto ERROR;
 	}
-	char tmp_hex[3];
+	char tmp_hex[3] = {0};
 	for (int i = 0; i < sizeof(report_data); i++)
 	{
 		sprintf(tmp_hex, "%02X", report_data[i]);
@@ -217,7 +226,7 @@ int tdx_collect_evidence_azure(void *ctx,
 	evidence->type = EVIDENCE_TYPE_TDX;
 
 	// Populating Evidence with TDQuote
-	evidence->evidence = (uint8_t *)calloc(quote_size, sizeof(uint8_t));
+	evidence->evidence = (uint8_t *)calloc(quote_size + 1, sizeof(uint8_t));
 	if (NULL == evidence->evidence)
 	{
 		status = STATUS_TDX_ERROR_BASE | STATUS_ALLOCATION_ERROR;
@@ -227,7 +236,7 @@ int tdx_collect_evidence_azure(void *ctx,
 	evidence->evidence_len = quote_size;
 
 	// Populating Evidence with UserData
-	evidence->user_data = (uint8_t *)calloc(user_data_len, sizeof(uint8_t));
+	evidence->user_data = (uint8_t *)calloc(user_data_len + 1, sizeof(uint8_t));
 	if (NULL == evidence->user_data)
 	{
 		free(evidence->evidence);
@@ -238,7 +247,7 @@ int tdx_collect_evidence_azure(void *ctx,
 	memcpy(evidence->user_data, user_data, user_data_len);
 	evidence->user_data_len = user_data_len;
 
-	evidence->runtime_data = (uint8_t *)calloc(runtime_data_len, sizeof(uint8_t));
+	evidence->runtime_data = (uint8_t *)calloc(runtime_data_len + 1, sizeof(uint8_t));
 	if (NULL == evidence->runtime_data)
 	{
 		free(evidence->user_data);
@@ -291,31 +300,16 @@ ERROR:
 	}
 
 	if (runtime_data_json)
-	{
-		free(runtime_data_json);
-		runtime_data_json = NULL;
-	}
+		json_decref(runtime_data_json);
 
-	if (user_data_json)
-	{
-		free(user_data_json);
-		user_data_json = NULL;
-	}
-
-	if (user_data_string)
-	{
-		free(user_data_string);
-		user_data_string = NULL;
-	}
-
-	return 0;
+	return status;
 }
 
 int get_td_report(uint8_t *report_data, uint8_t **tpm_report)
 {
-	char command[COMMAND_LEN];
-	FILE *output;
-	ESYS_CONTEXT *esys_context;
+	char command[COMMAND_LEN] = {0};
+	FILE *output = NULL;
+	ESYS_CONTEXT *esys_context = NULL;
 	ESYS_TR nvIndex = 0;
 	TPM2B_NV_PUBLIC *nvPublic = NULL;
 	TPM2B_NAME *nvName = NULL;
@@ -323,7 +317,7 @@ int get_td_report(uint8_t *report_data, uint8_t **tpm_report)
 	/*Application binary interface version. Set it to NULL and let it be auto-calculated*/
 	TSS2_ABI_VERSION *abiVersion = NULL;
 	TRUST_AUTHORITY_STATUS status = STATUS_OK;
-	uint8_t* report_string;
+	uint8_t *report_string = NULL;
 
 	/*Initialize to get the ESYS Context*/
 	TSS2_RC rval = Esys_Initialize(&esys_context, tcti, abiVersion);
@@ -385,15 +379,43 @@ int get_td_report(uint8_t *report_data, uint8_t **tpm_report)
 
 	// Get a random number to be appended to the end of file name to make it random
 	int rand_num = rand();
-	char filename[50];
-	// Create file name
-	sprintf(filename, "/tmp/report_azure_%d.txt", rand_num);
+
+	// Create file name using snprintf to avoid buffer overflow
+	size_t nbytes = snprintf(NULL, 0, "/tmp/report_azure_%d.txt", rand_num) + 1; // +1 for null terminator
+
+	// Allocate buffer with the calculated size
+	char *filename = (char *)calloc(nbytes, sizeof(char));
+	if (filename == NULL)
+	{
+		status = STATUS_ALLOCATION_ERROR;
+		goto ERROR;
+	}
+
+	// Write the filename into buffer
+	snprintf(filename, nbytes, "/tmp/report_azure_%d.txt", rand_num);
+
+	// Open the file for writing, check for failure
 	FILE *tmpFile = fopen(filename, "w");
-	fwrite(report_data, 1, TDX_REPORT_DATA_SIZE, tmpFile);
+	if (tmpFile == NULL)
+	{
+		status = STATUS_TPM_REPORT_FILE_OPEN_WRITE_ERROR;
+		goto ERROR;
+	}
+
+	// Write data to the file, check for failure
+	size_t bytes_written = fwrite(report_data, 1, TDX_REPORT_DATA_SIZE, tmpFile);
+	if (bytes_written != TDX_REPORT_DATA_SIZE)
+	{
+		status = STATUS_TPM_REPORT_FILE_WRITE_ERROR;
+		goto ERROR;
+	}
+
+	// Close the file to flush
 	fclose(tmpFile);
+	tmpFile = NULL; //to avoid double close
 
 	/*Write report data to nv Index 0x01400002*/
-	char tpm_write_command[100];
+	char tpm_write_command[100] = {0};
 	/*TODO Replace file based implementation with stdin buffer or use tpm-tss library*/
 	sprintf(tpm_write_command, "tpm2_nvwrite -C o 0x1400002 -i %s", filename);
 	output = popen(tpm_write_command, "r");
@@ -403,7 +425,6 @@ int get_td_report(uint8_t *report_data, uint8_t **tpm_report)
 		status = STATUS_TPM_NV_WRITE_FAILED_ERROR;
 		goto ERROR;
 	}
-	remove(filename);
 
 	// Adding a sleep time of 3s for the user data to be reflected in 0x1400001 nv index
 	sleep(3);
@@ -441,16 +462,16 @@ int get_td_report(uint8_t *report_data, uint8_t **tpm_report)
 		goto ERROR;
 	}
 
-	int ch;
+	int ch = 0;
 	*tpm_report = (uint8_t *)calloc(nvPublic->nvPublic.dataSize, sizeof(uint8_t));
-	if (tpm_report == NULL)
+	if (*tpm_report == NULL)
 	{
 		ERROR("Failed to allocate memory for report received from tpm");
 		status = STATUS_ALLOCATION_ERROR;
 		goto ERROR;
 	}
 
-	report_string = (uint8_t*)calloc(1, nvPublic->nvPublic.dataSize);
+	report_string = (uint8_t *)calloc(nvPublic->nvPublic.dataSize, sizeof(uint8_t));
 	if (NULL == report_string)
 	{
 		ERROR("Failed to allocate memory for report received from tpm");
@@ -465,20 +486,46 @@ int get_td_report(uint8_t *report_data, uint8_t **tpm_report)
 	}
 	pclose(output);
 	memcpy(*tpm_report, report_string, nvPublic->nvPublic.dataSize);
-	free(report_string);
 
 ERROR:
-
-	if (esys_context) {
-		free(esys_context);
+	if (tmpFile)
+	{
+		fclose(tmpFile);
+		tmpFile = NULL;
 	}
 
-	if (nvPublic) {
-		free(nvPublic);
+	if (access(filename, F_OK) == 0)
+	{
+		remove(filename);
+		free(filename);
+		filename = NULL;
 	}
 
-	if(nvName) {
-		free(nvName);
+	if (report_string)
+	{
+		free(report_string);
+		report_string = NULL;
+	}
+
+	if (nvIndex != ESYS_TR_NONE)
+		Esys_TR_Close(esys_context, &nvIndex);
+
+	if (nvPublic != NULL)
+	{
+		Esys_Free(nvPublic);
+		nvPublic = NULL;
+	}
+
+	if (nvName != NULL)
+	{
+		Esys_Free(nvName);
+		nvName = NULL;
+	}
+
+	if (esys_context)
+	{
+		Esys_Finalize(&esys_context);
+		esys_context = NULL; // Optional, for added safety
 	}
 
 	return status;
@@ -489,15 +536,17 @@ int get_td_quote(uint8_t *td_report, uint8_t **td_quote, uint16_t *quote_size)
 	char *response = NULL;
 	char *headers = NULL;
 	const char azure_tdquote_url[API_URL_MAX_LEN + 1] = "http://169.254.169.254/acc/tdquote";
-	char *json_request;
+	char *json_request = NULL;
 	retry_config retryConfig = {0};
-	char *quote;
-	CURLcode status = CURLE_OK;
-	char *report_b64;
+	char *quote = NULL;
+	CURLcode status_post = CURLE_OK;
+	int status = STATUS_OK;
+	uint16_t temp_quote_size = 0;
+	char *report_b64 = NULL;
 
 
 	size_t output_length = ((TD_REPORT_SIZE + 2) / 3) * 4 + 1;
-	report_b64 = (char *)malloc(output_length * sizeof(char));
+	report_b64 = (char *)calloc(output_length, sizeof(char));
 	if (report_b64 == NULL)
 	{
 		ERROR("Failed to allocate memory for base64 encoded report");
@@ -523,8 +572,8 @@ int get_td_quote(uint8_t *td_report, uint8_t **td_quote, uint16_t *quote_size)
 	retryConfig.retry_max = 0;
 	retryConfig.retry_wait_time = 0;
 	int response_length = 0;
-	status = post_request(azure_tdquote_url, NULL, ACCEPT_APPLICATION_JSON, NULL, CONTENT_TYPE_APPLICATION_JSON, json_request, &response, &response_length, &headers, &retryConfig);
-	if (NULL == response || CURLE_OK != status)
+	status_post = post_request(azure_tdquote_url, NULL, ACCEPT_APPLICATION_JSON, NULL, CONTENT_TYPE_APPLICATION_JSON, json_request, &response, &response_length, &headers, &retryConfig);
+	if (NULL == response || CURLE_OK != status_post)
 	{
 		ERROR("Error: POST request to %s failed", azure_tdquote_url);
 		status = STATUS_GET_AZURE_TD_QUOTE_ERROR;
@@ -537,12 +586,24 @@ int get_td_quote(uint8_t *td_report, uint8_t **td_quote, uint16_t *quote_size)
 		goto ERROR;
 	}
 
-	*quote_size = strlen(quote);
-	DEBUG("Quote received: %s", quote);
-	DEBUG("Quote size: %d", *quote_size);
+	if (quote == NULL)
+	{
+		status = STATUS_QUOTE_SIZE_ERROR;
+		goto ERROR;
+	}
 
-	output_length = (*quote_size / 4) * 3; // Estimate the output length
-	*td_quote = (uint8_t *)malloc((output_length + 1) * sizeof(uint8_t));
+	temp_quote_size = strlen(quote);
+	if (temp_quote_size == 0)
+	{
+		status = STATUS_QUOTE_SIZE_ERROR;
+		goto ERROR;
+	}
+
+	DEBUG("Quote received: %s", quote);
+	DEBUG("Quote size: %d", temp_quote_size);
+
+	output_length = (temp_quote_size / 4) * 3; // Estimate the output length
+	*td_quote = (uint8_t *)calloc(output_length + 1, sizeof(uint8_t));
 	if (td_quote == NULL)
 	{
 		ERROR("Failed to allocate memory for TD quote");
@@ -550,7 +611,7 @@ int get_td_quote(uint8_t *td_report, uint8_t **td_quote, uint16_t *quote_size)
 		goto ERROR;
 	}
 
-	status = base64_decode(quote, *quote_size, *td_quote, &output_length);
+	status = base64_decode(quote, temp_quote_size, *td_quote, &output_length);
 	if (BASE64_SUCCESS != status)
 	{
 		ERROR("Failed to decode base64 encoded TD quote");
@@ -589,6 +650,7 @@ ERROR:
 		free(report_b64);
 		report_b64 = NULL;
 	}
+
 	return status;
 }
 
@@ -612,17 +674,37 @@ int json_marshal_quote_request(quote_request *quote_req,
 	}
 
 	json_t *jansson_request = json_object();
+	if (jansson_request == NULL)
+	{
+		return STATUS_JSON_ALLOCATION_ERROR;
+	}
 	int status = STATUS_OK;
 
-	/*Create a JSON request for fetching the TD quote*/
-	json_object_set(jansson_request, "report", json_string(quote_req->report));
+	json_t *json_report = json_string(quote_req->report);
+	if (json_report == NULL)
+	{
+		json_decref(jansson_request);
+		return STATUS_JSON_ALLOCATION_ERROR;
+	}
+
+	/* Create a JSON request for fetching the TD quote */
+	if (json_object_set(jansson_request, "report", json_report) != 0)
+	{
+		json_decref(json_report);
+		json_decref(jansson_request);
+		return STATUS_JSON_ENCODING_ERROR;
+	}
 
 	*json = json_dumps(jansson_request, JANSSON_ENCODING_FLAGS);
 	if (NULL == json)
 	{
+		json_decref(json_report);
+		json_decref(jansson_request);
 		return STATUS_JSON_ENCODING_ERROR;
 	}
 
+	json_decref(json_report);
+	json_decref(jansson_request);
 	return status;
 }
 
@@ -665,39 +747,43 @@ int json_unmarshal_quote_response(char **quote,
 		goto ERROR;
 	}
 
-	char* tmp_string = (char *)json_string_value(tmp_obj);
-	size_t quote_size;
-	if (json_string_length(tmp_obj) % 4 != 0) {
-		quote_size = json_string_length(tmp_obj) + (4 - (json_string_length(tmp_obj) % 4));
-	} else {
-		quote_size = json_string_length(tmp_obj);
-	}
+	char *tmp_string = (char *)json_string_value(tmp_obj);
+	size_t tmp_length = json_string_length(tmp_obj);
+	size_t padding_needed = 0;
 
-	*quote = (char*)calloc(quote_size, sizeof(char));
-	if (quote == NULL)
+	// Check if tmp_length is valid before allocating memory
+	if (tmp_length > 0)
+	{
+		// Calculate the size for the quote string, including any padding
+		padding_needed = (4 - tmp_length % 4) % 4;		 // Number of '=' needed for padding
+		size_t quote_size = tmp_length + padding_needed; // Add the padding to the length
+
+		// Allocate memory only if quote_size is greater than 0
+		*quote = (char *)calloc(quote_size + 1, sizeof(char));
+		if (quote == NULL)
+		{
+			ERROR("Failed to allocate memory for quote string");
+			status = STATUS_ALLOCATION_ERROR;
+			goto ERROR;
+		}
+		strcat(*quote, tmp_string);
+
+		/*if base64 encoded data is not divisible by 4, add = as padding to make it a valid base64 encoding*/
+		for (int i = 0; i < padding_needed; i++)
+		{
+			strcat(*quote, "=");
+		}
+	}
+	else
 	{
 		ERROR("Failed to allocate memory for quote string");
 		status = STATUS_ALLOCATION_ERROR;
 		goto ERROR;
 	}
-	strcat(*quote, tmp_string);
-
-	/*if base64 encoded data is not divisible by 4, add = as padding to make it a valid base64 encoding*/
-	for (int i = 0; i < 4 - json_string_length(tmp_obj) % 4; i++)
-	{
-		strcat(*quote, "=");
-	}
 
 ERROR:
-	if (quote_json) {
-		free(quote_json);
-		quote_json = NULL;
-	}
-
-	if (tmp_obj) {
-		free(tmp_obj);
-		tmp_obj = NULL;
-	}
-
+	if (quote_json)
+		json_decref(quote_json);
+	
 	return status;
 }
