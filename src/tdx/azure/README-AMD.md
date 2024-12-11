@@ -4,6 +4,20 @@
 gcc azure_tdx_adapter.c main.c ../../log/log.c ../../connector/base64.c ../../connector/rest.c ../../connector/connector.c ../../connector/json.c  -I../../../include -I ../../connector -lcrypto -ltss2-esys -ljansson -lcurl
 ```
 
+# check the library symbols
+
+```
+nm libtrustauthority_tdx_azure.a
+
+00000000000002bc T azure_amd_adapter_new
+00000000000003cd T amd_adapter_free
+0000000000000fbe T amd_collect_evidence_azure
+
+0000000000000205 T azure_tdx_adapter_new
+000000000000036e T tdx_adapter_free
+000000000000042c T tdx_collect_evidence_azure
+```
+
 # Memory report
 
 azureuser@amdvm:~/c-adapter/amd-for-c/trustauthority-client-for-c/src/tdx/azure$ sudo valgrind --leak-check=full --track-origins=yes ./a.out
