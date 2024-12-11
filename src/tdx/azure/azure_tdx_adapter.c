@@ -15,6 +15,7 @@
 #include <log.h>
 #include <tss2/tss2_esys.h>
 
+//TDX
 int azure_tdx_adapter_new(evidence_adapter **adapter)
 {
 	tdx_adapter_context *ctx = NULL;
@@ -43,6 +44,36 @@ int azure_tdx_adapter_new(evidence_adapter **adapter)
 	return STATUS_OK;
 }
 
+//AMD
+int azure_amd_adapter_new(evidence_adapter **adapter)
+{
+	amd_adapter_context *ctx = NULL;
+	if (NULL == adapter)
+	{
+		return STATUS_AMD_ERROR_BASE | STATUS_NULL_ADAPTER;
+	}
+
+	*adapter = (evidence_adapter *)malloc(sizeof(evidence_adapter));
+	if (NULL == *adapter)
+	{
+		return STATUS_AMD_ERROR_BASE | STATUS_ALLOCATION_ERROR;
+	}
+
+	ctx = (amd_adapter_context *)calloc(1, sizeof(amd_adapter_context));
+	if (NULL == ctx)
+	{
+		free(*adapter);
+		*adapter = NULL;
+		return STATUS_AMD_ERROR_BASE | STATUS_ALLOCATION_ERROR;
+	}
+
+	(*adapter)->ctx = ctx;
+	(*adapter)->collect_evidence = amd_collect_evidence_azure;
+
+	return STATUS_OK;
+}
+
+//TDX
 int tdx_adapter_free(evidence_adapter *adapter)
 {
 	if (NULL == adapter)
@@ -60,6 +91,26 @@ int tdx_adapter_free(evidence_adapter *adapter)
 	adapter = NULL;
 	return STATUS_OK;
 }
+
+//AMD
+int amd_adapter_free(evidence_adapter *adapter)
+{
+	if (NULL == adapter)
+	{
+		return STATUS_NULL_ADAPTER;
+	}
+
+	if (NULL != adapter->ctx)
+	{
+		free(adapter->ctx);
+		adapter->ctx = NULL;
+	}
+
+	free(adapter);
+	adapter = NULL;
+	return STATUS_OK;
+}
+
 
 int tdx_collect_evidence_azure(void *ctx,
 		evidence *evidence,
@@ -142,7 +193,7 @@ int tdx_collect_evidence_azure(void *ctx,
 		goto ERROR;
 	}
 
-	td_report = (uint8_t *)calloc(TD_REPORT_SIZE, sizeof(uint8_t));
+	td_report = (uint8_t *)calloc(TDX_TD_REPORT_SIZE, sizeof(uint8_t));
 	if (td_report == NULL)
 	{
 		ERROR("Failed to allocate memory for TD report");
@@ -150,7 +201,7 @@ int tdx_collect_evidence_azure(void *ctx,
 		goto ERROR;
 	}
 	// Copy the actual TD report from the response recieved from TPM
-	memcpy(td_report, tpm_report + TD_REPORT_OFFSET, TD_REPORT_SIZE);
+	memcpy(td_report, tpm_report + TDX_TD_REPORT_OFFSET, TDX_TD_REPORT_SIZE);
 
 	uint16_t quote_size = 0;
 	uint8_t tmp[4] = {0};
@@ -297,6 +348,237 @@ ERROR:
 	{
 		free(td_quote);
 		td_quote = NULL;
+	}
+
+	if (runtime_data_json)
+		json_decref(runtime_data_json);
+
+	return status;
+}
+
+//AMD
+int amd_collect_evidence_azure(void *ctx,
+		evidence *evidence,
+		nonce *nonce,
+		uint8_t *user_data,
+		uint32_t user_data_len)
+{
+	amd_adapter_context *amd_ctx = NULL;
+	if (NULL == ctx)
+	{
+		return STATUS_AMD_ERROR_BASE | STATUS_NULL_ADAPTER_CTX;
+	}
+
+	if (NULL == evidence)
+	{
+		return STATUS_AMD_ERROR_BASE | STATUS_NULL_EVIDENCE;
+	}
+
+	if (user_data_len > 0 && user_data == NULL)
+	{
+		return STATUS_AMD_ERROR_BASE | STATUS_INVALID_USER_DATA;
+	}
+
+	amd_ctx = (amd_adapter_context *)ctx;
+	uint32_t nonce_data_len = 0;
+	uint8_t *nonce_data = NULL;
+	uint8_t *tpm_report = NULL;
+	uint8_t *td_report = NULL;
+	uint8_t *runtime_data = NULL;
+	uint32_t runtime_data_len = 0;
+	char *report_data_hex = NULL;
+	json_t *runtime_data_json = NULL;
+	json_t *user_data_json = NULL;
+	char *user_data_string = NULL;
+	int status = STATUS_OK;
+
+	if (NULL != nonce)
+	{
+		if (nonce->val == NULL)
+		{
+			return STATUS_AMD_ERROR_BASE | STATUS_NULL_NONCE;
+		}
+		// append nonce->val and nonce->iat
+		nonce_data_len = nonce->val_len + nonce->iat_len;
+		nonce_data = (uint8_t *)calloc(nonce_data_len + 1, sizeof(uint8_t));
+		if (NULL == nonce_data)
+		{
+			status = STATUS_ALLOCATION_ERROR;
+			goto ERROR;
+		}
+
+		memcpy(nonce_data, nonce->val, nonce->val_len);
+		memcpy(nonce_data + nonce->val_len, nonce->iat, nonce->iat_len);
+	}
+
+	uint8_t report_data[AMD_REPORT_DATA_SIZE] = {0};
+	if (nonce_data != NULL || user_data != NULL)
+	{
+		// Hashing Nonce and UserData
+		unsigned char md_value[EVP_MAX_MD_SIZE] = {0};
+		unsigned int md_len = 0;
+		const EVP_MD *md = EVP_get_digestbyname("sha512");
+		EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
+		EVP_DigestInit_ex(mdctx, md, NULL);
+		EVP_DigestUpdate(mdctx, nonce_data, nonce_data_len);
+		EVP_DigestUpdate(mdctx, user_data, user_data_len);
+		EVP_DigestFinal_ex(mdctx, md_value, &md_len);
+		EVP_MD_CTX_free(mdctx);
+		memcpy(report_data, md_value, AMD_REPORT_DATA_SIZE);
+	}
+
+	DEBUG("Report data generated: %s", report_data);
+
+	status = get_td_report(report_data, &tpm_report);
+	if (status != 0)
+	{
+		ERROR("TD report fetch from TPM NV index failed %d", status);
+		goto ERROR;
+	}
+
+	td_report = (uint8_t *)calloc((AMD_TD_REPORT_OFFSET + AMD_TD_REPORT_SIZE) + 1,  sizeof(uint8_t));
+	if (td_report == NULL)
+	{
+		ERROR("Failed to allocate memory for TD report");
+		status = STATUS_ALLOCATION_ERROR;
+		goto ERROR;
+	}
+	// Copy the actual TD report from the response recieved from TPM
+	memcpy(td_report, tpm_report + AMD_TD_REPORT_OFFSET, AMD_TD_REPORT_OFFSET + AMD_TD_REPORT_SIZE);
+
+	uint8_t tmp[4] = {0};
+	memcpy(tmp, tpm_report + RUNTIME_DATA_SIZE_OFFSET, 4);
+	// Convert to little endian format
+	runtime_data_len = (uint32_t)tmp[0] | (uint32_t)tmp[1] << 8 | (uint32_t)(tmp[2]) << 16 | (uint32_t)(tmp[3]) << 24;
+
+	runtime_data = (uint8_t *)calloc(runtime_data_len + 1, sizeof(uint8_t));
+	if (runtime_data == NULL)
+	{
+		ERROR("Failed to allocate memory for runtime data");
+		status = STATUS_ALLOCATION_ERROR;
+		goto ERROR;
+	}
+	memcpy(runtime_data, tpm_report + RUNTIME_DATA_OFFSET, runtime_data_len);
+
+	DEBUG("Runtime data size: %d", runtime_data_len);
+	DEBUG("Runtime data: %s", runtime_data);
+
+
+
+	json_error_t error;
+	runtime_data_json = json_loads((const char *)runtime_data, 0, &error);
+	if (!runtime_data_json)
+	{
+		status = STATUS_JSON_DECODING_ERROR;
+		goto ERROR;
+	}
+
+	user_data_json = json_object_get(runtime_data_json, "user-data");
+	if (NULL == user_data_json || !json_is_string(user_data_json))
+	{
+		status = STATUS_JSON_DECODING_ERROR;
+		goto ERROR;
+	}
+	user_data_string = (char *)json_string_value(user_data_json);
+	if (user_data_string == NULL)
+	{
+		status = STATUS_JSON_DECODING_ERROR;
+		goto ERROR;
+	}
+
+	// Allocate memory for the hex representation of the string
+	size_t user_data_string_len = (strlen(user_data_string) * 2) + 1; // 2 chars per byte + null terminator
+
+	// Convert report data bytes to hex format
+	report_data_hex = (char *)calloc(user_data_string_len, sizeof(char));
+	if (report_data_hex == NULL)
+	{
+		ERROR("Failed to allocate memory for hex encoded report data");
+		status = STATUS_ALLOCATION_ERROR;
+		goto ERROR;
+	}
+	char tmp_hex[3] = {0};
+	for (int i = 0; i < sizeof(report_data); i++)
+	{
+		sprintf(tmp_hex, "%02X", report_data[i]);
+		strcat(report_data_hex, tmp_hex);
+	}
+
+	if (strcmp(user_data_string, report_data_hex) != 0)
+	{
+		ERROR("User data calculated does not match the same received from TPM");
+		status = STATUS_USER_DATA_MISMATCH_ERROR;
+		goto ERROR;
+	}
+
+	evidence->type = EVIDENCE_TYPE_AMD;
+
+	// Populating Evidence with AMDReport
+	evidence->evidence = (uint8_t *)calloc(AMD_TD_REPORT_SIZE + 1, sizeof(uint8_t));
+	if (NULL == evidence->evidence)
+	{
+		status = STATUS_AMD_ERROR_BASE | STATUS_ALLOCATION_ERROR;
+		goto ERROR;
+	}
+	memcpy(evidence->evidence, td_report, AMD_TD_REPORT_SIZE);
+	evidence->evidence_len = AMD_TD_REPORT_SIZE;
+
+	// Populating Evidence with UserData
+	evidence->user_data = (uint8_t *)calloc(user_data_len + 1, sizeof(uint8_t));
+	if (NULL == evidence->user_data)
+	{
+		free(evidence->evidence);
+		evidence->evidence = NULL;
+		status = STATUS_ALLOCATION_ERROR;
+		goto ERROR;
+	}
+	memcpy(evidence->user_data, user_data, user_data_len);
+	evidence->user_data_len = user_data_len;
+
+	evidence->runtime_data = (uint8_t *)calloc(runtime_data_len + 1, sizeof(uint8_t));
+	if (NULL == evidence->runtime_data)
+	{
+		free(evidence->user_data);
+		free(evidence->evidence);
+		evidence->user_data = NULL;
+		evidence->evidence = NULL;
+		status = STATUS_ALLOCATION_ERROR;
+		goto ERROR;
+	}
+	memcpy(evidence->runtime_data, runtime_data, runtime_data_len);
+	evidence->runtime_data_len = runtime_data_len;
+	evidence->event_log = NULL;
+	evidence->event_log_len = 0;
+
+ERROR:
+	if (nonce_data)
+	{
+		free(nonce_data);
+		nonce_data = NULL;
+	}
+
+	if (tpm_report)
+	{
+		free(tpm_report);
+		tpm_report = NULL;
+	}
+
+	if (td_report)
+	{
+		free(td_report);
+		td_report = NULL;
+	}
+
+	if (runtime_data)
+	{
+		free(runtime_data);
+		runtime_data = NULL;
+	}
+
+	if (report_data_hex)
+	{
+		free(report_data_hex);
+		report_data_hex = NULL;
 	}
 
 	if (runtime_data_json)
@@ -545,7 +827,7 @@ int get_td_quote(uint8_t *td_report, uint8_t **td_quote, uint16_t *quote_size)
 	char *report_b64 = NULL;
 
 
-	size_t output_length = ((TD_REPORT_SIZE + 2) / 3) * 4 + 1;
+	size_t output_length = ((TDX_TD_REPORT_SIZE + 2) / 3) * 4 + 1;
 	report_b64 = (char *)calloc(output_length, sizeof(char));
 	if (report_b64 == NULL)
 	{
@@ -554,14 +836,14 @@ int get_td_quote(uint8_t *td_report, uint8_t **td_quote, uint16_t *quote_size)
 		goto ERROR;
 	}
 
-	status = base64_encode(td_report, TD_REPORT_SIZE, report_b64, output_length, 0);
+	status = base64_encode(td_report, TDX_TD_REPORT_SIZE, report_b64, output_length, 0);
 	if (status != 0)
 	{
 		ERROR("Base64 encoding of report data failed");
 		goto ERROR;
 	}
 
-	quote_request quote_req = { .report = report_b64, .report_len = TD_REPORT_SIZE};
+	quote_request quote_req = { .report = report_b64, .report_len = TDX_TD_REPORT_SIZE};
 
 	status = json_marshal_quote_request(&quote_req, &json_request);
 	if (STATUS_OK != status) {

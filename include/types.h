@@ -100,6 +100,7 @@ typedef struct jwk_set {
 // for difference implementations (ex. SGX, TDX, TPM, SPDM, etc.).
 #define EVIDENCE_TYPE_SGX 0x53475800 // 'SGX0'
 #define EVIDENCE_TYPE_TDX 0x54445800 // 'TDX0'
+#define EVIDENCE_TYPE_AMD 0x64445900 // 'AMD0'
 
 typedef int (*evidence_callback)(void *ctx,
 		evidence *evidence,
