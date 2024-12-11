@@ -35,6 +35,8 @@ void print_evidence(evidence *ev) {
             printf("%02x", ev->runtime_data[i]);
         }
         printf("\n");
+
+	printf("Runtime data: %s\n", ev->runtime_data);
     } else {
         printf("Runtime Data: NULL or Empty\n");
     }
@@ -83,6 +85,13 @@ int main() {
     print_evidence(&evidence);
     // If everything succeeds, you can process the evidence
     printf("AMD evidence collected successfully.\n");
+
+    if (evidence.evidence)
+        free(evidence.evidence);
+    if (evidence.runtime_data)
+        free(evidence.runtime_data);
+    if (evidence.user_data)
+        free(evidence.user_data);
 
     amd_adapter_free(adapter);
 
