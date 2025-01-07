@@ -14,6 +14,17 @@ typedef struct evidence_adapter_node
 	struct evidence_adapter_node *next;
 } evidence_adapter_node;
 
+typedef struct evidence_builder
+{
+	evidence_adapter_node *adapters;
+	nonce *nonce;
+	uint8_t *user_data;
+	uint32_t user_data_len;
+	policies *policy_ids;
+	char *token_signing_alg;
+	bool policy_must_match;
+} evidence_builder;
+
 TRUST_AUTHORITY_STATUS parse_policies(char *input, policies *pol)
 {
     // Nothing to parse

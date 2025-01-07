@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
 		goto ERROR;
 	}
 
-	status = attest_evidence(connector, &headers, &token, evidence, request_id, NULL);
+	status = attest_evidence(connector, &headers, &token, evidence, request_id, "");
 	if (STATUS_OK != status)
 	{
 		ERROR("ERROR: Failed to collect trust authority token: 0x%04x\n", status);

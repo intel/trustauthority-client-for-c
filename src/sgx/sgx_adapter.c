@@ -100,7 +100,7 @@ int sgx_get_evidence(void *ctx,
 			goto ERROR;
 		}
 
-		json_object_set_new(jansson_evidence, "verifier_nonce", jansson_nonce);
+		json_object_set(jansson_evidence, "verifier_nonce", jansson_nonce);
 	}
 
 ERROR:
