@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Intel Corporation
+ * Copyright (C) 2023-2024 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include <stdio.h>
@@ -9,12 +9,12 @@
 #include <openssl/pem.h>
 #include <connector.h>
 #include <types.h>
-#include "json.h"
+#include <json.h>
 #include "api.h"
 #include "appraisal_request.h"
 #include "rest.h"
 #include <log.h>
-#include "base64.h"
+#include <base64.h>
 #include <jwt.h>
 #include <regex.h>
 
@@ -112,39 +112,48 @@ TRUST_AUTHORITY_STATUS get_nonce(trust_authority_connector *connector,
 	}
 
 	strncat(url, connector->api_url, API_URL_MAX_LEN);
-	strncat(url, "/appraisal/v1/nonce", API_URL_MAX_LEN);
+	strncat(url, "/appraisal/v2/nonce", API_URL_MAX_LEN);
 	DEBUG("Nonce url: %s\n", url);
 
 	//Get nonce from Intel Trust Authority
 	int response_length = 0;
-	status = get_request(url, connector->api_key, ACCEPT_APPLICATION_JSON, 
-			args->request_id, NULL, &response ,&response_length, &headers, connector->retries);
+	status = get_request(url, connector->api_key, ACCEPT_APPLICATION_JSON, args->request_id, NULL, &response ,&response_length, &headers, connector->retries);
 	if (NULL == response || CURLE_OK != status)
 	{
 		ERROR("Error: GET request to %s failed", url);
-		return STATUS_GET_NONCE_ERROR;
+		result = STATUS_GET_NONCE_ERROR;
+		goto ERROR;
 	}
+
 	//Unmarshal nonce as per struct nonce.
 	result = json_unmarshal_nonce(nonce, response);
 	if (STATUS_OK != result)
 	{
 		ERROR("Error: Unmarshalling Nonce - %d\n", result);
-		return result;
+		goto ERROR;
 	}
 	//Fetch all the headers recieved.
 	size_t size = strlen(headers);
 	resp_headers->headers = (char *)calloc(size + 1, sizeof(char));
 	if (NULL == resp_headers->headers)
 	{
-		return STATUS_ALLOCATION_ERROR;
+		result = STATUS_ALLOCATION_ERROR;
+		goto ERROR;
 	}
 	memcpy(resp_headers->headers, headers, size);
+
+ERROR:
+
 	if (response)
 	{
 		free(response);
 		response = NULL;
 	}
-
+	if (headers)
+	{
+		free(headers);
+		headers = NULL;
+	}
 	return result;
 }
 
@@ -182,7 +191,7 @@ TRUST_AUTHORITY_STATUS get_token(trust_authority_connector *connector,
 
 	if (NULL == args->evidence->evidence)
 	{
-		return STATUS_INVALID_PARAMETER;
+		return STATUS_NULL_EVIDENCE;
 	}
 	if (args->evidence->evidence_len > MAX_EVIDENCE_LEN)
 	{
@@ -242,7 +251,8 @@ TRUST_AUTHORITY_STATUS get_token(trust_authority_connector *connector,
 	resp_headers->headers = (char *)calloc(size + 1, sizeof(char));
 	if (NULL == resp_headers->headers)
 	{
-		return STATUS_ALLOCATION_ERROR;
+		result = STATUS_ALLOCATION_ERROR;
+		goto ERROR;
 	}
 	memcpy(resp_headers->headers, headers, size);
 
@@ -252,6 +262,106 @@ ERROR:
 	{
 		free(json);
 		json = NULL;
+	}
+	if (response)
+	{
+		free(response);
+		response = NULL;
+	}
+	if (headers)
+	{
+		free(headers);
+		headers = NULL;
+	}
+	return result;
+}
+
+TRUST_AUTHORITY_STATUS attest_evidence(trust_authority_connector *connector,
+		response_headers *resp_headers,
+		token *token,
+		json_t *evidence,
+		char *request_id,
+		char *cloud_provider)
+{
+	int result = STATUS_OK;
+	char *json = NULL;
+	char url[2*API_URL_MAX_LEN] = {0};
+	char *response = NULL;
+	char *headers = NULL;
+	CURLcode status = CURLE_OK;
+
+	if (NULL == connector)
+	{
+		return STATUS_NULL_CONNECTOR;
+	}
+	if (NULL == token)
+	{
+		return STATUS_NULL_TOKEN;
+	}
+	if (NULL == evidence)
+	{
+		return STATUS_NULL_EVIDENCE;
+	}
+
+	snprintf(url, sizeof(url), "%s%s", connector->api_url, "/appraisal/v2/attest");
+	if (strncmp(cloud_provider, "", 1) != 0) {
+		snprintf(url+strnlen(url, sizeof(url)), sizeof(url), "/%s", cloud_provider);
+	}
+	DEBUG("Token url: %s\n", url);
+
+	//Marshal the request in JSON form to be sent to Intel Trust Authority
+	json = json_dumps(evidence, JSON_INDENT(4));
+	if (NULL == json)
+	{
+		ERROR("Error: Failed to serialize appraisal request\n");
+		result = STATUS_JSON_ENCODING_ERROR;
+		goto ERROR;
+	}
+
+	//Get token from Intel Trust Authority
+	int response_length = 0;
+	status = post_request(url, connector->api_key, ACCEPT_APPLICATION_JSON, request_id, CONTENT_TYPE_APPLICATION_JSON, json, &response, &response_length, &headers, connector->retries);
+	if (NULL == response || CURLE_OK != status)
+	{
+		ERROR("Error: POST request to %s failed", url);
+		result = STATUS_POST_TOKEN_ERROR ;
+		goto ERROR;
+	}
+
+	//Unmarshal token as per struct token.
+	result = json_unmarshal_token(token, (const char *)response);
+	if (STATUS_OK != result)
+	{
+		ERROR("Error: Failed to unmarshal token\n");
+		goto ERROR;
+	}
+
+	//Fetch all the headers
+	size_t size = strlen(headers);
+	resp_headers->headers = (char *)calloc(size + 1, sizeof(char));
+	if (NULL == resp_headers->headers)
+	{
+		result = STATUS_ALLOCATION_ERROR;
+		goto ERROR;
+	}
+	memcpy(resp_headers->headers, headers, size);
+
+ERROR:
+
+	if (json)
+	{
+		free(json);
+		json = NULL;
+	}
+	if (response)
+	{
+		free(response);
+		response = NULL;
+	}
+	if (headers)
+	{
+		free(headers);
+		headers = NULL;
 	}
 	return result;
 }
@@ -417,7 +527,6 @@ TRUST_AUTHORITY_STATUS get_token_signing_certificate(const char *jwks_url,
 		ret = STATUS_GET_SIGNING_CERT_ERROR;
 		goto ERROR;
 	}
-	DEBUG("\nRetrieved token signing certificate : \n%s", *jwks);
 
 ERROR:
 	if (NULL != retries)

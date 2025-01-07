@@ -15,6 +15,11 @@
 #include <log.h>
 #include <tss2/tss2_esys.h>
 
+typedef struct quote_request {
+	char * report;
+	uint32_t report_len;
+} quote_request;
+
 int azure_tdx_adapter_new(evidence_adapter **adapter)
 {
 	tdx_adapter_context *ctx = NULL;
@@ -39,26 +44,72 @@ int azure_tdx_adapter_new(evidence_adapter **adapter)
 
 	(*adapter)->ctx = ctx;
 	(*adapter)->collect_evidence = tdx_collect_evidence_azure;
+	(*adapter)->get_evidence = tdx_get_evidence_azure;
+	(*adapter)->get_evidence_identifier = tdx_get_evidence_identifier;
 
 	return STATUS_OK;
 }
 
 int tdx_adapter_free(evidence_adapter *adapter)
 {
-	if (NULL == adapter)
+	if (NULL != adapter)
 	{
-		return STATUS_NULL_ADAPTER;
+		if (NULL != adapter->ctx)
+		{
+			free(adapter->ctx);
+			adapter->ctx = NULL;
+		}
+		free(adapter);
+		adapter = NULL;
 	}
-
-	if (NULL != adapter->ctx)
-	{
-		free(adapter->ctx);
-		adapter->ctx = NULL;
-	}
-
-	free(adapter);
-	adapter = NULL;
 	return STATUS_OK;
+}
+
+const char* tdx_get_evidence_identifier() {
+	return EVIDENCE_IDENTIFIER_TDX;
+}
+
+int tdx_get_evidence_azure(void *ctx,
+		json_t *jansson_evidence,
+		nonce *nonce,
+		uint8_t *user_data,
+		uint32_t user_data_len)
+{
+	int result = 0;
+	evidence evidence = {0};
+	json_t *jansson_nonce = NULL;
+
+	result = tdx_collect_evidence_azure(ctx, &evidence, nonce, user_data, user_data_len);
+	if (result != STATUS_OK)
+	{
+		return result;
+	}
+
+	result = get_jansson_evidence(&evidence, &jansson_evidence);
+	if (result != STATUS_OK)
+	{
+		ERROR("Error: Failed to create evidence json: 0x%04x\n", result);
+		return result;
+	}
+
+	if (nonce != NULL) {
+		result = get_jansson_nonce(nonce, &jansson_nonce);
+		if (result != STATUS_OK)
+		{
+			ERROR("Error: Failed to create nonce json: 0x%04x\n", result);
+			goto ERROR;
+		}
+
+		json_object_set(jansson_evidence, "verifier_nonce", jansson_nonce);
+	}
+
+ERROR:
+	if (jansson_nonce)
+	{
+		json_decref(jansson_nonce);
+		jansson_nonce = NULL;
+	}
+	return result;
 }
 
 int tdx_collect_evidence_azure(void *ctx,
@@ -109,7 +160,7 @@ int tdx_collect_evidence_azure(void *ctx,
 		nonce_data = (uint8_t *)calloc(nonce_data_len + 1, sizeof(uint8_t));
 		if (NULL == nonce_data)
 		{
-			status = STATUS_ALLOCATION_ERROR;
+			status = STATUS_TDX_ERROR_BASE | STATUS_ALLOCATION_ERROR;
 			goto ERROR;
 		}
 
@@ -146,7 +197,7 @@ int tdx_collect_evidence_azure(void *ctx,
 	if (td_report == NULL)
 	{
 		ERROR("Failed to allocate memory for TD report");
-		status = STATUS_ALLOCATION_ERROR;
+		status = STATUS_TDX_ERROR_BASE | STATUS_ALLOCATION_ERROR;
 		goto ERROR;
 	}
 	// Copy the actual TD report from the response recieved from TPM
@@ -162,7 +213,7 @@ int tdx_collect_evidence_azure(void *ctx,
 	if (runtime_data == NULL)
 	{
 		ERROR("Failed to allocate memory for runtime data");
-		status = STATUS_ALLOCATION_ERROR;
+		status = STATUS_TDX_ERROR_BASE | STATUS_ALLOCATION_ERROR;
 		goto ERROR;
 	}
 	memcpy(runtime_data, tpm_report + RUNTIME_DATA_OFFSET, runtime_data_len);
@@ -181,20 +232,20 @@ int tdx_collect_evidence_azure(void *ctx,
 	runtime_data_json = json_loads((const char *)runtime_data, 0, &error);
 	if (!runtime_data_json)
 	{
-		status = STATUS_JSON_DECODING_ERROR;
+		status = STATUS_TDX_ERROR_BASE | STATUS_JSON_DECODING_ERROR;
 		goto ERROR;
 	}
 
 	user_data_json = json_object_get(runtime_data_json, "user-data");
 	if (NULL == user_data_json || !json_is_string(user_data_json))
 	{
-		status = STATUS_JSON_DECODING_ERROR;
+		status = STATUS_TDX_ERROR_BASE | STATUS_JSON_DECODING_ERROR;
 		goto ERROR;
 	}
 	user_data_string = (char *)json_string_value(user_data_json);
 	if (user_data_string == NULL)
 	{
-		status = STATUS_JSON_DECODING_ERROR;
+		status = STATUS_TDX_ERROR_BASE | STATUS_JSON_DECODING_ERROR;
 		goto ERROR;
 	}
 
@@ -206,7 +257,7 @@ int tdx_collect_evidence_azure(void *ctx,
 	if (report_data_hex == NULL)
 	{
 		ERROR("Failed to allocate memory for hex encoded report data");
-		status = STATUS_ALLOCATION_ERROR;
+		status = STATUS_TDX_ERROR_BASE | STATUS_ALLOCATION_ERROR;
 		goto ERROR;
 	}
 	char tmp_hex[3] = {0};
@@ -219,7 +270,7 @@ int tdx_collect_evidence_azure(void *ctx,
 	if (strcmp(user_data_string, report_data_hex) != 0)
 	{
 		ERROR("User data calculated does not match the same received from TPM");
-		status = STATUS_USER_DATA_MISMATCH_ERROR;
+		status = STATUS_TDX_ERROR_BASE | STATUS_USER_DATA_MISMATCH_ERROR;
 		goto ERROR;
 	}
 
@@ -241,12 +292,13 @@ int tdx_collect_evidence_azure(void *ctx,
 	{
 		free(evidence->evidence);
 		evidence->evidence = NULL;
-		status = STATUS_ALLOCATION_ERROR;
+		status = STATUS_TDX_ERROR_BASE | STATUS_ALLOCATION_ERROR;
 		goto ERROR;
 	}
 	memcpy(evidence->user_data, user_data, user_data_len);
 	evidence->user_data_len = user_data_len;
 
+	// Populating Evidence with RuntimeData
 	evidence->runtime_data = (uint8_t *)calloc(runtime_data_len + 1, sizeof(uint8_t));
 	if (NULL == evidence->runtime_data)
 	{
@@ -254,7 +306,7 @@ int tdx_collect_evidence_azure(void *ctx,
 		free(evidence->evidence);
 		evidence->user_data = NULL;
 		evidence->evidence = NULL;
-		status = STATUS_ALLOCATION_ERROR;
+		status = STATUS_TDX_ERROR_BASE | STATUS_ALLOCATION_ERROR;
 		goto ERROR;
 	}
 	memcpy(evidence->runtime_data, runtime_data, runtime_data_len);

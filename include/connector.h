@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Intel Corporation
+ * Copyright (C) 2023-2024 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #ifndef __CONNECTOR_H__
@@ -64,6 +64,23 @@ extern "C"
 			response_headers *resp_header);
 
 	/**
+	 * Get a token from Intel Trust Authority by providing composite evidence as input
+	 * @param connector a trust_authority_connector pointer
+	 * @param resp_header a char pointer containing response headers returned from Intel Trust Authority
+	 * @param token token returned from Intel Trust Authority
+	 * @param evidence composite evidence to be passed in request
+	 * @param request_id request id to be passed in request
+	 * @param cloud_provider cloud provider name
+	 * @return return status
+	 */
+	TRUST_AUTHORITY_STATUS attest_evidence(trust_authority_connector *connector,
+			response_headers *resp_headers,
+			token *token,
+			json_t *evidence,
+			char *request_id,
+			char *cloud_provider);
+
+	/**
 	 * Get a token from Intel Trust Authority by providing evidence and nonce as input
 	 * @param connector a trust_authority_connector pointer
 	 * @param resp_header a char pointer containing response headers returned from Intel Trust Authority
@@ -112,4 +129,5 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
-#endif
+
+#endif // __CONNECTOR_H__

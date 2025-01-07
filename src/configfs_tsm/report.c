@@ -243,7 +243,7 @@ TRUST_AUTHORITY_STATUS get_report(Request *r, Response **response)
     {
         ERROR("error in allocating memory for response out_blob\n")
         status = STATUS_ALLOCATION_ERROR;
-        response_free(response);
+        response_free(*response);
         goto CLEANUP;
     }
     memcpy((*response)->out_blob, td_report, size);
@@ -254,7 +254,7 @@ TRUST_AUTHORITY_STATUS get_report(Request *r, Response **response)
     {
         ERROR("error in allocating memory for provider\n")
         status = STATUS_ALLOCATION_ERROR;
-        response_free(response);
+        response_free(*response);
         goto CLEANUP;
     }
     memcpy(((*response)->provider), provider, provider_len);

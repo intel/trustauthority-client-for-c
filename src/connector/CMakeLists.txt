@@ -10,11 +10,14 @@ execute_process (
     OUTPUT_VARIABLE outVar
 )
 
+include_directories(../util)
+
 add_library(${PROJECT_NAME}
     connector.c 
     rest.c
-    json.c
-    base64.c
+    appraisal_request.c
+    ../util/json.c
+    ../util/base64.c
     ../log/log.c
 )
 

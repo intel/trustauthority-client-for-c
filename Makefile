@@ -6,6 +6,7 @@ DCAP_VERSION := 1.19.100.3-focal1
 PSW_VERSION := 2.22.100.3
 USE_AZURE_TDX_ADAPTER := OFF
 TDX_TOKEN_BUILD_PREFIX := intel
+SEVSNP_TOKEN_BUILD_PREFIX := amd
 
 # By default set the build in release mode
 ENABLE_DEBUG ?= Release
@@ -32,7 +33,7 @@ MAKEFILE_DIR := $(dir $(MAKEFILE_PATH))
 .PHONY: all clean
 .DEFAULT: ubuntu_20
 
-all: ubuntu_20 sgx_token_docker tdx_token_docker azure_tdx_token_docker
+all: ubuntu_20 sgx_token_docker tdx_token_docker azure_tdx_token_docker azure_tpm_token_docker sevsnp_token_docker azure_sevsnp_token_docker
 
 ubuntu_20: 
 	DOCKER_BUILDKIT=1 docker build \
@@ -87,9 +88,36 @@ tdx_token_docker:
 		--build-arg VERSION=${VERSION} \
 		--build-arg COMMIT=${COMMIT} .
 
+azure_tpm_token_docker:
+	DOCKER_BUILDKIT=1 docker build \
+		--build-arg ENABLE_DEBUG=${ENABLE_DEBUG} \
+		${DOCKER_PROXY_FLAGS} \
+		-f examples/azure_tpm_token/Dockerfile \
+		--target azure_tpm_token \
+		-t $(ORGNAME)/azure_tpm_token:$(VERSION) \
+		--build-arg MAKEFILE_DIR=${MAKEFILE_DIR} \
+        	--build-arg VERSION=${VERSION} \
+        	--build-arg COMMIT=${COMMIT} .
+
+sevsnp_token_docker:
+	DOCKER_BUILDKIT=1 docker build \
+		--build-arg ENABLE_DEBUG=${ENABLE_DEBUG} \
+		${DOCKER_PROXY_FLAGS} \
+		-f examples/sevsnp_token/Dockerfile \
+		--target ${SEVSNP_TOKEN_BUILD_PREFIX}_sevsnp_token \
+		-t $(ORGNAME)/${SEVSNP_TOKEN_BUILD_PREFIX}_sevsnp_token:$(VERSION) \
+		--build-arg USE_AZURE_SEVSNP_ADAPTER=${USE_AZURE_SEVSNP_ADAPTER} \
+		--build-arg MAKEFILE_DIR=${MAKEFILE_DIR} \
+		--build-arg VERSION=${VERSION} \
+		--build-arg COMMIT=${COMMIT} .
+
 azure_tdx_token_docker: USE_AZURE_TDX_ADAPTER = ON
 azure_tdx_token_docker: TDX_TOKEN_BUILD_PREFIX = azure
 azure_tdx_token_docker: tdx_token_docker
+
+azure_sevsnp_token_docker: USE_AZURE_SEVSNP_ADAPTER = ON
+azure_sevsnp_token_docker: SEVSNP_TOKEN_BUILD_PREFIX = azure
+azure_sevsnp_token_docker: sevsnp_token_docker
 
 clean:
 	rm -rf ${MAKEFILE_DIR}bin

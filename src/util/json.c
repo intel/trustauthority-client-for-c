@@ -7,7 +7,6 @@
 #include <types.h>
 #include "json.h"
 #include "base64.h"
-#include "appraisal_request.h"
 #include <log.h>
 
 #define COUNT_OF(x) ((sizeof(x) / sizeof(0 [x])) / ((size_t)(!(sizeof(x) % sizeof(0 [x])))))
@@ -145,6 +144,11 @@ TRUST_AUTHORITY_STATUS get_jansson_nonce(nonce *nonce,
 	}
 
 	*jansson_nonce = json_object();
+	if (*jansson_nonce == NULL)
+	{
+		return STATUS_JSON_ALLOCATION_ERROR;
+	}
+
 	input_length = nonce->val_len;
 	output_length = ((input_length + 2) / 3) * 4 + 1;
 	b64 = (char *)calloc(1, output_length * sizeof(char));
@@ -244,7 +248,7 @@ TRUST_AUTHORITY_STATUS json_marshal_nonce(nonce *nonce,
 	return STATUS_OK;
 }
 
-//This encodes the quote and convert to json format like evidence: <base 64 encoded nonce>
+//This encodes the quote and convert to json format like evidence: <base 64 encoded quote>
 TRUST_AUTHORITY_STATUS get_jansson_evidence(evidence *evidence,
 		json_t **jansson_evidence)
 {
@@ -262,10 +266,7 @@ TRUST_AUTHORITY_STATUS get_jansson_evidence(evidence *evidence,
 		return STATUS_INVALID_PARAMETER;
 	}
 
-	*jansson_evidence = json_object();
-	json_object_set(*jansson_evidence, "type", json_integer(evidence->type));
-
-	input_length = strlen(evidence->evidence);
+	input_length = evidence->evidence_len;
 	output_length = ((input_length + 2) / 3) * 4 + 1;
 	b64 = (char *)malloc(output_length * sizeof(char));
 	if (b64 == NULL)
@@ -279,25 +280,50 @@ TRUST_AUTHORITY_STATUS get_jansson_evidence(evidence *evidence,
 		goto ERROR;
 	}
 
-	json_object_set(*jansson_evidence, "evidence", json_string(b64));
+	if (evidence->type == EVIDENCE_TYPE_SEVSNP)
+	{
+		json_object_set(*jansson_evidence, "report", json_string(b64));
+	} else {
+		json_object_set(*jansson_evidence, "quote", json_string(b64));
+	}
 	free(b64);
 	b64 = NULL;
 
-	input_length = strlen(evidence->user_data);
+	input_length = evidence->runtime_data_len;
 	output_length = ((input_length + 2) / 3) * 4 + 1;
 	b64 = (char *)malloc(output_length * sizeof(char));
 	if (b64 == NULL)
 	{
 		return STATUS_ALLOCATION_ERROR;
 	}
-	status = base64_encode(evidence->user_data, input_length, b64, output_length, true);
+	status = base64_encode(evidence->runtime_data, input_length, b64, output_length, true);
 	if (BASE64_SUCCESS != status)
 	{
 		ret_status = STATUS_JSON_ENCODING_ERROR;
 		goto ERROR;
 	}
 
-	json_object_set(*jansson_evidence, "user_data", json_string(b64));
+	json_object_set(*jansson_evidence, "runtime_data", json_string(b64));
+	free(b64);
+	b64 = NULL;
+
+	if (evidence->user_data_len != 0) {
+		input_length = evidence->user_data_len;
+		output_length = ((input_length + 2) / 3) * 4 + 1;
+		b64 = (char *)malloc(output_length * sizeof(char));
+		if (b64 == NULL)
+		{
+			return STATUS_ALLOCATION_ERROR;
+		}
+		status = base64_encode(evidence->user_data, input_length, b64, output_length, true);
+		if (BASE64_SUCCESS != status)
+		{
+			ret_status = STATUS_JSON_ENCODING_ERROR;
+			goto ERROR;
+		}
+
+		json_object_set(*jansson_evidence, "user_data", json_string(b64));
+	}
 
 ERROR:
 	if( b64 != NULL)
@@ -326,6 +352,7 @@ TRUST_AUTHORITY_STATUS json_marshal_evidence(evidence *evidence,
 		return STATUS_INVALID_PARAMETER;
 	}
 
+	jansson_evidence = json_object();
 	result = get_jansson_evidence(evidence, &jansson_evidence);
 	if (result != STATUS_OK)
 	{
@@ -587,160 +614,4 @@ TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwk_set **key_sets,
 	}
 
 	return STATUS_OK;
-}
-
-/**
- * Marshals the request in JSON form to be sent to Intel Trust Authority:
- * {
- *	"quote": "<SGX/TDX quote base 64 encoded>",
- *	"verifier_nonce":
- *	{
- *		"val":"",
- *		"iat":"",
- *		"signature":"",
- *	},
- *	"runtime_data": ""
- * }
- */
-TRUST_AUTHORITY_STATUS json_marshal_appraisal_request(appraisal_request *request,
-		char **json)
-{
-	int result = STATUS_OK;
-	char *b64 = NULL;
-	size_t input_length = 0, output_length = 0;
-	json_t *jansson_request = NULL;
-	json_t *jansson_nonce = NULL;
-	json_t *policies = NULL;
-	TRUST_AUTHORITY_STATUS status = STATUS_OK;
-
-	if (NULL == request)
-	{
-		return STATUS_INVALID_PARAMETER;
-	}
-
-	if (NULL == json)
-	{
-		return STATUS_INVALID_PARAMETER;
-	}
-
-	jansson_request = json_object();
-	// quote
-	input_length = request->quote_len;
-	output_length = ((input_length + 2) / 3) * 4 + 1;
-	b64 = (char *)calloc(1, output_length * sizeof(char));
-	if (b64 == NULL)
-	{
-		return STATUS_ALLOCATION_ERROR;
-	}
-	result = base64_encode(request->quote, input_length, b64, output_length, false);
-	if (BASE64_SUCCESS != result)
-	{
-		status = STATUS_JSON_ENCODING_ERROR;
-		goto ERROR;
-	}
-
-	json_object_set(jansson_request, "quote", json_string(b64));
-	free(b64);
-	b64 = NULL;
-
-	// signed_nonce
-	result = get_jansson_nonce(request->verifier_nonce, &jansson_nonce);
-	if (STATUS_OK != result)
-	{
-		return result;
-	}
-
-	json_object_set(jansson_request, "verifier_nonce", jansson_nonce);
-
-	// userdata
-	if (request->runtime_data_len > 0)
-	{
-		input_length = request->runtime_data_len;
-		output_length = ((input_length + 2) / 3) * 4 + 1;
-		b64 = (char *)calloc(1, output_length * sizeof(char));
-		if (b64 == NULL)
-		{
-			return STATUS_ALLOCATION_ERROR;
-		}
-		result = base64_encode(request->runtime_data, input_length, b64, output_length, false);
-		if (BASE64_SUCCESS != result)
-		{
-			status = STATUS_JSON_ENCODING_ERROR;
-			goto ERROR;
-		}
-
-		json_object_set(jansson_request, "runtime_data", json_string(b64));
-		free(b64);
-		b64 = NULL;
-	}
-
-	// userdata
-	if (request->user_data_len > 0)
-	{
-		input_length = request->user_data_len;
-		output_length = ((input_length + 2) / 3) * 4 + 1;
-		b64 = (char *)calloc(1, output_length * sizeof(char));
-		if (b64 == NULL)
-		{
-			return STATUS_ALLOCATION_ERROR;
-		}
-		result = base64_encode(request->user_data, input_length, b64, output_length, false);
-		if (BASE64_SUCCESS != result)
-		{
-			status = STATUS_JSON_ENCODING_ERROR;
-			goto ERROR;
-		}
-
-		json_object_set(jansson_request, "user_data", json_string(b64));
-		free(b64);
-		b64 = NULL;
-	}
-	if (request->token_signing_alg != NULL)
-	{
-		json_object_set(jansson_request, "token_signing_alg", json_string(request->token_signing_alg));
-	}
-	json_object_set(jansson_request, "policy_must_match", json_boolean(request->policy_must_match));
-
-	// policy_ids
-	policies = json_array();
-	json_object_set_new(jansson_request, "policy_ids", policies);
-	for (int i = 0; i < request->policy_ids->count; i++)
-	{
-		json_array_append(policies, json_string(request->policy_ids->ids[i]));
-	}
-	// eventlog
-	if (request->event_log_len > 0)
-	{
-		input_length = request->event_log_len;
-		output_length = ((input_length + 2) / 3) * 4 + 1;
-		b64 = (char *)calloc(1, output_length * sizeof(char));
-		if (b64 == NULL)
-		{
-			return STATUS_ALLOCATION_ERROR;
-		}
-		result = base64_encode(request->event_log, input_length, b64, output_length, false);
-		if (BASE64_SUCCESS != result)
-		{
-			status = STATUS_JSON_ENCODING_ERROR;
-			goto ERROR;
-		}
-
-		json_object_set(jansson_request, "event_log", json_string(b64));
-	}
-	*json = json_dumps(jansson_request, JANSSON_ENCODING_FLAGS);
-	if (NULL == *json)
-	{
-		return STATUS_JSON_ENCODING_ERROR;
-	}
-
-	DEBUG("Appraisal Request: %s", *json);
-
-ERROR:
-	if(b64 != NULL)
-	{
-		free(b64);
-		b64 = NULL;
-	}
-
-	return status;
 }

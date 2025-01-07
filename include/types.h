@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Intel Corporation
+ * Copyright (C) 2023-2024 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #ifndef __TYPES_H__
@@ -7,6 +7,8 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
+#include <jansson.h>
 
 #define SHA512_LEN 64
 #define API_KEY_MAX_LEN 256
@@ -14,10 +16,12 @@
 #define MAX_USER_DATA_LEN 1024	  // 1k
 #define MAX_EVIDENCE_LEN 8 * 1024 // 8k
 #define MAX_ATS_CERT_CHAIN_LEN 10
-#define DEFAULT_RETRY_MAX 2;
-#define DEFAULT_RETRY_WAIT_TIME 2;
+#define DEFAULT_RETRY_MAX 2
+#define DEFAULT_RETRY_WAIT_TIME 2
 #define COMMAND_LEN 1000
 #define TPM_OUTPUT_BUFFER 10000
+#define CLOUD_PROVIDER_MAX_LEN 10
+#define ATTEST_ENDPOINT_MAX_LEN 20
 
 //Intel Trust Authority supported token signing algorithms
 #define RS256 "RS256"
@@ -55,11 +59,6 @@ typedef struct nonce
 	uint8_t *signature;
 	uint32_t signature_len;
 } nonce;
-
-typedef struct quote_request {
-	char * report;
-	uint32_t report_len;
-} quote_request;
 
 typedef struct policies
 {
@@ -100,6 +99,8 @@ typedef struct jwk_set {
 // for difference implementations (ex. SGX, TDX, TPM, SPDM, etc.).
 #define EVIDENCE_TYPE_SGX 0x53475800 // 'SGX0'
 #define EVIDENCE_TYPE_TDX 0x54445800 // 'TDX0'
+#define EVIDENCE_TYPE_SEVSNP 0x53455600 // 'SEV0'
+#define EVIDENCE_TYPE_NVGPU 0x5888800 // 'NVGPU0'
 
 typedef int (*evidence_callback)(void *ctx,
 		evidence *evidence,
@@ -107,10 +108,20 @@ typedef int (*evidence_callback)(void *ctx,
 		uint8_t *user_data,
 		uint32_t user_data_len);
 
+typedef int (*composite_evidence_callback)(void *ctx,
+		json_t *evidence,
+		nonce *nonce,
+		uint8_t *user_data,
+		uint32_t user_data_len);
+
+typedef const char* (*evidence_identifier_callback)();
+
 typedef struct evidence_adapter
 {
 	void *ctx;
 	evidence_callback collect_evidence;
+	composite_evidence_callback get_evidence;
+	evidence_identifier_callback get_evidence_identifier;
 } evidence_adapter;
 
 typedef enum
@@ -132,8 +143,14 @@ typedef enum
 	STATUS_INVALID_USER_DATA,
 	STATUS_NULL_CALLBACK,
 	STATUS_NULL_ARGS,
+	STATUS_INVALID_POLICY_ID,
 	STATUS_INVALID_TOKEN_SIGNING_ALG,
 	STATUS_INVALID_POLICY_MUST_MATCH,
+	STATUS_NULL_BUILDER,
+	STATUS_INVOCATION_ERROR,
+	STATUS_GEN_EVIDENCE_ERROR,
+	STATUS_NULL_CERTCHAIN,
+	STATUS_USER_DATA_NOT_SUPPORTED,
 
 	STATUS_CERTIFICATES_DECODE_ERROR = 0x200,
 	STATUS_CREATE_STORE_ERROR,
@@ -229,4 +246,5 @@ enum BASE64STATUS
 	BASE64_INVALID_PADDING,
 	BASE64_DECODE_FAILED
 };
-#endif
+
+#endif // __TYPES_H__

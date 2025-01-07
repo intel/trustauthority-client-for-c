@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Intel Corporation
+ * Copyright (C) 2023-2024 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include <stdlib.h>
@@ -9,12 +9,13 @@
 #include <types.h>
 #include <openssl/evp.h>
 #include <log.h>
+#include <json.h>
 #include <report.h>
 
 /**
  * callback to get TDX report
  */
-typedef  TRUST_AUTHORITY_STATUS(*tdx_get_quote_fx)(Request *req, Response **res);
+typedef TRUST_AUTHORITY_STATUS (*tdx_get_quote_fx)(Request *req, Response **res);
 
 int tdx_adapter_new(evidence_adapter **adapter)
 {
@@ -41,26 +42,72 @@ int tdx_adapter_new(evidence_adapter **adapter)
 
 	(*adapter)->ctx = ctx;
 	(*adapter)->collect_evidence = tdx_collect_evidence;
+	(*adapter)->get_evidence = tdx_get_evidence;
+	(*adapter)->get_evidence_identifier = tdx_get_evidence_identifier;
 
 	return STATUS_OK;
 }
 
 int tdx_adapter_free(evidence_adapter *adapter)
 {
-	if (NULL == adapter)
+	if (NULL != adapter)
 	{
-		return STATUS_NULL_ADAPTER;
+		if (NULL != adapter->ctx)
+		{
+			free(adapter->ctx);
+			adapter->ctx = NULL;
+		}
+		free(adapter);
+		adapter = NULL;
 	}
-
-	if (NULL != adapter->ctx)
-	{
-		free(adapter->ctx);
-		adapter->ctx = NULL;
-	}
-
-	free(adapter);
-	adapter = NULL;
 	return STATUS_OK;
+}
+
+const char* tdx_get_evidence_identifier() {
+	return EVIDENCE_IDENTIFIER_TDX;
+}
+
+int tdx_get_evidence(void *ctx,
+		json_t *jansson_evidence,
+		nonce *nonce,
+		uint8_t *user_data,
+		uint32_t user_data_len)
+{
+	int result = 0;
+	evidence evidence = {0};
+	json_t *jansson_nonce = NULL;
+
+	result = tdx_collect_evidence(ctx, &evidence, nonce, user_data, user_data_len);
+	if (result != STATUS_OK)
+	{
+		return result;
+	}
+
+	result = get_jansson_evidence(&evidence, &jansson_evidence);
+	if (result != STATUS_OK)
+	{
+		ERROR("Error: Failed to create evidence json: 0x%04x\n", result);
+		return result;
+	}
+
+	if (nonce != NULL) {
+		result = get_jansson_nonce(nonce, &jansson_nonce);
+		if (result != STATUS_OK)
+		{
+			ERROR("Error: Failed to create nonce json: 0x%04x\n", result);
+			goto ERROR;
+		}
+
+		json_object_set(jansson_evidence, "verifier_nonce", jansson_nonce);
+	}
+
+ERROR:
+	if (jansson_nonce)
+	{
+		json_decref(jansson_nonce);
+		jansson_nonce = NULL;
+	}
+	return result;
 }
 
 int tdx_collect_evidence(void *ctx,
@@ -100,7 +147,7 @@ int tdx_collect_evidence(void *ctx,
 		nonce_data = (uint8_t *)calloc(1, (nonce_data_len + 1) * sizeof(uint8_t));
 		if (NULL == nonce_data)
 		{
-			return STATUS_ALLOCATION_ERROR;
+			return STATUS_TDX_ERROR_BASE | STATUS_ALLOCATION_ERROR;
 		}
 
 		memcpy(nonce_data, nonce->val, nonce->val_len);
@@ -127,18 +174,16 @@ int tdx_collect_evidence(void *ctx,
 
 	if (tdx_ctx->tdx_att_get_quote_cb == NULL)
 	{
-		ERROR("Error: callback function is empty");
-		status = STATUS_TDX_ERROR_BASE;
+		status = STATUS_TDX_ERROR_BASE | STATUS_NULL_CALLBACK;
 		goto ERROR;
 	}
 
-	Response * res = NULL;
+	Response *res = NULL;
 	status = ((tdx_get_quote_fx)tdx_ctx->tdx_att_get_quote_cb)(&req, &res);
-
 	if (status != STATUS_OK || res == NULL)
 	{
-		ERROR("failed to get quote from configfs-tsm.\n");
-		status = STATUS_QUOTE_ERROR;
+		ERROR("Error: failed to get quote from configfs-tsm: 0x%04x\n", status);
+		status = STATUS_TDX_ERROR_BASE | STATUS_QUOTE_ERROR;
 		goto ERROR;
 	}
 
@@ -159,7 +204,7 @@ int tdx_collect_evidence(void *ctx,
 	{
 		free(evidence->evidence);
 		evidence->evidence = NULL;
-		status = STATUS_ALLOCATION_ERROR;
+		status = STATUS_TDX_ERROR_BASE | STATUS_ALLOCATION_ERROR;
 		goto ERROR;
 	}
 	memcpy(evidence->runtime_data, user_data, user_data_len);

@@ -5,7 +5,6 @@
 #include <cpprest/http_listener.h>
 #include <cpprest/json.h>
 #include "mock_server.h"
-#include "log.h"
 
 #include <unistd.h>
 #include <limits.h>
@@ -99,7 +98,7 @@ string MockServer::generateResponseCRL(const http_request & request,
         }
         FILE *fp = fopen(file_path.c_str(), "rb");
         if (!fp) {
-                ERROR("Error: Could not open file %s: %s\n", file_path, strerror(errno));
+                perror("Error opening file");
                 return httpResponse;
         }
         fseek(fp, 0, SEEK_END);
@@ -127,7 +126,7 @@ string MockServer::generateResponse(const http_request & request,
         if (httpMethod == methods::GET) {
                 if (path == "/appraisal/v1/version") {
                         httpResponse = responseJson;
-                } else if (path == "/appraisal/v1/nonce") {
+                } else if (path == "/appraisal/v2/nonce") {
                         httpResponse = responseJson;
                 } else if (path == "/token_signing_cert") {
                         httpResponse = responseJson;

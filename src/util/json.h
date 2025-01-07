@@ -1,19 +1,16 @@
 /*
- * Copyright (C) 2023 Intel Corporation
+ * Copyright (C) 2023-2024 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
 #ifndef __JSON_H__
 #define __JSON_H__
+
 #include <types.h>
-#include "appraisal_request.h"
 #include <jansson.h>
 
 #ifdef __cplusplus
-
 extern "C"
 {
-
 #endif
 
 #define JANSSON_ENCODING_FLAGS (JSON_ENSURE_ASCII & JSON_COMPACT)
@@ -46,7 +43,7 @@ extern "C"
 			char **json);
 
 	/**
-	 * Performs unmarshaling of token recieved from Intel Trust Authority
+	 * Performs unmarshaling of token received from Intel Trust Authority
 	 * @param token unmarshalled token in struct token format
 	 * @param json token recieved from Intel Trust Authority to be unmarshalled
 	 * @return int containing status
@@ -64,15 +61,6 @@ extern "C"
 			char **json);
 
 	/**
-	 * Performs marshaling of the request sent to Intel Trust Authority.
-	 * @param request  request appraisal_request to be unmarshalled from json format to appraisal_request type
-	 * @param json data to be unmarshalled
-	 * @return int containing status
-	 */				
-	TRUST_AUTHORITY_STATUS json_marshal_appraisal_request(appraisal_request *request,
-			char **json);
-
-	/**
 	 * Performs umnmarshalling of token signing certificate
 	 * @param cert  certificate to be unmarshalled from json format to jwks type
 	 * @param json data to be unmarshalled
@@ -81,7 +69,14 @@ extern "C"
 	TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwk_set **cert,
 			const char *json);
 
+	TRUST_AUTHORITY_STATUS get_jansson_nonce(nonce *nonce,
+			json_t **jansson_nonce);
+
+	TRUST_AUTHORITY_STATUS get_jansson_evidence(evidence *evidence,
+			json_t **jansson_evidence);
+
 #ifdef __cplusplus
 }
 #endif
-#endif
+
+#endif // __JSON_H__

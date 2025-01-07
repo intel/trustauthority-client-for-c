@@ -18,9 +18,10 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-cove
 set(TEST_SOURCES
     ../src/log/log.c
     ../src/connector/connector.c
+    ../src/connector/appraisal_request.c
     ../src/connector/rest.c
-    ../src/connector/json.c
-    ../src/connector/base64.c
+    ../src/util/json.c
+    ../src/util/base64.c
     ../src/configfs_tsm/report.c
     ../src/sgx/sgx_adapter.c
     ../src/tdx/intel/tdx_adapter.c
@@ -49,6 +50,7 @@ target_include_directories(trustauthorityclienttest PRIVATE
     jansson/src
     jansson/android
     ../src/connector
+    ../src/util
     ../src/token_verifier
     ../src/configfs_tsm
     mock_sgx_dcap/include

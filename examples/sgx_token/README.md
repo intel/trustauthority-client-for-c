@@ -14,7 +14,7 @@ it collects quote from the enclave and sends it to Intel Trust Authority to retr
 │    │                                      │    │                │                │
 │    │    ┌──────────────────────────┐      │◄───┼───────────────►│ INTEL TRUST    |
 │    │    │     enclave.signed.so    │      │    │                │ AUTHORITY      |
-│    │    └──────────────────────────┘      │    │                │ CLIENT         |
+│    │    └──────────────────────────┘      │    │                │ SERVER         |
 │    │                                      │    │                └────────────────┘   
 │    │    ┌──────────────────────────┐      |    |                                                  
 │    │    |libtrustauthotiy_sgx.so   |      |    |

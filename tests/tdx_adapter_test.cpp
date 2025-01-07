@@ -71,15 +71,6 @@ TEST(CreateTDXAdapter, ValidAdapterPointer)
 	EXPECT_EQ(STATUS_OK, result);
 }
 
-// Test case to free tdx_adapter - failure case
-TEST(FreeTdxAdapter, Failurecase)
-{
-	int result = tdx_adapter_free(NULL);
-
-	// Result should be adapter is null
-	ASSERT_EQ(result, STATUS_NULL_ADAPTER);
-}
-
 // Test case to free tdx_adapter - Success case
 TEST(FreeTdxAdapter, SuccessCase)
 {

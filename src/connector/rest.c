@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Intel Corporation
+ * Copyright (C) 2023-2024 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include <stdlib.h>
@@ -56,7 +56,6 @@ struct curl_slist *build_headers(struct curl_slist *headers,
 		const char *request_id,
 		const char *content_type)
 {
-
 	char api_key_header[sizeof(API_KEY_HEADER) + API_KEY_MAX_LEN + 1];
 
 	sprintf(api_key_header, "%s%s", API_KEY_HEADER, api_key);
@@ -141,6 +140,10 @@ CURLcode make_http_request(const char *url,
 		.pos = 0};
 
 	curl_easy_setopt(curl, CURLOPT_URL, url);
+	/* ask libcurl to use TLS version 1.2 or later */
+	curl_easy_setopt(curl, CURLOPT_SSLVERSION, (long)CURL_SSLVERSION_TLSv1_2);
+	curl_easy_setopt(curl, CURLOPT_SSL_CIPHER_LIST, "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384");
+	curl_easy_setopt(curl, CURLOPT_TLS13_CIPHERS, "TLS_AES_256_GCM_SHA384");
 
 	req_headers = build_headers(req_headers, api_key, accept, request_id, content_type);
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, req_headers);

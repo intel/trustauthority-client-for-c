@@ -35,6 +35,7 @@ extern "C"
 
     typedef struct
     {
+        unsigned int priv_level;
         unsigned char *in_blob;
         size_t in_blob_size;
         uint8_t get_aux_blob;

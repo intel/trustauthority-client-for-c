@@ -14,7 +14,7 @@ it collects a quote from the TD and sends it to Intel Trust Authority to retriev
 │    │                                      │    │                │                │
 │    │    ┌──────────────────────────┐      │◄───┼───────────────►│   INTEL TRUST  │
 │    │    │  libtrustauthotiy_tdx.so │      │    │                │   AUTHORITY    │
-│    │    └──────────────────────────┘      │    │                │   CLIENT       │
+│    │    └──────────────────────────┘      │    │                │   SERVER       │
 │    │                                      │    │                └────────────────┘
 │    │    ┌──────────────────────────┐      │    │
 │    │    │lib_trustauthotiy_        |      |    |

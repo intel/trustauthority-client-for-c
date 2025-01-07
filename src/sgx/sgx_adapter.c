@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Intel Corporation
+ * Copyright (C) 2023-2024 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include <stdlib.h>
@@ -10,14 +10,13 @@
 #include <sgx_report.h>
 #include <sgx_dcap_ql_wrapper.h>
 #include <log.h>
-
+#include <json.h>
 
 int sgx_adapter_new(evidence_adapter **adapter,
 		int eid,
 		void *report_function)
 {
 	sgx_adapter_context *ctx = NULL;
-
 	if (NULL == adapter)
 	{
 		return STATUS_SGX_ERROR_BASE | STATUS_NULL_ADAPTER;
@@ -42,10 +41,75 @@ int sgx_adapter_new(evidence_adapter **adapter,
 	ctx->sgx_qe_target_info_cb = sgx_qe_get_target_info;
 	ctx->sgx_qe_get_quote_size_cb = sgx_qe_get_quote_size;
 	ctx->sgx_qe_get_quote_cb = sgx_qe_get_quote;
+
 	(*adapter)->ctx = ctx;
 	(*adapter)->collect_evidence = sgx_collect_evidence;
+	(*adapter)->get_evidence = sgx_get_evidence;
+	(*adapter)->get_evidence_identifier = sgx_get_evidence_identifier;
 
 	return STATUS_OK;
+}
+
+int sgx_adapter_free(evidence_adapter *adapter)
+{
+	if (NULL != adapter)
+	{
+		if (NULL != adapter->ctx)
+		{
+			free(adapter->ctx);
+			adapter->ctx = NULL;
+		}
+		free(adapter);
+		adapter = NULL;
+	}
+	return STATUS_OK;
+}
+
+const char* sgx_get_evidence_identifier() {
+	return EVIDENCE_IDENTIFIER_SGX;
+}
+
+int sgx_get_evidence(void *ctx,
+		json_t *jansson_evidence,
+		nonce *nonce,
+		uint8_t *user_data,
+		uint32_t user_data_len)
+{
+	int result = 0;
+	evidence evidence = {0};
+	json_t *jansson_nonce = NULL;
+
+	result = sgx_collect_evidence(ctx, &evidence, nonce, user_data, user_data_len);
+	if (result != STATUS_OK)
+	{
+		return result;
+	}
+
+	result = get_jansson_evidence(&evidence, &jansson_evidence);
+	if (result != STATUS_OK)
+	{
+		ERROR("Error: Failed to create evidence json: 0x%04x\n", result);
+		return result;
+	}
+
+	if (nonce != NULL) {
+		result = get_jansson_nonce(nonce, &jansson_nonce);
+		if (STATUS_OK != result)
+		{
+			ERROR("Error: Failed to create nonce json: 0x%04x\n", result);
+			goto ERROR;
+		}
+
+		json_object_set_new(jansson_evidence, "verifier_nonce", jansson_nonce);
+	}
+
+ERROR:
+	if (jansson_nonce)
+	{
+		json_decref(jansson_nonce);
+		jansson_nonce = NULL;
+	}
+	return result;
 }
 
 int sgx_collect_evidence(void *ctx,
@@ -84,7 +148,7 @@ int sgx_collect_evidence(void *ctx,
 		nonce_data = (uint8_t *)calloc(1, (nonce_data_len + 1) * sizeof(uint8_t));
 		if (NULL == nonce_data)
 		{
-			return STATUS_ALLOCATION_ERROR;
+			return STATUS_SGX_ERROR_BASE | STATUS_ALLOCATION_ERROR;
 		}
 		
 		memcpy(nonce_data, nonce->val, nonce->val_len);
@@ -103,8 +167,7 @@ int sgx_collect_evidence(void *ctx,
 
 	if  ( sgx_ctx->sgx_qe_target_info_cb == NULL || sgx_ctx->report_callback == NULL ||  sgx_ctx->sgx_qe_get_quote_size_cb == NULL || sgx_ctx->sgx_qe_get_quote_cb == NULL )
 	{
-		ERROR("Error: Callback function is null");
-		status = STATUS_NULL_CALLBACK;
+		status = STATUS_SGX_ERROR_BASE | STATUS_NULL_CALLBACK;
 		goto ERROR;
 	}
 
@@ -116,12 +179,10 @@ int sgx_collect_evidence(void *ctx,
 		goto ERROR;
 	}
 
-
-	status = ((report_fx)sgx_ctx->report_callback)(sgx_ctx->eid, &retval, &qe_target_info, nonce_data,
-			nonce_data_len, &app_report);
+	status = ((report_fx)sgx_ctx->report_callback)(sgx_ctx->eid, &retval, &qe_target_info, nonce_data, nonce_data_len, &app_report);
 	if (0 != status)
 	{
-		ERROR("Error: Report callback returned error code  0x%04x\n", status);
+		ERROR("Error: Report callback returned error code 0x%04x\n", status);
 		goto ERROR;
 	}
 
@@ -143,7 +204,7 @@ int sgx_collect_evidence(void *ctx,
 	p_quote_buffer = (uint8_t *)calloc(1, (quote_size + 1) * sizeof(uint8_t));
 	if (NULL == p_quote_buffer)
 	{
-		status = STATUS_ALLOCATION_ERROR;
+		status = STATUS_SGX_ERROR_BASE | STATUS_ALLOCATION_ERROR;
 		goto ERROR;
 	}
 	memset(p_quote_buffer, 0, quote_size);
@@ -195,22 +256,4 @@ ERROR:
 		nonce_data = NULL;
 	}
 	return status;
-}
-
-int sgx_adapter_free(evidence_adapter *adapter)
-{
-	if (NULL == adapter)
-	{
-		return STATUS_NULL_ADAPTER;
-	}
-	
-	if (NULL != adapter->ctx)
-	{
-		free(adapter->ctx);
-		adapter->ctx = NULL;
-	}
-
-	free(adapter);
-	adapter = NULL;
-	return STATUS_OK;
 }

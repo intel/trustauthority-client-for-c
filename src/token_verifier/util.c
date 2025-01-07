@@ -207,7 +207,7 @@ TRUST_AUTHORITY_STATUS verify_crl(X509_CRL *crl, X509 *ca_cert)
                 goto ERROR;
         }
         // Check CRL expiration
-        ASN1_TIME *next_update = X509_CRL_get_nextUpdate(crl);
+        const ASN1_TIME *next_update = X509_CRL_get0_nextUpdate(crl);
         if (X509_cmp_current_time(next_update) <= 0) {
                 status = STATUS_CRL_EXPIRED;
                 goto ERROR;

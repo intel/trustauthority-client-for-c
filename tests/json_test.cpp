@@ -211,9 +211,10 @@ TEST(JsonMarshalEvidenceTest, ValidParameters)
 	evidence.evidence = new uint8_t[10];
 	strncpy((char *)evidence.evidence, "data1", 6);
 
-	evidence.user_data_len = 5;
-	evidence.user_data = new uint8_t[10];
-	strncpy((char *)evidence.user_data, "data1", 6);
+	evidence.runtime_data_len = 5;
+	evidence.runtime_data = new uint8_t[10];
+	strncpy((char *)evidence.runtime_data, "data1", 6);
+	evidence.user_data_len = 0;
 
 	TRUST_AUTHORITY_STATUS status = json_marshal_evidence(&evidence, &json);
 

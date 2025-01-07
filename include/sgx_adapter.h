@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Intel Corporation
+ * Copyright (C) 2023-2024 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #ifndef __SGX_ADAPTER_H__
@@ -15,6 +15,7 @@ extern "C"
 {
 #endif
 
+#define EVIDENCE_IDENTIFIER_SGX "sgx"
 #define STATUS_SGX_ERROR_BASE 0x2000
 
 	/**
@@ -26,11 +27,11 @@ extern "C"
 	 * callback to get SGX Quote Size
 	 */
 	typedef quote3_error_t (*sgx_qe_get_quote_size_fx)(uint32_t *p_quote_size);
+
 	/**
 	 * callback to get SGX Quote
 	 */
 	typedef quote3_error_t (*sgx_qe_get_quote_fx)(const sgx_report_t *p_app_report, uint32_t quote_size, uint8_t *p_quote);
-
 
 	/**
 	 * Adapter to get quote from sgx platform.
@@ -54,10 +55,9 @@ extern "C"
 			uint32_t nonce_size,
 			sgx_report_t *p_report);
 
-
 	/**
 	 * Create a new adapter to get Quote from sgx platform.
-	 * @param adapter to evidence 
+	 * @param adapter evidence adapter instance to initialize
 	 * @param int containing enclave id
 	 * @param void pointer containing report function
 	 * @return int containing status
@@ -66,7 +66,7 @@ extern "C"
 			int eid,
 			void *report_function);
 
-	// Delete/free a adapter.
+	// Delete/free an adapter.
 	int sgx_adapter_free(evidence_adapter *adapter);
 
 	/**
@@ -84,7 +84,16 @@ extern "C"
 			uint8_t *user_data,
 			uint32_t user_data_len);
 
+	int sgx_get_evidence(void *ctx,
+			json_t *evidence,
+			nonce *nonce,
+			uint8_t *user_data,
+			uint32_t user_data_len);
+
+	const char* sgx_get_evidence_identifier();
+
 #ifdef __cplusplus
 }
 #endif
-#endif
+
+#endif // __SGX_ADAPTER_H__

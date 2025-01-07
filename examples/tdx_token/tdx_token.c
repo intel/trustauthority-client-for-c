@@ -3,8 +3,8 @@
 #include <string.h>
 #include <connector.h>
 #include <tdx_adapter.h>
-#include <token_provider.h>
 #include <token_verifier.h>
+#include <evidence_builder.h>
 #include <jwt.h>
 #include <log.h>
 #include <openssl/rsa.h>
@@ -22,12 +22,11 @@
 #define ENV_TOKEN_SIG_ALG "TOKEN_SIGNING_ALG"
 #define ENV_POLICY_MUST_MATCH "POLICY_MUST_MATCH"
 
-
-int gen_public_key(int key_bits, unsigned char **key_buffer, int* key_buffer_len) {
+int gen_public_key(int key_bits, unsigned char **key_buffer, int* key_buffer_len)
+{
+    	int ret = 0;
     	RSA *rsa = NULL;
     	BIGNUM *bne = NULL;
-    	int ret = 0;
-    	int key_len = 0;
 
     	// Initialize OpenSSL
     	OpenSSL_add_all_algorithms();
@@ -58,7 +57,7 @@ int gen_public_key(int key_bits, unsigned char **key_buffer, int* key_buffer_len
     	
     	ret = RSA_generate_key_ex(rsa, key_bits, bne, NULL);
     	if (ret != 1) {
-		ERROR("RSA_generate_key_ex failed\n");
+        	ERROR("RSA_generate_key_ex failed\n");
         	ret = -1;
         	goto cleanup;
     	}
@@ -66,51 +65,40 @@ int gen_public_key(int key_bits, unsigned char **key_buffer, int* key_buffer_len
     	// Extract the modulus and exponent
     	const BIGNUM *n = RSA_get0_n(rsa); // Modulus
     	const BIGNUM *e = RSA_get0_e(rsa); // Public Exponent
+
     	// Convert the public exponent to a 4-byte array
-    	unsigned char *exponent_bytes = calloc(4,  sizeof(unsigned char));
-	if (exponent_bytes == NULL) {
-        	ERROR("Memory allocation error\n");
-        	ret = -1;
+    	unsigned char *exponent_bytes = calloc(4, sizeof(unsigned char));
+    	if (exponent_bytes == NULL) {
+        	ret = STATUS_ALLOCATION_ERROR;
         	goto cleanup;
     	}
-        if (BN_bn2bin(e, exponent_bytes) == NULL) {
-		ERROR("Conversion of exponent failed\n");
-		ret = -1;
-		goto cleanup;
-	}
+        BN_bn2bin(e, exponent_bytes);
 
     	// Convert the modulus to a byte array
     	int n_len = BN_num_bytes(n);
-    	unsigned char *modulus_bytes = malloc(n_len);
+    	unsigned char *modulus_bytes = calloc(n_len, sizeof(unsigned char));
     	if (modulus_bytes == NULL) {
-        	ERROR("Memory allocation error\n");
-        	ret = -1;
+        	ret = STATUS_ALLOCATION_ERROR;
         	goto cleanup;
     	}
-    	if (BN_bn2bin(n, modulus_bytes) == NULL) {
-		ERROR("Conversion of Modulus failed\n");
-        	ret = -1;
-        	goto cleanup;
-	}
+    	BN_bn2bin(n, modulus_bytes);
 
     	// Combine the exponent and modulus into a single byte array
-    	key_len = 4 + n_len;
-    	*key_buffer = malloc(key_len);
+    	*key_buffer = malloc(4 + n_len);
     	if (*key_buffer == NULL) {
-                ERROR("Memory allocation error\n");
-                ret = -1;
+                ret = STATUS_ALLOCATION_ERROR;
                 goto cleanup;
         }
         memcpy(*key_buffer, exponent_bytes, 4);        // Copy exponent
         memcpy(*key_buffer + 4, modulus_bytes, n_len); // Copy modulus
-        *key_buffer_len = key_len;
+        *key_buffer_len = 4 + n_len;
 
 cleanup:
         if (bne) BN_free(bne);
         if (rsa) RSA_free(rsa);
         if (modulus_bytes) free(modulus_bytes);
         if (exponent_bytes) free(exponent_bytes);
-	ERR_free_strings();
+        ERR_free_strings();
         return ret;
 }
 
@@ -119,14 +107,15 @@ int main(int argc, char *argv[])
 	int result;
 	trust_authority_connector *connector = NULL;
 	evidence_adapter *adapter = NULL;
+	evidence_builder *builder = NULL;
+	nonce nonce = {0};
 	token token = {0};
-	evidence evidence = {0};
+	json_t *evidence = NULL;
 	response_headers headers = {0};
-	policies policies = {0};
 	char *ta_api_url = getenv(ENV_TRUSTAUTHORITY_API_URL);
 	char *ta_base_url = getenv(ENV_TRUSTAUTHORITY_BASE_URL);
 	char *ta_key = getenv(ENV_TRUSTAUTHORITY_API_KEY);
-	char *policy_id = getenv(ENV_TRUSTAUTHORITY_POLICY_ID);
+	char *policy_ids = getenv(ENV_TRUSTAUTHORITY_POLICY_ID);
 	char *retry_max_str = getenv(ENV_RETRY_MAX);
 	char *retry_wait_time_str = getenv(ENV_RETRY_WAIT_TIME);
 	char *request_id = getenv(ENV_REQUEST_ID);
@@ -136,7 +125,9 @@ int main(int argc, char *argv[])
 	bool policy_must_match;
 	// Store Parsed Token
 	jwt_t *parsed_token = NULL;
-	collect_token_args token_args = {0};
+	builder_opts opts = {0};
+	get_nonce_args nonce_args = {0};
+	char cloud_provider[CLOUD_PROVIDER_MAX_LEN] = {0};
 
 	if (NULL == ta_api_url || !strlen(ta_api_url))
 	{
@@ -184,12 +175,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (policy_id != NULL && 0 != is_valid_uuid(policy_id))
-	{
-		ERROR("ERROR: Invalid TRUSTAUTHORITY_POLICY_ID format, must be UUID");
-		return 1;
-	}
-
 	if (0 != is_valid_url(ta_base_url))
 	{
 		ERROR("ERROR: Invalid TRUSTAUTHORITY_BASE_URL format\n");
@@ -214,17 +199,14 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	char *ids[] = {policy_id};
-	policies.ids = ids;
-	policies.count = 1;
-
 	unsigned char* user_data = NULL;
 	int user_data_len;
 	result = gen_public_key(3072, &user_data, &user_data_len);
 	if( result != 1 ){
 		ERROR("ERROR: User Data generation failed\n");
-		return 1;
+		goto ERROR;
 	}
+
 	LOG("Info: connecting to %s\n", ta_api_url);
 	result = trust_authority_connector_new(&connector, ta_key, ta_api_url, retry_max, retry_wait_time);
 	if (STATUS_OK != result)
@@ -233,12 +215,9 @@ int main(int argc, char *argv[])
 		goto ERROR;
 	}
 
-	token_args.policies = &policies;
-	token_args.request_id = request_id;
-	token_args.token_signing_alg = token_signing_alg_str;
-	token_args.policy_must_match = policy_must_match;
-
+	evidence = json_object();
 #ifdef AZURE_TDX
+	strncat(cloud_provider, "azure", 5);
 	result = azure_tdx_adapter_new(&adapter);
 	if (STATUS_OK != result)
 	{
@@ -246,10 +225,10 @@ int main(int argc, char *argv[])
 		goto ERROR;
 	}
 
-	result = tdx_collect_evidence_azure(adapter->ctx, &evidence, NULL, user_data, user_data_len);
+	result = tdx_get_evidence_azure(adapter->ctx, evidence, NULL, user_data, user_data_len);
 	if (STATUS_OK != result)
 	{
-		ERROR("Error: Failed to collect evidence from Azure adapter 0x%04x\n", result);
+		ERROR("ERROR: Failed to collect evidence from Azure adapter 0x%04x\n", result);
        		goto ERROR;
 	}
 #else
@@ -260,60 +239,68 @@ int main(int argc, char *argv[])
 		goto ERROR;
 	}
 
-	result = tdx_collect_evidence(adapter->ctx, &evidence, NULL, user_data, user_data_len);
+	result = tdx_get_evidence(adapter->ctx, evidence, NULL, user_data, user_data_len);
 	if (STATUS_OK != result)
 	{
-		ERROR("Error: Failed to collect evidence from adapter 0x%04x\n", result);
+		ERROR("ERROR: Failed to collect evidence from adapter 0x%04x\n", result);
 		goto ERROR;
 	}
 #endif
 
-	int output_length = ((evidence.evidence_len + 2) / 3) * 4 + 1;
-	char *b64 = NULL;
-	b64 = (char *)malloc(output_length * sizeof(char));
-	if (b64 == NULL)
+	// Serialize the JSON object to a string and print it
+	char *json_string = json_dumps(evidence, JSON_INDENT(4));
+	if(NULL == json_string)
 	{
-		ERROR("Error: Failed to allocate memory for base64 encoded quote")
+		ERROR("ERROR: Failed to serialize evidence to json string\n");
 		goto ERROR;
 	}
-	result = base64_encode(evidence.evidence, evidence.evidence_len, b64, output_length, 0);
-	if (BASE64_SUCCESS != result)
+	LOG("Info: Evidence: %s\n", json_string);
+	json_decref(evidence);
+	free(json_string);
+
+	nonce_args.request_id = request_id;
+	result = get_nonce(connector, &nonce, &nonce_args, &headers);
+	if (STATUS_OK != result)
 	{
-		ERROR("Error: Failed to base64 encode quote 0x%04x\n", result)
+		ERROR("ERROR: Failed to get Trust Authority nonce 0x%04x\n", result);
 		goto ERROR;
 	}
-	LOG("Info: quote: %s\n", b64);
 
-	memset(b64, 0, evidence.evidence_len);
-
-#ifdef AZURE_TDX
-	output_length = ((evidence.user_data_len + 2) / 3) * 4 + 1;
-	result = base64_encode(evidence.user_data, evidence.user_data_len, b64, output_length, 0);
-#else
-	output_length = ((evidence.runtime_data_len + 2) / 3) * 4 + 1;
-	result = base64_encode(evidence.runtime_data, evidence.runtime_data_len, b64, output_length, 0);
-#endif
-
-	if (BASE64_SUCCESS != result)
+	opts.nonce = &nonce;
+	opts.user_data = user_data;
+	opts.user_data_len = user_data_len;
+	opts.policy_ids = policy_ids;
+	opts.policy_must_match = policy_must_match;
+	opts.token_signing_alg = token_signing_alg_str;
+	result = evidence_builder_new(&builder, &opts);
+	if (STATUS_OK != result)
 	{
-		ERROR("Error: Failed to base64 encode user-data 0x%04x\n", result)
+		ERROR("ERROR: Failed to create evidence builder: 0x%04x\n", result);
 		goto ERROR;
 	}
-	LOG("Info: user-data: %s\n", b64);
 
-#ifdef AZURE_TDX
-	result = collect_token_azure(connector, &headers, &token, &token_args, adapter, user_data, user_data_len);
-#else
-	result = collect_token(connector, &headers, &token, &token_args, adapter, user_data, user_data_len);
-#endif
+	result = evidence_builder_add_adapter(builder, adapter);
+	if(STATUS_OK != result)
+	{
+		ERROR("ERROR: Failed to add adapter to builder: 0x%04x\n", result);
+		goto ERROR;
+	}
 
+	evidence = json_object();
+	result = evidence_builder_get_evidence(builder, evidence);
+	if(STATUS_OK != result)
+	{
+		ERROR("ERROR: Failed to get evidence from builder: 0x%04x\n", result);
+		goto ERROR;
+	}
+
+	result = attest_evidence(connector, &headers, &token, evidence, request_id, cloud_provider);
 	if (STATUS_OK != result)
 	{
 		ERROR("ERROR: Failed to collect trust authority token: 0x%04x\n", result);
 		goto ERROR;
 	}
-
-	LOG("Info: Intel Trust Authority Token: %s\n", token.jwt);
+	LOG("Info: Trust Authority Token: %s\n", token.jwt);
 	LOG("Info: Headers returned: %s\n", headers.headers);
 
 	result = verify_token(&token, ta_base_url, NULL, &parsed_token, retry_max, retry_wait_time);
@@ -324,28 +311,28 @@ int main(int argc, char *argv[])
 	}
 
 	LOG("Info: Successfully verified token\n");
-	LOG("Info: Parsed token : ");
+	LOG("Info: Parsed token: ");
 	jwt_dump_fp(parsed_token, stdout, 1);
 
 ERROR:
 
-	if (NULL != adapter)
-	{
-		tdx_adapter_free(adapter);
-		adapter = NULL;
-	}
-	if (NULL != b64)
-	{
-		free(b64);
-		b64 = NULL;
-	}
-	response_headers_free(&headers);
-	connector_free(connector);
-	token_free(&token);
 	if (NULL != user_data)
 	{
 		free(user_data);
 		user_data = NULL;
 	}
+	if (NULL != evidence)
+	{
+		json_decref(evidence);
+		evidence = NULL;
+	}
+
+	response_headers_free(&headers);
+	evidence_builder_free(builder);
+	tdx_adapter_free(adapter);
+	connector_free(connector);
+	jwt_free(parsed_token);
+	token_free(&token);
+	nonce_free(&nonce);
 	return result;
 }

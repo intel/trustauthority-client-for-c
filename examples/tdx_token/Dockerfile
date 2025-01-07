@@ -65,7 +65,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update; \
     apt-get upgrade -y; \
     apt-get autoremove -y; \
-    apt-get install -y --no-install-recommends apt-utils gnupg ca-certificates curl \
+    apt-get install -y --no-install-recommends ca-certificates \
     libjansson4=2.12-1build1 \ 
     libcurl4 \
     libssl1.1
@@ -91,7 +91,7 @@ RUN apt-get update; \
     apt-get upgrade -y; \
     apt-get autoremove -y; \
     apt-get install -y --no-install-recommends tpm2-tools=4.1.1-1ubuntu0.20.04.1 \
-    curl \
+    libcurl4 \
     libjansson4=2.12-1build1 \
     ca-certificates
     

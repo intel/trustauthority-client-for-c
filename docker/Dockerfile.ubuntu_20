@@ -31,7 +31,8 @@ RUN apt-get update; \
     libjson-c-dev \
     libcurl4-openssl-dev \
     uuid-dev \
-    libgnutls28-dev
+    libgnutls28-dev \
+    tpm2-tools=4.1.1-1ubuntu0.20.04.1
 
 RUN echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu focal main' > /etc/apt/sources.list.d/intel-sgx.list
 RUN wget https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key -O /tmp/intel-sgx-deb.key; \
@@ -73,7 +74,7 @@ USER $USERNAME
 WORKDIR /trustauthority-client/
 COPY . .
 WORKDIR /trustauthority-client/build
-RUN cmake -DBUILD_SGX=ON -DBUILD_TDX=ON -DCMAKE_BUILD_TYPE=$ENABLE_DEBUG .. \
+RUN cmake -DBUILD_SGX=ON -DBUILD_TDX=ON -DBUILD_TPM=ON -DBUILD_SEVSNP=ON -DCMAKE_BUILD_TYPE=$ENABLE_DEBUG .. \
 	&& cmake --build .
 
 FROM scratch as export-stage
@@ -81,6 +82,9 @@ COPY --from=build /trustauthority-client/build/src/connector/libtrustauthority_c
 COPY --from=build /trustauthority-client/build/src/sgx/libtrustauthority_sgx.a .
 COPY --from=build /trustauthority-client/build/src/tdx/intel/libtrustauthority_tdx.a .
 COPY --from=build /trustauthority-client/build/src/tdx/azure/libtrustauthority_tdx_azure.a .
+COPY --from=build /trustauthority-client/build/src/tpm/libtrustauthority_tpm.a .
+COPY --from=build /trustauthority-client/build/src/sevsnp/gcp/libtrustauthority_sevsnp.a .
+COPY --from=build /trustauthority-client/build/src/sevsnp/azure/libtrustauthority_sevsnp_azure.a .
 COPY --from=build /trustauthority-client/build/src/configfs_tsm/libtrustauthority_configfs_tsm.a .
 COPY --from=build /trustauthority-client/build/src/token_provider/libtrustauthority_token_provider.a .
 COPY --from=build /trustauthority-client/build/src/token_verifier/libtrustauthority_token_verifier.a .

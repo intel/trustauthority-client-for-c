@@ -274,7 +274,7 @@ TEST(TokenTest, EvidenceDataNullError)
 	TRUST_AUTHORITY_STATUS result = get_token(&api, NULL, &token, &token_args, NULL);
 
 	// Should throw error - Evidence data is null
-	ASSERT_EQ(result, STATUS_INVALID_PARAMETER);
+	ASSERT_EQ(result, STATUS_NULL_EVIDENCE);
 }
 
 // Test case for negative scenario - evidence data exceeds maximum length

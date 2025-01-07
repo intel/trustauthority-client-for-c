@@ -16,6 +16,8 @@ Installation steps:
 2. LD_LIBRARY_PATH=$LD_LIBRARY_PATH:<path to libraries generated.>
 3. export LD_LIBRARY_PATH
 
+Regarding the installation for NVIDIA GPU demo, Please refer to [README](./examples/nvidia_gpu/README.md) 
+
 ## Usage
 
 If User has interface to get the quote/evidence and want to attest it with Intel Trust Authority:
@@ -39,9 +41,10 @@ trust_authority_connector *connector = NULL;
 
 ### To get a Intel Trust Authority signed token with Nonce
 
-Create SGX/TDX adapter using
+Create SGX/TDX/NVGPU adapter using
 -  [sgx](./src/sgx/README.md)
 -  [tdx](./src/tdx/README.md)
+-  [nvgpu](./src/nvgpu/README.md)
 
 Use the adapter created with following piece of code:
 
@@ -134,6 +137,7 @@ if (result != STATUS_OK || jwks_resp == NULL)
 ### For E2E token collection and signature verification logic refer
 SGX: [SGX Sample App](./examples/sgx_token/README.md)
 TDX: [TDX Sample App](./examples/tdx_token/README.md)
+NVGPU: [NVGPU Sample App](./examples/nvgpu_token/README.md)
 
 
 ### Follow below link to run unit tests

@@ -3,9 +3,8 @@
 #include <string.h>
 #include <connector.h>
 #include <sgx_adapter.h>
-#include <token_provider.h>
 #include <token_verifier.h>
-
+#include <evidence_builder.h>
 #include "sgx_urts.h"
 #include "Enclave_u.h"
 #include "utils.h"
@@ -27,15 +26,16 @@ int main(int argc, char *argv[])
 {
 	int status = 0;
 	trust_authority_connector *connector = NULL;
+	nonce nonce = {0};
 	token token = {0};
-	evidence evidence = {0};
+	json_t *evidence = NULL;
 	response_headers headers = {0};
 	evidence_adapter *adapter = NULL;
-	policies policies = {0};
+	evidence_builder *builder = NULL;
 	char *ta_api_url = getenv(ENV_TRUSTAUTHORITY_API_URL);
 	char *ta_base_url = getenv(ENV_TRUSTAUTHORITY_BASE_URL);
 	char *ta_key = getenv(ENV_TRUSTAUTHORITY_API_KEY);
-	char *policy_id = getenv(ENV_TRUSTAUTHORITY_POLICY_ID);
+	char *policy_ids = getenv(ENV_TRUSTAUTHORITY_POLICY_ID);
 	char *retry_max_str = getenv(ENV_RETRY_MAX);
 	char *token_sign_alg_str = getenv(ENV_TOKEN_SIG_ALG);
 	char *retry_wait_time_str = getenv(ENV_RETRY_WAIT_TIME);
@@ -50,7 +50,8 @@ int main(int argc, char *argv[])
 	uint8_t *key_buf = NULL;
 	// Store Parsed Token
 	jwt_t *parsed_token = NULL;
-	collect_token_args token_args = {0};
+	builder_opts opts = {0};
+	get_nonce_args nonce_args = {0};
 
 	if (NULL == ta_api_url || !strlen(ta_api_url))
 	{
@@ -99,25 +100,17 @@ int main(int argc, char *argv[])
 		
 	}
 
-	if (policy_id != NULL && 0 != is_valid_uuid(policy_id))
-	{
-		ERROR("ERROR: Invalid TRUSTAUTHORITY_POLICY_ID format, must be UUID");
-		return 1;
-	}
-
 	if (0 != is_valid_url(ta_base_url))
 	{
 		ERROR("ERROR: Invalid TRUSTAUTHORITY_BASE_URL format\n");
 		return 1;
 	}
 
-
 	if (token_sign_alg_str != NULL && STATUS_OK != is_valid_token_sigining_alg(token_sign_alg_str))
 	{
 		ERROR("ERROR: Unsupported Token Signing Algorithm, supported algorithms are RS256/PS384\n");
 		return 1;
 	}
-
 
 	if (STATUS_OK != validate_and_get_policy_must_match(policy_must_match_str, &policy_must_match))
 	{
@@ -131,16 +124,11 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	char *ids[] = {policy_id};
-	policies.ids = ids;
-	policies.count = 1;
-
 	LOG("Info: Connecting to %s\n", ta_api_url);
-
 	status = trust_authority_connector_new(&connector, ta_key, ta_api_url, retry_max, retry_wait_time);
 	if (STATUS_OK != status)
 	{
-		ERROR("ERROR: Failed to create trust authority connector: 0x%04x\n", status);
+		ERROR("ERROR: Failed to create Trust Authority Connector: 0x%04x\n", status);
 		goto ERROR;
 	}
 
@@ -165,51 +153,68 @@ int main(int argc, char *argv[])
 		goto ERROR;
 	}
 
-	status = sgx_collect_evidence(adapter->ctx, &evidence, NULL, key_buf, key_size);
+	evidence = json_object();
+	status = sgx_get_evidence(adapter->ctx, evidence, NULL, key_buf, key_size);
 	if (STATUS_OK != status)
 	{
-		ERROR("Error: Failed to collect evidence from adapter 0x%04x\n", status);
+		ERROR("ERROR: Failed to collect evidence from adapter 0x%04x\n", status);
 		goto ERROR;
 	}
 
-	int output_length = ((evidence.evidence_len + 2) / 3) * 4 + 1;
-	char *b64 = NULL;
-	b64 = (char *)malloc(output_length * sizeof(char));
-	if (b64 == NULL)
+	// Serialize the JSON object to a string and print it
+	char *json_string = json_dumps(evidence, JSON_INDENT(4));
+	if(NULL == json_string)
 	{
-		ERROR("Error: Failed to allocate memory for base64 encoded quote")
+		ERROR("ERROR: Failed to serialize evidence to json string\n");
 		goto ERROR;
 	}
-	status = base64_encode(evidence.evidence, evidence.evidence_len, b64, output_length, 0);
-	if (BASE64_SUCCESS != status)
-	{
-		ERROR("Error: Failed to base64 encode quote 0x%04x\n", status)
-		goto ERROR;
-	}
-	LOG("Info: quote: %s\n", b64);
+	LOG("Info: Evidence: %s\n", json_string);
+	json_decref(evidence);
+	free(json_string);
 
-	memset(b64, 0, evidence.evidence_len);
-	output_length = ((evidence.runtime_data_len + 2) / 3) * 4 + 1;
-	status = base64_encode(evidence.runtime_data, evidence.runtime_data_len, b64, output_length, 0);
-	if (BASE64_SUCCESS != status)
+	nonce_args.request_id = request_id;
+	status = get_nonce(connector, &nonce, &nonce_args, &headers);
+	if (STATUS_OK != status)
 	{
-		ERROR("Error: Failed to base64 encode user-data 0x%04x\n", status)
+		ERROR("ERROR: Failed to get Trust Authority nonce 0x%04x\n", status);
 		goto ERROR;
 	}
-	LOG("Info: user-data: %s\n", b64);
-	token_args.policies = &policies;
-	token_args.request_id = request_id;
-	token_args.token_signing_alg = token_sign_alg_str;
-	token_args.policy_must_match = policy_must_match;
 
-	status = collect_token(connector, &headers, &token, &token_args, adapter, key_buf, key_size);
+	opts.nonce = &nonce;
+	opts.user_data = key_buf;
+	opts.user_data_len = key_size;
+	opts.policy_ids = policy_ids;
+	opts.policy_must_match = policy_must_match;
+	opts.token_signing_alg = token_sign_alg_str;
+	status = evidence_builder_new(&builder, &opts);
+	if (STATUS_OK != status)
+	{
+		ERROR("ERROR: Failed to create evidence builder: 0x%04x\n", status);
+		goto ERROR;
+	}
+
+	status = evidence_builder_add_adapter(builder, adapter);
+	if(STATUS_OK != status)
+	{
+		ERROR("ERROR: Failed to add adapter to builder: 0x%04x\n", status);
+		goto ERROR;
+	}
+
+	evidence = json_object();
+	status = evidence_builder_get_evidence(builder, evidence);
+	if(STATUS_OK != status)
+	{
+		ERROR("ERROR: Failed to get evidence from builder: 0x%04x\n", status);
+		goto ERROR;
+	}
+
+	status = attest_evidence(connector, &headers, &token, evidence, request_id, NULL);
 	if (STATUS_OK != status)
 	{
 		ERROR("ERROR: Failed to collect trust authority token: 0x%04x\n", status);
 		goto ERROR;
 	}
-
-	LOG("Info: trust authority token: %s\n", token.jwt);
+	LOG("Info: Trust Authority Token: %s\n", token.jwt);
 	LOG("Info: Headers returned: %s\n",headers.headers);
 
 	status = verify_token(&token, ta_base_url, NULL, &parsed_token, retry_max, retry_wait_time);
@@ -220,7 +225,7 @@ int main(int argc, char *argv[])
 	}
 
 	LOG("Info: Successfully verified token\n");
-	LOG("Info: Parsed token : ");
+	LOG("Info: Parsed token: ");
 	jwt_dump_fp(parsed_token, stdout, 1);
 
 ERROR:
@@ -234,20 +239,18 @@ ERROR:
 		free(key_buf);
 		key_buf = NULL;
 	}
-
-	if (NULL != adapter)
+	if (NULL != evidence)
 	{
-		sgx_adapter_free(adapter);
-		adapter = NULL;
-	}
-
-	if (NULL != b64) {
-		free(b64);
-		b64 = NULL;
+		json_decref(evidence);
+		evidence = NULL;
 	}
 
 	response_headers_free(&headers);
+	evidence_builder_free(builder);
+	sgx_adapter_free(adapter);
 	connector_free(connector);
+	jwt_free(parsed_token);
 	token_free(&token);
+	nonce_free(&nonce);
 	return status;
 }

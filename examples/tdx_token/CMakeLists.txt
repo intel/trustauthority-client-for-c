@@ -14,9 +14,8 @@ add_executable(${PROJECT_NAME} tdx_token.c)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
 	trustauthority_connector
-	trustauthority_token_provider
 	trustauthority_token_verifier
-	trustauthority_configfs_tsm
+	trustauthority_evidence_builder
 	curl)
 
 IF(USE_AZURE_TDX_ADAPTER MATCHES ON)
