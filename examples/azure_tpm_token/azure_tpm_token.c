@@ -16,6 +16,7 @@
 #include <openssl/bio.h>
 #include <openssl/pem.h>
 #include <openssl/err.h>
+#include <api.h>
 
 #define ENV_TRUSTAUTHORITY_API_URL "TRUSTAUTHORITY_API_URL"
 #define ENV_TRUSTAUTHORITY_BASE_URL "TRUSTAUTHORITY_BASE_URL"
@@ -26,6 +27,10 @@
 #define ENV_REQUEST_ID "REQUEST_ID"
 #define ENV_TOKEN_SIG_ALG "TOKEN_SIGNING_ALG"
 #define ENV_POLICY_MUST_MATCH "POLICY_MUST_MATCH"
+#define ENV_TPM_WITH_IMA_LOGS "TPM_WITH_IMA_LOGS"
+#define ENV_TPM_WITH_UEFI_LOGS "TPM_WITH_UEFI_LOGS"
+
+#define AZURE_AK_HANDLE 0x81000003
 
 int gen_public_key(int key_bits, unsigned char **key_buffer, int* key_buffer_len)
 {
@@ -107,6 +112,17 @@ cleanup:
         return ret;
 }
 
+int get_env_bool(const char* env_var)
+{
+	char *env_val = getenv(env_var);
+	if (env_val == NULL)
+	{
+		return 0;
+	}
+
+	return (strcasecmp(env_val, "true") == 0);
+}
+
 int main(int argc, char *argv[])
 {
 	int result;
@@ -129,6 +145,9 @@ int main(int argc, char *argv[])
 	char *policy_must_match_str = getenv(ENV_POLICY_MUST_MATCH);
 	int retry_max, retry_wait_time = 0;
 	bool policy_must_match;
+	bool with_ima_logs = get_env_bool(ENV_TPM_WITH_IMA_LOGS);
+	bool with_uefi_logs = get_env_bool(ENV_TPM_WITH_UEFI_LOGS);
+
 	// Store Parsed Token
 	jwt_t *parsed_token = NULL;
 	get_nonce_args nonce_args = {0};
@@ -234,6 +253,10 @@ int main(int argc, char *argv[])
 		goto ERROR;
 	}
 
+	tpm_with_ak_handle(tpm_adapter, AZURE_AK_HANDLE);
+	tpm_with_ima_log(tpm_adapter, with_ima_logs);
+	tpm_with_uefi_log(tpm_adapter, with_uefi_logs);
+
 /*  
 	// sample code on calling tpm_get_evidence api directly, with evidence returned in the json format enclosure as json_object
 	evidence = json_object();
@@ -298,6 +321,16 @@ int main(int argc, char *argv[])
 		ERROR("ERROR: Failed to get evidence from builder: 0x%04x\n", result);
 		goto ERROR;
 	}
+
+	// Serialize the JSON object to a string and print it
+	char *json_string = json_dumps(evidence, JSON_INDENT(4));
+	if(json_string == NULL)
+	{
+		ERROR("ERROR: Failed to serialize evidence to json string\n");
+		goto ERROR;
+	}
+	LOG("Info: Evidence: %s\n", json_string);
+	free(json_string);
 
 	result = attest_evidence(connector, &headers, &token, evidence, request_id, "azure");
 	if (STATUS_OK != result)

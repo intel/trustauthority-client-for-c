@@ -10,7 +10,7 @@
 #include <log.h>
 #include "rest.h"
 
-#define BUFFER_SIZE (16 * 1024) /* 16 KB */
+#define BUFFER_SIZE (256 * 1024) /* 256 KB */
 #define API_KEY_HEADER "x-api-key: "
 #define USER_AGENT "User-Agent: Intel Trust Authority API Client"
 #define REQUEST_ID_HEADER "request-id: "

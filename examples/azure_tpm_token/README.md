@@ -49,6 +49,8 @@ Running the sample requires the following steps...
     |POLICY_MUST_MATCH|An optional boolean parameter to enforce policies match during attestation, supported values are true/false.|
     |RETRY_WAIT_TIME|Wait time between retries. Default value is 2 seconds.|
     |RETRY_MAX|Maximum number of retries. Default value is 2 seconds.|
+    |TPM_WITH_IMA_LOGS|When "true", includes IMA logs into TPM evidence.|
+    |TPM_WITH_UEFI_LOGS|When "true", includes UEFI event logs into TPM evidence.|
     
 
 ### Run the example...

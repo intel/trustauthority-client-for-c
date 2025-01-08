@@ -24,6 +24,19 @@
 #include <openssl/err.h>
 #include <sys/stat.h>
 
+#define MAX_BUF_SIZE 1024 * 1024 // 1MB buffer
+#define CHUNK_SIZE 512
+
+typedef struct tpm_adapter_context
+{
+	char* owner_auth;                   // Defaults to "" or set via "tpm_with_owner_auth"
+	tpm_device_type device_type;        // Defaults to TPM_DEVICE_TYPE_LINUX or set via "tpm_with_device_type"
+	uint32_t ak_handle;                 // Defaults to DEFAULT_AK_HANDLE or set via "tpm_with_ak_handle"
+	TPML_PCR_SELECTION* pcr_selection;  // Defaults to DEFAULT_PCR_SELECTION or set via "tpm_with_pcr_selections"
+	bool with_ima_log;					// When true, includes ima evidence from /sys/kernel/security/ima/ascii_runtime_measurements
+	bool with_uefi_log;					// When true, includes uefi evidence from /sys/kernel/security/tpm0/binary_bios_measurements
+} tpm_adapter_context;
+
 TPML_PCR_SELECTION DEFAULT_TPML_PCR_SELECTION = {
     .count = 1,                             // Only one bank (SHA-256)
     .pcrSelections = {
@@ -34,6 +47,22 @@ TPML_PCR_SELECTION DEFAULT_TPML_PCR_SELECTION = {
         }
     }
 };
+
+int get_quote(ESYS_CONTEXT *ctx, 
+                uint32_t ak_handle, 
+                TPML_PCR_SELECTION *pcr_selection, 
+                TPM2B_DATA *qualifying_data, 
+                uint8_t **quote_buffer,
+                size_t *quote_buffer_size,
+                uint8_t **signature_buffer,
+                size_t *signature_buffer_size);
+
+int get_pcrs(ESYS_CONTEXT *ctx, 
+                TPML_PCR_SELECTION *pcr_selection, 
+                uint8_t **flattened_pcrs,
+                size_t *flattened_pcrs_len);
+
+TRUST_AUTHORITY_STATUS read_sysfile_base64(const char* path, uint8_t** base64_buffer, size_t* buffer_len);
 
 int tpm_adapter_new(evidence_adapter **adapter)
 {
@@ -91,41 +120,63 @@ const char* tpm_get_evidence_identifier() {
 	return EVIDENCE_IDENTIFIER_TPM;
 }
 
-int with_owner_auth(tpm_adapter_context *ctx, char* owner_auth)
+int tpm_with_owner_auth(evidence_adapter *adapter, char* owner_auth)
 {
-    if (NULL == ctx)
+    if (NULL == adapter)
+    {
+		return STATUS_TPM_ERROR_BASE | STATUS_NULL_ADAPTER;
+    }
+
+    if(NULL == adapter->ctx)
     {
 		return STATUS_TPM_ERROR_BASE | STATUS_NULL_ADAPTER_CTX;
     }
+
     if (NULL == owner_auth)
     {
 		return STATUS_TPM_ERROR_BASE | STATUS_INVALID_PARAMETER;
     }
+
     if (strlen(owner_auth) == 0 || strlen(owner_auth) > sizeof(TPMU_HA)) // need double check
     {
         return STATUS_TPM_ERROR_BASE | STATUS_INVALID_PARAMETER;
     }
+
+    tpm_adapter_context *ctx = (tpm_adapter_context*)adapter->ctx;
     ctx->owner_auth = owner_auth;
     return STATUS_OK;
 }
 
-int with_device_type(tpm_adapter_context *ctx, tpm_device_type device_type)
+int tpm_with_device_type(evidence_adapter *adapter, tpm_device_type device_type)
 {
-    if (NULL == ctx)
+    if (NULL == adapter)
+    {
+		return STATUS_TPM_ERROR_BASE | STATUS_NULL_ADAPTER;
+    }
+
+    if(NULL == adapter->ctx)
     {
 		return STATUS_TPM_ERROR_BASE | STATUS_NULL_ADAPTER_CTX;
     }
+
     if (device_type != TPM_DEVICE_TYPE_LINUX || device_type != TPM_DEVICE_TYPE_MSSIM)
     {
         return STATUS_TPM_ERROR_BASE | STATUS_INVALID_PARAMETER;
     }
+
+    tpm_adapter_context *ctx = (tpm_adapter_context*)adapter->ctx;
     ctx->device_type = device_type;
     return STATUS_OK;
 }
 
-int with_ak_handle(tpm_adapter_context *ctx, uint32_t ak_handle)
+int tpm_with_ak_handle(evidence_adapter *adapter, uint32_t ak_handle)
 {
-    if (NULL == ctx)
+    if (NULL == adapter)
+    {
+		return STATUS_TPM_ERROR_BASE | STATUS_NULL_ADAPTER;
+    }
+
+    if(NULL == adapter->ctx)
     {
 		return STATUS_TPM_ERROR_BASE | STATUS_NULL_ADAPTER_CTX;
     }
@@ -134,110 +185,65 @@ int with_ak_handle(tpm_adapter_context *ctx, uint32_t ak_handle)
     {
         return STATUS_TPM_ERROR_BASE | STATUS_INVALID_PARAMETER;
     }
+
+    tpm_adapter_context *ctx = (tpm_adapter_context*)adapter->ctx;
     ctx->ak_handle = ak_handle;
     return STATUS_OK;
 }
 
-int with_pcr_selections(tpm_adapter_context *ctx, TPML_PCR_SELECTION* pcr_selection)
+int tpm_with_pcr_selections(evidence_adapter *adapter, TPML_PCR_SELECTION* pcr_selection)
 {
-    if (NULL == ctx)
+    if (NULL == adapter)
+    {
+		return STATUS_TPM_ERROR_BASE | STATUS_NULL_ADAPTER;
+    }
+
+    if(NULL == adapter->ctx)
     {
 		return STATUS_TPM_ERROR_BASE | STATUS_NULL_ADAPTER_CTX;
     }
+    
     if (NULL == pcr_selection)
     {
 		return STATUS_TPM_ERROR_BASE | STATUS_INVALID_PARAMETER;
     }
 
+    tpm_adapter_context *ctx = (tpm_adapter_context*)adapter->ctx;
     ctx->pcr_selection = pcr_selection;
     return STATUS_OK;
 }
 
-int with_ima_log(tpm_adapter_context *ctx, bool flag)
+int tpm_with_ima_log(evidence_adapter *adapter, bool flag)
 {
-    if (false == flag)
+    if (NULL == adapter)
     {
-        return STATUS_OK;
+		return STATUS_TPM_ERROR_BASE | STATUS_NULL_ADAPTER;
     }
 
-    if (NULL == ctx)
+    if(NULL == adapter->ctx)
     {
 		return STATUS_TPM_ERROR_BASE | STATUS_NULL_ADAPTER_CTX;
     }
 
-    FILE *file = NULL;
-    long file_size = 0;
-
-    // Open the binary file in read mode
-    file = fopen(DEFAULT_IMA_LOGS, "rb");
-    if (file == NULL) {
-        return STATUS_TPM_ERROR_BASE | STATUS_FILE_OPEN_ERROR;
-    }
-
-    fseek(file, 0, SEEK_END);
-    file_size = ftell(file);
-    rewind(file);
-
-    // Allocate memory for the buffer
-    ctx->ima_buffer = (uint8_t *)calloc(1, file_size);
-    if (NULL == ctx->ima_buffer) {
-        return STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
-    }
-
-    // Read the file into the buffer
-    size_t bytes_read = fread(ctx->ima_buffer, 1, file_size, file);
-    if (bytes_read != file_size) {
-        fclose(file);
-        free(ctx->ima_buffer);
-        ctx->ima_buffer = NULL;
-        return STATUS_TPM_ERROR_BASE | STATUS_FILE_READ_ERROR;
-    }
-    ctx->ima_buffer_size = file_size;
-    fclose(file);
+    tpm_adapter_context *ctx = (tpm_adapter_context *)adapter->ctx;
+    ctx->with_ima_log = flag;
     return STATUS_OK;
 }
 
-int with_uefi_event_log(tpm_adapter_context *ctx, bool flag)
+int tpm_with_uefi_log(evidence_adapter *adapter, bool flag)
 {
-    if (false == flag)
+    if (NULL == adapter)
     {
-        return STATUS_OK;
+		return STATUS_TPM_ERROR_BASE | STATUS_NULL_ADAPTER;
     }
 
-    if (NULL == ctx)
+    if(NULL == adapter->ctx)
     {
 		return STATUS_TPM_ERROR_BASE | STATUS_NULL_ADAPTER_CTX;
     }
 
-    FILE *file = NULL;
-    long file_size = 0;
-
-    // Open the binary file in read mode
-    file = fopen(DEFAULT_UEFI_EVENT_LOGS, "rb");
-    if (file == NULL) {
-        return STATUS_TPM_ERROR_BASE | STATUS_FILE_OPEN_ERROR;
-    }
-
-    fseek(file, 0, SEEK_END);
-    file_size = ftell(file);
-    rewind(file);
-
-    // Allocate memory for the buffer
-    ctx->uefi_eventlog_buffer = (uint16_t *)calloc(1, file_size);
-    if (NULL == ctx->uefi_eventlog_buffer) {
-        return STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
-    }
-
-    // Read the file into the buffer
-    size_t bytes_read = fread(ctx->uefi_eventlog_buffer, 1, file_size, file);
-    if (bytes_read != file_size) {
-        fclose(file);
-        free(ctx->uefi_eventlog_buffer);
-        ctx->uefi_eventlog_buffer = NULL;
-        return STATUS_TPM_ERROR_BASE | STATUS_FILE_READ_ERROR;
-    }
-    ctx->uefi_eventlog_buffer_size = file_size;
-    fclose(file);
+    tpm_adapter_context *ctx = (tpm_adapter_context *)adapter->ctx;
+    ctx->with_uefi_log = flag;
     return STATUS_OK;
 }
 
@@ -247,7 +253,6 @@ int tpm_get_evidence(void *ctx,
 		uint8_t *user_data,
 		uint32_t user_data_len)
 {
-	int result = 0;
 	evidence evidence = {0};
 	json_t *jansson_nonce = NULL;
 
@@ -272,7 +277,7 @@ int tpm_get_evidence(void *ctx,
 	uint8_t *signature_buffer = NULL;
 	size_t signature_buffer_size = 0;
 
-	char* b64 = NULL;
+	uint8_t* b64 = NULL;
 	size_t output_length = 0;
 
 	tpm_ctx = (tpm_adapter_context *)ctx;
@@ -320,8 +325,6 @@ int tpm_get_evidence(void *ctx,
 		memcpy(qualifying_data.buffer, md_value, TPM_REPORT_DATA_SIZE);
 		qualifying_data.size = TPM_REPORT_DATA_SIZE;
 	}
-
-	DEBUG("Report data generated: %s", qualifying_data.buffer);
 
 	if(status = Tss2_TctiLdr_Initialize("device:/dev/tpmrm0", &tcti)!= TSS2_RC_SUCCESS) 
 	{
@@ -432,74 +435,39 @@ int tpm_get_evidence(void *ctx,
 	free(b64);
 	b64 = NULL;
 
-	//
-    	// Add ak cert to evidence when present
-    	//
-    	if(tpm_ctx->ak_cert_buffer != NULL)
-    	{
-		output_length = ((tpm_ctx->ak_cert_size + 2) / 3) * 4 + 1;
-		b64 = (char *)malloc(output_length * sizeof(char));
-		if (b64 == NULL)
+	if(tpm_ctx->with_ima_log)
+    {
+        status = read_sysfile_base64(DEFAULT_IMA_LOGS, &b64, &output_length);
+		if (STATUS_OK != status)
 		{
-			return STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
-		}
-		status = base64_encode(tpm_ctx->ak_cert_buffer, tpm_ctx->ak_cert_size, b64, output_length, false);
-		if (BASE64_SUCCESS != status)
-		{
-			status = STATUS_TPM_ERROR_BASE | STATUS_JSON_ENCODING_ERROR;
+            ERROR("Failed to read ima logs\n");
 			goto ERROR;
 		}
 
-		json_object_set(jansson_evidence, "ak_certificate_der", json_string(b64));
-		free(b64);
+        json_object_set(jansson_evidence, "ima_logs", json_string(b64));
+        free(b64);
 		b64 = NULL;
-    	}
+    }
 
-    	if(tpm_ctx->ima_buffer != NULL)
-    	{
-		output_length = ((tpm_ctx->ima_buffer_size + 2) / 3) * 4 + 1;
-		b64 = (char *)malloc(output_length * sizeof(char));
-		if (b64 == NULL)
+    if(tpm_ctx->with_uefi_log)
+    {
+        status = read_sysfile_base64(DEFAULT_UEFI_EVENT_LOGS, &b64, &output_length);
+		if (STATUS_OK != status)
 		{
-			return STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
-		}
-		status = base64_encode(tpm_ctx->ima_buffer, tpm_ctx->ima_buffer_size, b64, output_length, false);
-		if (BASE64_SUCCESS != status)
-		{
-			status = STATUS_TPM_ERROR_BASE | STATUS_JSON_ENCODING_ERROR;
-			goto ERROR;
+            ERROR("Failed to read uefi event logs\n");
+            goto ERROR;
 		}
 
-		json_object_set(jansson_evidence, "ima_logs", json_string(b64));
-		free(b64);
+        json_object_set(jansson_evidence, "uefi_event_logs", json_string(b64));
+        free(b64);
 		b64 = NULL;
-    	}
-
-    	if(tpm_ctx->uefi_eventlog_buffer != NULL)
-    	{
-		output_length = ((tpm_ctx->uefi_eventlog_buffer_size + 2) / 3) * 4 + 1;
-		b64 = (char *)malloc(output_length * sizeof(char));
-		if (b64 == NULL)
-		{
-			return STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
-		}
-		status = base64_encode((uint8_t*)tpm_ctx->uefi_eventlog_buffer, tpm_ctx->uefi_eventlog_buffer_size, b64, output_length, false);
-		if (BASE64_SUCCESS != status)
-		{
-			status = STATUS_TPM_ERROR_BASE | STATUS_JSON_ENCODING_ERROR;
-			goto ERROR;
-		}
-
-		json_object_set(jansson_evidence, "uefi_event_logs", json_string(b64));
-		free(b64);
-		b64 = NULL;
-    	}
+    }
 
 	if (nonce != NULL) {
-		result = get_jansson_nonce(nonce, &jansson_nonce);
-		if (STATUS_OK != result)
+		status = get_jansson_nonce(nonce, &jansson_nonce);
+		if (STATUS_OK != status)
 		{
-			ERROR("Error: Failed to create nonce json: 0x%04x\n", result);
+			ERROR("Error: Failed to create nonce json: 0x%04x\n", status);
 			goto ERROR;
 		}
 
@@ -542,7 +510,7 @@ ERROR:
         	free(b64);
     	}
 
-	return result;
+	return status;
 }
 
 int get_quote(ESYS_CONTEXT *ctx, 
@@ -813,4 +781,88 @@ DONE:
     }
 
     return rc;
+}
+
+// Reads a "/sys" file specified by 'file_path' and allocates a buffer
+// containing its base64 encoded contents.  Handles the fact that /sys
+// files do not report their length via "ftell".  Callers must free the
+// allocated buffer when done.
+TRUST_AUTHORITY_STATUS read_sysfile_base64(const char* file_path, uint8_t** base64_buffer, size_t* base64_buffer_len)
+{
+    TRUST_AUTHORITY_STATUS status = STATUS_OK;
+    FILE *file = NULL;
+    uint8_t *file_buffer = NULL;
+    int bytes_read = 0;
+
+    if(NULL == file_path || NULL == base64_buffer || NULL == base64_buffer_len)
+    {
+        return STATUS_TPM_ERROR_BASE | STATUS_INVALID_PARAMETER;
+    }
+
+    file = fopen(file_path, "rb");
+    if (file == NULL)
+    {
+        return STATUS_TPM_ERROR_BASE | STATUS_FILE_OPEN_ERROR;
+    }
+
+    file_buffer = calloc(MAX_BUF_SIZE, sizeof(uint8_t));
+    if (file_buffer == NULL) 
+    {
+        status = STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
+        goto DONE;
+    }
+
+    while(bytes_read < MAX_BUF_SIZE)
+    {
+        int r = fread(file_buffer + bytes_read, 1, CHUNK_SIZE, file);
+        if (r < 0)
+        {
+            status = STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
+            goto DONE;
+        } 
+
+        bytes_read += r;
+
+        // end of file
+        if (r < CHUNK_SIZE)
+        {
+            break;
+        }           
+    }
+
+    DEBUG("Successfully read %d bytes from file %s\n", bytes_read, file_path);
+
+	*base64_buffer_len = ((bytes_read + 2) / 3) * 4 + 1;
+    *base64_buffer = malloc(*base64_buffer_len * sizeof(uint8_t));
+    if (*base64_buffer == NULL)
+    {
+        *base64_buffer_len = 0;
+        status = STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
+        goto DONE;
+    }
+
+    status = base64_encode(file_buffer, bytes_read, *base64_buffer, base64_buffer_len, false);
+    if (status != BASE64_SUCCESS)
+    {
+        ERROR("Failed to base64 encode file contents of %s\n", file_path);
+        *base64_buffer_len = 0;
+        free(*base64_buffer);
+        *base64_buffer = NULL;
+        status = STATUS_TPM_ERROR_BASE | STATUS_JSON_ENCODING_ERROR;
+        goto DONE;
+    }
+
+DONE:
+
+    if (file)
+    {
+        fclose(file);
+    }
+
+    if(file_buffer)
+    {
+        free(file_buffer);
+    }   
+
+    return status;
 }
