@@ -15,7 +15,7 @@ ifeq ($(DEBUG),1)
 endif
 
 COMMIT := $(shell git rev-parse --short HEAD)
-VERSION := v1.2.0
+VERSION := v1.3.0
 BUILDDATE := $(shell TZ=UTC date +%Y-%m-%dT%H:%M:%S%z)
 PROXY_EXISTS := $(shell if [[ "${https_proxy}" || "${http_proxy}" || "${no_proxy}" ]]; then echo 1; else echo 0; fi)
 DOCKER_PROXY_FLAGS := ""

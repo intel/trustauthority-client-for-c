@@ -11,7 +11,7 @@ it collects a report from the Sevsnp VM and sends it to Intel Trust Authority to
   - To Build in debug mode:  
 	make DEBUG=1 sevsnp_token_docker
 ```
-- When successfully built, running `docker image ls -a` includes `taas/sevsnp_token:v1.2.0`.
+- When successfully built, running `docker image ls -a` includes `taas/sevsnp_token:v1.3.0`.
 
 **_NOTE:_** If you are building for Azure, use below commands:
 ```shell
@@ -20,7 +20,7 @@ it collects a report from the Sevsnp VM and sends it to Intel Trust Authority to
   - To Build in debug mode:
 	make DEBUG=1 azure_sevsnp_token_docker
 ```
-- When successfully built, running `docker image ls -a` includes `taas/azure_sevsnp_token:v1.2.0`.
+- When successfully built, running `docker image ls -a` includes `taas/azure_sevsnp_token:v1.3.0`.
 
 ## Deployment Instructions
 - The docker image must be present inside the sevsnp vm.  For example, it can be exported/copied 
@@ -63,7 +63,7 @@ Running the sample requires the following steps...
     TRUSTAUTHORITY_API_URL="https://api.pilot.trustauthority.intel.com"
     TRUSTAUTHORITY_BASE_URL="https://portal.pilot.trustauthority.intel.com"
     EOF
-    sudo docker run -it --rm --privileged --network host -v /sys/kernel/config:/sys/kernel/config  --env-file sevsnp_token.env taas/sevsnp_token:v1.2.0
+    sudo docker run -it --rm --privileged --network host -v /sys/kernel/config:/sys/kernel/config  --env-file sevsnp_token.env taas/sevsnp_token:v1.3.0
     ```
 
 - Use docker to run the Azure Sevsnp Token example...
@@ -75,7 +75,7 @@ Running the sample requires the following steps...
     TRUSTAUTHORITY_BASE_URL="https://portal.pilot.trustauthority.intel.com"
     EOF
 
-    sudo docker run -it --rm --device=/dev/tpm0 --device=/dev/tpmrm0 --env-file sevsnp_token.env --group-add $(getent group tss | cut -d: -f3) taas/azure_sevsnp_token:v1.2.0
+    sudo docker run -it --rm --device=/dev/tpm0 --device=/dev/tpmrm0 --env-file sevsnp_token.env --group-add $(getent group tss | cut -d: -f3) taas/azure_sevsnp_token:v1.3.0
     ```
 
 ### Output when Sevsnp example is run...
