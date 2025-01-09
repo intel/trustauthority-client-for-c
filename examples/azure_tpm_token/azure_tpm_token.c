@@ -29,6 +29,7 @@
 #define ENV_POLICY_MUST_MATCH "POLICY_MUST_MATCH"
 #define ENV_TPM_WITH_IMA_LOGS "TPM_WITH_IMA_LOGS"
 #define ENV_TPM_WITH_UEFI_LOGS "TPM_WITH_UEFI_LOGS"
+#define ENV_TPM_WITH_PCR_SELECTIONS "TPM_WITH_PCR_SELECTIONS"
 
 #define AZURE_AK_HANDLE 0x81000003
 
@@ -143,6 +144,7 @@ int main(int argc, char *argv[])
 	char *request_id = getenv(ENV_REQUEST_ID);
 	char *token_signing_alg_str = getenv(ENV_TOKEN_SIG_ALG);
 	char *policy_must_match_str = getenv(ENV_POLICY_MUST_MATCH);
+	char *with_pcr_selection_str = getenv(ENV_TPM_WITH_PCR_SELECTIONS);
 	int retry_max, retry_wait_time = 0;
 	bool policy_must_match;
 	bool with_ima_logs = get_env_bool(ENV_TPM_WITH_IMA_LOGS);
@@ -256,6 +258,7 @@ int main(int argc, char *argv[])
 	tpm_with_ak_handle(tpm_adapter, AZURE_AK_HANDLE);
 	tpm_with_ima_log(tpm_adapter, with_ima_logs);
 	tpm_with_uefi_log(tpm_adapter, with_uefi_logs);
+	tpm_with_pcr_selections(tpm_adapter, with_pcr_selection_str);
 
 /*  
 	// sample code on calling tpm_get_evidence api directly, with evidence returned in the json format enclosure as json_object

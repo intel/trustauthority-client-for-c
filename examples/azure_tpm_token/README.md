@@ -24,7 +24,7 @@ it collects a quote from the TD and a quote from vTPM, forming a composite evide
 from a build machine as follows...
 ```shell
 #Save the azure_tpm_token Docker image into trust_authority.azure_tpm_token.tar.gz
-docker save taas/azure_tpm_token:v0.1.0 > trust_authority.azure_tpm_token.tar.gz
+docker save taas/azure_tpm_token:v1.3.0 > trust_authority.azure_tpm_token.tar.gz
 #scp trust_authority.azure_tpm_token.tar.gz to the TD VM.
 #On the TD VM load/import trust_authority.azure_tpm_token.tar.gz docker image using below command
 docker load -i trust_authority.azure_tpm_token.tar.gz
@@ -51,6 +51,7 @@ Running the sample requires the following steps...
     |RETRY_MAX|Maximum number of retries. Default value is 2 seconds.|
     |TPM_WITH_IMA_LOGS|When "true", includes IMA logs into TPM evidence.|
     |TPM_WITH_UEFI_LOGS|When "true", includes UEFI event logs into TPM evidence.|
+    |TPM_WITH_PCR_SELECTIONS|User provided PCR selection combinations to format the TPM evidence. Default value is sha256:all.|
     
 
 ### Run the example...

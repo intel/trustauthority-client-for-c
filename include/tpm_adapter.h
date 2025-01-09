@@ -94,7 +94,7 @@ typedef enum {
 	 * 
 	 * @return 0 on success, otherwise failure
 	 */
-    int tpm_with_pcr_selections(evidence_adapter *adapter, TPML_PCR_SELECTION* pcr_selection);
+    int tpm_with_pcr_selections(evidence_adapter *adapter, const char* pcr_selection);
 
 	/**
 	 * @brief determines if IMA logs will be included in TPM evidence

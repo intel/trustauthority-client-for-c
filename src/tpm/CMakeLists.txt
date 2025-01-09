@@ -7,6 +7,7 @@ include_directories(../connector
 
 add_library(${PROJECT_NAME}
     tpm_adapter.c
+    tpm_util.c
     ../log/log.c
     ../util/json.c
 )

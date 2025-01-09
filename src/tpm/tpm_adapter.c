@@ -23,6 +23,7 @@
 #include <openssl/pem.h>
 #include <openssl/err.h>
 #include <sys/stat.h>
+#include <ctype.h>
 
 #define MAX_BUF_SIZE 1024 * 1024 // 1MB buffer
 #define CHUNK_SIZE 512
@@ -105,6 +106,17 @@ int tpm_adapter_free(evidence_adapter *adapter)
 	{
 		if (NULL != adapter->ctx)
 		{
+            		tpm_adapter_context *ctx = (tpm_adapter_context*)adapter->ctx;
+            		if (NULL != ctx->pcr_selection)
+            		{
+                		free(ctx->pcr_selection);
+                		ctx->pcr_selection = NULL;
+            		}
+            		if (NULL != ctx->owner_auth)
+            		{
+                		free(ctx->owner_auth);
+                		ctx->owner_auth = NULL;
+            		}
 			free(adapter->ctx);
 			adapter->ctx = NULL;
 		}
@@ -139,7 +151,7 @@ int tpm_with_owner_auth(evidence_adapter *adapter, char* owner_auth)
 
     if (strlen(owner_auth) == 0 || strlen(owner_auth) > sizeof(TPMU_HA)) // need double check
     {
-        return STATUS_TPM_ERROR_BASE | STATUS_INVALID_PARAMETER;
+        	return STATUS_TPM_ERROR_BASE | STATUS_INVALID_PARAMETER;
     }
 
     tpm_adapter_context *ctx = (tpm_adapter_context*)adapter->ctx;
@@ -161,7 +173,7 @@ int tpm_with_device_type(evidence_adapter *adapter, tpm_device_type device_type)
 
     if (device_type != TPM_DEVICE_TYPE_LINUX || device_type != TPM_DEVICE_TYPE_MSSIM)
     {
-        return STATUS_TPM_ERROR_BASE | STATUS_INVALID_PARAMETER;
+        	return STATUS_TPM_ERROR_BASE | STATUS_INVALID_PARAMETER;
     }
 
     tpm_adapter_context *ctx = (tpm_adapter_context*)adapter->ctx;
@@ -183,7 +195,7 @@ int tpm_with_ak_handle(evidence_adapter *adapter, uint32_t ak_handle)
 
     if (ak_handle < MIN_PERSISTENT_HANDLE || ak_handle > MAX_PERSISTENT_HANDLE)
     {
-        return STATUS_TPM_ERROR_BASE | STATUS_INVALID_PARAMETER;
+        	return STATUS_TPM_ERROR_BASE | STATUS_INVALID_PARAMETER;
     }
 
     tpm_adapter_context *ctx = (tpm_adapter_context*)adapter->ctx;
@@ -191,7 +203,7 @@ int tpm_with_ak_handle(evidence_adapter *adapter, uint32_t ak_handle)
     return STATUS_OK;
 }
 
-int tpm_with_pcr_selections(evidence_adapter *adapter, TPML_PCR_SELECTION* pcr_selection)
+int tpm_with_pcr_selections(evidence_adapter *adapter, const char* pcr_selection)
 {
     if (NULL == adapter)
     {
@@ -202,14 +214,30 @@ int tpm_with_pcr_selections(evidence_adapter *adapter, TPML_PCR_SELECTION* pcr_s
     {
 		return STATUS_TPM_ERROR_BASE | STATUS_NULL_ADAPTER_CTX;
     }
-    
-    if (NULL == pcr_selection)
-    {
-		return STATUS_TPM_ERROR_BASE | STATUS_INVALID_PARAMETER;
-    }
 
     tpm_adapter_context *ctx = (tpm_adapter_context*)adapter->ctx;
-    ctx->pcr_selection = pcr_selection;
+    TPML_PCR_SELECTION *tpm_pcr_selection = NULL;
+    tpm_pcr_selection = (TPML_PCR_SELECTION *)calloc(1, sizeof(TPML_PCR_SELECTION));
+    if (NULL == tpm_pcr_selection)
+    {
+        	return STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
+    }
+
+    if (NULL == pcr_selection || 0 == strlen(pcr_selection))
+    {
+		memcpy(ctx->pcr_selection, &DEFAULT_TPML_PCR_SELECTION, sizeof(TPML_PCR_SELECTION));
+    }
+    else
+    {
+        if (false == pcr_parse_selections(pcr_selection, tpm_pcr_selection, NULL))
+        {
+            free(tpm_pcr_selection);
+            tpm_pcr_selection = NULL;
+            return STATUS_TPM_ERROR_BASE | STATUS_INVALID_PARAMETER;
+        }
+        ctx->pcr_selection = tpm_pcr_selection;
+    }
+
     return STATUS_OK;
 }
 
