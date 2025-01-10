@@ -87,10 +87,21 @@ int tpm_adapter_new(evidence_adapter **adapter)
 		return STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
 	}
 
-	ctx->owner_auth = "";
+	ctx->owner_auth = (char *)calloc(1, sizeof(TPMU_HA));
+    if (NULL == ctx->owner_auth)
+    {
+        return STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
+    }
+
+    ctx->pcr_selection = (TPML_PCR_SELECTION *)calloc(1, sizeof(TPML_PCR_SELECTION));
+    if (NULL == ctx->pcr_selection)
+    {
+        	return STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
+    }
+    memcpy(ctx->pcr_selection, &DEFAULT_TPML_PCR_SELECTION, sizeof(TPML_PCR_SELECTION));
+
 	ctx->device_type = TPM_DEVICE_TYPE_LINUX;
 	ctx->ak_handle = DEFAULT_AK_HANDLE;
-	ctx->pcr_selection = &DEFAULT_TPML_PCR_SELECTION;
 
 	(*adapter)->ctx = ctx;
 	(*adapter)->collect_evidence = NULL;
@@ -155,7 +166,7 @@ int tpm_with_owner_auth(evidence_adapter *adapter, char* owner_auth)
     }
 
     tpm_adapter_context *ctx = (tpm_adapter_context*)adapter->ctx;
-    ctx->owner_auth = owner_auth;
+    memcpy(ctx->owner_auth, owner_auth, strlen(owner_auth));
     return STATUS_OK;
 }
 
@@ -215,27 +226,20 @@ int tpm_with_pcr_selections(evidence_adapter *adapter, const char* pcr_selection
 		return STATUS_TPM_ERROR_BASE | STATUS_NULL_ADAPTER_CTX;
     }
 
-    tpm_adapter_context *ctx = (tpm_adapter_context*)adapter->ctx;
-    TPML_PCR_SELECTION *tpm_pcr_selection = NULL;
-    tpm_pcr_selection = (TPML_PCR_SELECTION *)calloc(1, sizeof(TPML_PCR_SELECTION));
-    if (NULL == tpm_pcr_selection)
-    {
-        	return STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
-    }
-
     if (NULL == pcr_selection || 0 == strlen(pcr_selection))
     {
-		memcpy(ctx->pcr_selection, &DEFAULT_TPML_PCR_SELECTION, sizeof(TPML_PCR_SELECTION));
+		return STATUS_OK; // default selection is set during init
     }
     else
     {
-        if (false == pcr_parse_selections(pcr_selection, tpm_pcr_selection, NULL))
+        tpm_adapter_context *ctx = (tpm_adapter_context*)adapter->ctx;
+        memset(ctx->pcr_selection, 0, sizeof(TPML_PCR_SELECTION));
+        if (false == pcr_parse_selections(pcr_selection, ctx->pcr_selection, NULL))
         {
-            free(tpm_pcr_selection);
-            tpm_pcr_selection = NULL;
+            free(ctx->pcr_selection);
+            ctx->pcr_selection = NULL;
             return STATUS_TPM_ERROR_BASE | STATUS_INVALID_PARAMETER;
         }
-        ctx->pcr_selection = tpm_pcr_selection;
     }
 
     return STATUS_OK;
