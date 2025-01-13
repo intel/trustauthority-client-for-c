@@ -7,6 +7,7 @@ PSW_VERSION := 2.22.100.3
 USE_AZURE_TDX_ADAPTER := OFF
 TDX_TOKEN_BUILD_PREFIX := intel
 SEVSNP_TOKEN_BUILD_PREFIX := amd
+NVGPU_TOKEN_BUILD_PREFIX := nvgpu
 
 # By default set the build in release mode
 ENABLE_DEBUG ?= Release
@@ -33,7 +34,7 @@ MAKEFILE_DIR := $(dir $(MAKEFILE_PATH))
 .PHONY: all clean
 .DEFAULT: ubuntu_20
 
-all: ubuntu_20 sgx_token_docker tdx_token_docker azure_tdx_token_docker azure_tpm_token_docker sevsnp_token_docker azure_sevsnp_token_docker
+all: ubuntu_20 ubuntu_24 sgx_token_docker tdx_token_docker azure_tdx_token_docker azure_tpm_token_docker sevsnp_token_docker azure_sevsnp_token_docker nvgpu_token_docker
 
 ubuntu_20: 
 	DOCKER_BUILDKIT=1 docker build \
@@ -45,6 +46,17 @@ ubuntu_20:
 		-t $(ORGNAME)/$(APPNAME)-ubuntu_20:$(VERSION) \
 		--build-arg DCAP_VERSION=${DCAP_VERSION} \
 		--build-arg PSW_VERSION=${PSW_VERSION} \
+		--build-arg VERSION=${VERSION} \
+		--build-arg COMMIT=${COMMIT} .
+
+ubuntu_24: 
+	DOCKER_BUILDKIT=1 docker build \
+		--build-arg ENABLE_DEBUG=${ENABLE_DEBUG} \
+		${DOCKER_PROXY_FLAGS} \
+		-f docker/Dockerfile.ubuntu_24 \
+		--output ${MAKEFILE_DIR}bin/ubuntu_24 \
+		--target  export-stage \
+		-t $(ORGNAME)/$(APPNAME)-ubuntu_24:$(VERSION) \
 		--build-arg VERSION=${VERSION} \
 		--build-arg COMMIT=${COMMIT} .
 
@@ -111,6 +123,16 @@ sevsnp_token_docker:
 		--build-arg VERSION=${VERSION} \
 		--build-arg COMMIT=${COMMIT} .
 
+nvgpu_token_docker:
+	DOCKER_BUILDKIT=1 docker build \
+		--build-arg ENABLE_DEBUG=${ENABLE_DEBUG} \
+		${DOCKER_PROXY_FLAGS} \
+		-f examples/nvgpu_token/Dockerfile \
+		--target ${NVGPU_TOKEN_BUILD_PREFIX}_token \
+		-t $(ORGNAME)/${NVGPU_TOKEN_BUILD_PREFIX}_nvgpu_token:$(VERSION) \
+		--build-arg VERSION=${VERSION} \
+		--build-arg COMMIT=${COMMIT} .
+
 azure_tdx_token_docker: USE_AZURE_TDX_ADAPTER = ON
 azure_tdx_token_docker: TDX_TOKEN_BUILD_PREFIX = azure
 azure_tdx_token_docker: tdx_token_docker
@@ -118,6 +140,8 @@ azure_tdx_token_docker: tdx_token_docker
 azure_sevsnp_token_docker: USE_AZURE_SEVSNP_ADAPTER = ON
 azure_sevsnp_token_docker: SEVSNP_TOKEN_BUILD_PREFIX = azure
 azure_sevsnp_token_docker: sevsnp_token_docker
+
+nvgpu_token_docker: nvgpu_token_docker
 
 clean:
 	rm -rf ${MAKEFILE_DIR}bin

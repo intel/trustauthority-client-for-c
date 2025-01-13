@@ -36,7 +36,7 @@ RUN apt-get install -y --no-install-recommends libssl-dev
 RUN cmake -DBUILD_EXAMPLES=ON -DBUILD_NVGPU=ON -DBUILD_TDX=ON -DUSE_AZURE_TDX_ADAPTER=$USE_AZURE_TDX_ADAPTER -DCMAKE_BUILD_TYPE=$ENABLE_DEBUG .. \
     && cmake --build .  --target nvgpu_token
 
-FROM ubuntu:24.04 as nvgpu_token_cont
+FROM ubuntu:24.04 as nvgpu_token
 ARG MAKEFILE_DIR
 ARG DEBIAN_FRONTEND=noninteractive
 ARG USERNAME=intel

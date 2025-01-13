@@ -1,0 +1,60 @@
+# Copyright (C) 2025 Intel Corporation
+# SPDX-License-Identifier: BSD-3-Clause
+ARG VERSION=v0.0.0
+ARG COMMIT=fffffff
+
+FROM ubuntu:24.04 as dependencies
+ARG DEBIAN_FRONTEND=noninteractive
+ARG ENABLE_DEBUG
+
+RUN apt-get update; \
+    apt-get upgrade -y; \
+    apt-get install -y --no-install-recommends gnupg \
+    wget \
+    git \
+    autoconf \
+    automake \
+    libtool \
+    openssl \
+    libssl-dev \
+    pkg-config \
+    cmake \
+    libjansson-dev \
+    build-essential \
+    ca-certificates \
+    autoconf-archive \
+    libltdl-dev \
+    libjson-c-dev \
+    libcurl4-openssl-dev \
+    uuid-dev \
+    libgnutls28-dev
+
+RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+RUN dpkg -i cuda-keyring_1.1-1_all.deb
+
+RUN apt-get update; \
+    apt-get install -y --no-install-recommends cuda-nvml-dev-12-5; \
+    apt-get autoremove -y
+
+RUN git clone https://github.com/benmcollins/libjwt.git 
+WORKDIR /libjwt 
+RUN git checkout v1.17.0 && autoreconf -i && ./configure --without-openssl && make all && make install
+
+FROM dependencies as build
+ARG USERNAME=intel
+ARG USER_UID=2000
+ARG USER_GID=$USER_UID
+
+RUN groupadd --gid $USER_GID $USERNAME \
+&& useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
+USER $USERNAME
+
+WORKDIR /trustauthority-client/
+COPY . .
+
+WORKDIR /trustauthority-client/build
+RUN cmake -DBUILD_NVGPU=ON -DCMAKE_BUILD_TYPE=$ENABLE_DEBUG .. \
+	&& cmake --build .
+
+FROM scratch as export-stage
+COPY --from=build /trustauthority-client/build/src/nvgpu/libtrustauthority_nvgpu.a .
