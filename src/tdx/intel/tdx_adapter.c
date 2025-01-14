@@ -160,10 +160,35 @@ int tdx_collect_evidence(void *ctx,
 	int status = STATUS_OK;
 	const EVP_MD *md = EVP_get_digestbyname("sha512");
 	EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
-	EVP_DigestInit_ex(mdctx, md, NULL);
-	EVP_DigestUpdate(mdctx, nonce_data, nonce_data_len);
-	EVP_DigestUpdate(mdctx, user_data, user_data_len);
-	EVP_DigestFinal_ex(mdctx, md_value, &md_len);
+	if (NULL == mdctx)
+	{
+		status = STATUS_TDX_ERROR_BASE | STATUS_INVOCATION_ERROR;
+		goto ERROR;
+	}
+	if (1 != EVP_DigestInit_ex(mdctx, md, NULL))
+	{
+		EVP_MD_CTX_free(mdctx);
+		status = STATUS_TDX_ERROR_BASE | STATUS_INVOCATION_ERROR;
+		goto ERROR;
+	}
+	if (1 != EVP_DigestUpdate(mdctx, nonce_data, nonce_data_len))
+	{
+		EVP_MD_CTX_free(mdctx);
+		status = STATUS_TDX_ERROR_BASE | STATUS_INVOCATION_ERROR;
+		goto ERROR;
+	}
+	if (1 != EVP_DigestUpdate(mdctx, user_data, user_data_len))
+	{
+		EVP_MD_CTX_free(mdctx);
+		status = STATUS_TDX_ERROR_BASE | STATUS_INVOCATION_ERROR;
+		goto ERROR;
+	}
+	if (1 != EVP_DigestFinal_ex(mdctx, md_value, &md_len))
+	{
+		EVP_MD_CTX_free(mdctx);
+		status = STATUS_TDX_ERROR_BASE | STATUS_INVOCATION_ERROR;
+		goto ERROR;
+	}
 	EVP_MD_CTX_free(mdctx);
 
 	Request req = {
