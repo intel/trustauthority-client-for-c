@@ -60,4 +60,4 @@ WORKDIR /nvgpu_token
 COPY --from=build /usr/local/lib/libjwt* /usr/local/lib/
 COPY --from=build /trustauthority-client/build/examples/nvgpu_token/nvgpu_token .
 USER $USERNAME
-CMD ["env",  "LD_LIBRARY_PATH=/nvgpu_token", "./nvgpu_token"]
+CMD ["env",  "LD_LIBRARY_PATH=/nvgpu_token:/usr/local/lib/", "./nvgpu_token"]
