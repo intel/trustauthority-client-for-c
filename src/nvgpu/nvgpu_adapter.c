@@ -554,6 +554,9 @@ extract_nvgpu_evidence (evidence *evidence, char *buf_evi, size_t buf_sz)
 	// evidence->evidence_len * 2, hex_evi);
 	if (input_length != evidence->evidence_len * 2)
 	{
+		free (hex_evi);
+		hex_evi = NULL;
+		hex_evi_sz = 0;
 		ERROR ("Error: Invalid hex encoded evidence length\n");
 		return 0;
 	}
@@ -561,13 +564,19 @@ extract_nvgpu_evidence (evidence *evidence, char *buf_evi, size_t buf_sz)
 	DEBUG ("Info: buffer size: %ld -- expected: %d\n", buf_sz, (input_length + 2) / 3 * 4 + 1);
 	if ((buf_sz < ((input_length + 2) / 3) * 4 + 1))
 	{
+		free (hex_evi);
+		hex_evi = NULL;
+		hex_evi_sz = 0;
 		ERROR ("Error: Insufficient buffer size for base64 encoding\n");
 		return 0;
 	}
 
 	int encoded_len = EVP_EncodeBlock ((unsigned char *)buf_evi, hex_evi, input_length);
-	if (encoded_len == -1)
+	if (encoded_len <= 0)
 	{
+		free (hex_evi);
+		hex_evi = NULL;
+		hex_evi_sz = 0;
 		ERROR ("Error: Failed to base64 encoded evidence\n")
 		return 0;
 	}
@@ -597,7 +606,7 @@ extract_nvgpu_certchain (uint8_t *certchain, uint32_t certchain_sz, char *buf_ce
 		return 0;
 	}
 	int encoded_len = EVP_EncodeBlock ((unsigned char *)buf_certchain, certchain, certchain_sz);
-	if (encoded_len == -1)
+	if (encoded_len <= 0)
 	{
 		ERROR ("Error: Failed to base64 encoded certicate chain \n")
 		return 0;
