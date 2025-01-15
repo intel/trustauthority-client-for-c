@@ -26,95 +26,6 @@
 #define ENV_TOKEN_SIG_ALG "TOKEN_SIGNING_ALG"
 #define ENV_POLICY_MUST_MATCH "POLICY_MUST_MATCH"
 
-
-int gen_public_key(int key_bits, unsigned char **key_buffer, int* key_buffer_len) {
-    	RSA *rsa = NULL;
-    	BIGNUM *bne = NULL;
-    	int ret = 0;
-    	int key_len = 0;
-
-    	// Initialize OpenSSL
-    	OpenSSL_add_all_algorithms();
-    	ERR_load_crypto_strings();
-
-    	// Set RSA public exponent
-    	bne = BN_new();
-    	if (bne == NULL) {
-        	ERROR("BN_new failed\n");
-        	ret = -1;
-        	goto cleanup;
-    	}
-
-    	ret = BN_set_word(bne, RSA_F4);
-    	if (ret != 1) {
-        	ERROR("BN_set_word failed\n");
-        	ret = -1;
-        	goto cleanup;
-    	}
-
-    	// Generate RSA key pair
-    	rsa = RSA_new();
-    	if (rsa == NULL) {
-        	ERROR("RSA_new failed\n");
-        	ret = -1;
-        	goto cleanup;
-    	}
-    	
-    	ret = RSA_generate_key_ex(rsa, key_bits, bne, NULL);
-    	if (ret != 1) {
-		ERROR("RSA_generate_key_ex failed\n");
-        	ret = -1;
-        	goto cleanup;
-    	}
-	
-    	// Extract the modulus and exponent
-    	const BIGNUM *n = RSA_get0_n(rsa); // Modulus
-    	const BIGNUM *e = RSA_get0_e(rsa); // Public Exponent
-    	// Convert the public exponent to a 4-byte array
-    	unsigned char *exponent_bytes = calloc(4,  sizeof(unsigned char));
-	if (exponent_bytes == NULL) {
-			ret = STATUS_ALLOCATION_ERROR;
-        	goto cleanup;
-    	}
-        if (BN_bn2bin(e, exponent_bytes) == NULL) {
-		ERROR("Conversion of exponent failed\n");
-		ret = -1;
-		goto cleanup;
-	}
-
-    	// Convert the modulus to a byte array
-    	int n_len = BN_num_bytes(n);
-    	unsigned char *modulus_bytes = malloc(n_len);
-    	if (modulus_bytes == NULL) {
-			ret = STATUS_ALLOCATION_ERROR;
-        	goto cleanup;
-    	}
-    	if (BN_bn2bin(n, modulus_bytes) == NULL) {
-		ERROR("Conversion of Modulus failed\n");
-        	ret = -1;
-        	goto cleanup;
-	}
-
-    	// Combine the exponent and modulus into a single byte array
-    	key_len = 4 + n_len;
-    	*key_buffer = malloc(key_len);
-    	if (*key_buffer == NULL) {
-				ret = STATUS_ALLOCATION_ERROR;
-                goto cleanup;
-        }
-        memcpy(*key_buffer, exponent_bytes, 4);        // Copy exponent
-        memcpy(*key_buffer + 4, modulus_bytes, n_len); // Copy modulus
-        *key_buffer_len = key_len;
-
-cleanup:
-        if (bne) BN_free(bne);
-        if (rsa) RSA_free(rsa);
-        if (modulus_bytes) free(modulus_bytes);
-        if (exponent_bytes) free(exponent_bytes);
-	ERR_free_strings();
-        return ret;
-}
-
 int main(int argc, char *argv[])
 {
 	int result;
@@ -211,14 +122,6 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	unsigned char* user_data = NULL;
-	int user_data_len;
-	result = gen_public_key(3072, &user_data, &user_data_len);
-	if( result != 1 ){
-		ERROR("ERROR: User Data generation failed\n");
-		goto ERROR;
-	}
-
 	LOG("Info: connecting to %s\n", ta_api_url);
 	result = trust_authority_connector_new(&connector, ta_key, ta_api_url, retry_max, retry_wait_time);
 	if (STATUS_OK != result)
@@ -234,16 +137,15 @@ int main(int argc, char *argv[])
 		goto ERROR;
 	}
 
-/*  
+	/*
 	// sample code on calling sevsnp_get_evidence_azure api directly, with evidence returned in the json format enclosure as json_object
 	evidence = json_object();
 	result = sevsnp_get_evidence_azure(adapter->ctx, evidence, NULL, user_data, user_data_len);
 	if (STATUS_OK != result)
 	{
 		ERROR("Error: Failed to collect evidence from Azure adapter 0x%04x\n", result);
-       		goto ERROR;
+		goto ERROR;
 	}
-	
 	// Serialize the JSON object to a string and print it
 	char *json_string = json_dumps(evidence, JSON_INDENT(4));
 	if(json_string == NULL)
@@ -254,7 +156,7 @@ int main(int argc, char *argv[])
 	LOG("Info: Evidence: %s\n", json_string);
 	json_decref(evidence);
 	free(json_string);
-*/
+	*/
 
 #else
 	result = sevsnp_adapter_new(&adapter);
@@ -264,10 +166,7 @@ int main(int argc, char *argv[])
 		goto ERROR;
 	}
 
-	// example to set vmpl level when retrieving the sevsnp evidence, must fall in the range from 0 to 3 and can not exceed current vm privilege level
-	with_vmpl(&adapter->ctx, 3);
-
-/*  
+/*
 	// sample code on calling sevsnp_get_evidence api directly, with evidence returned in the json format enclosure as json_object
 	evidence = json_object();
 	result = sevsnp_get_evidence(adapter->ctx, evidence, NULL, user_data, user_data_len);
@@ -276,7 +175,7 @@ int main(int argc, char *argv[])
 		ERROR("Error: Failed to collect evidence from sevsnp adapter 0x%04x\n", result);
 		goto ERROR;
 	}
-	
+
 	// Serialize the JSON object to a string and print it
 	char *json_string = json_dumps(evidence, JSON_INDENT(4));
 	if(json_string == NULL)
@@ -299,8 +198,6 @@ int main(int argc, char *argv[])
 	}
 
 	opts.nonce = &nonce;
-	opts.user_data = user_data;
-	opts.user_data_len = user_data_len;
 	opts.policy_ids = policy_ids;
 	opts.policy_must_match = policy_must_match;
 	opts.token_signing_alg = token_signing_alg_str;
@@ -312,7 +209,7 @@ int main(int argc, char *argv[])
 	}
 
 	result = evidence_builder_add_adapter(builder, adapter);
-	if(STATUS_OK != result)
+	if (STATUS_OK != result)
 	{
 		ERROR("ERROR: Failed to add adapter to builder: 0x%04x\n", result);
 		goto ERROR;
@@ -320,11 +217,21 @@ int main(int argc, char *argv[])
 
 	evidence = json_object();
 	result = evidence_builder_get_evidence(builder, evidence);
-	if(STATUS_OK != result)
+	if (STATUS_OK != result)
 	{
 		ERROR("ERROR: Failed to get evidence from builder: 0x%04x\n", result);
 		goto ERROR;
 	}
+
+	// Serialize the JSON object to a string and print it
+	char *json_string = json_dumps(evidence, JSON_INDENT(4));
+	if (json_string == NULL)
+	{
+		ERROR("ERROR: Failed to serialize evidence to json string\n");
+		goto ERROR;
+	}
+	LOG("Info: Evidence: %s\n", json_string);
+	free(json_string);
 
 #ifdef AZURE_SEVSNP
 	result = attest_evidence(connector, &headers, &token, evidence, request_id, "azure");
@@ -354,11 +261,6 @@ int main(int argc, char *argv[])
 
 ERROR:
 
-	if (NULL != user_data)
-	{
-		free(user_data);
-		user_data = NULL;
-	}
 	if (NULL != evidence)
 	{
 		json_decref(evidence);

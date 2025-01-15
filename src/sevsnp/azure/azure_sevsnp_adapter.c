@@ -62,15 +62,16 @@ int sevsnp_adapter_free(evidence_adapter *adapter)
 	return STATUS_OK;
 }
 
-const char* sevsnp_get_evidence_identifier() {
+const char *sevsnp_get_evidence_identifier()
+{
 	return EVIDENCE_IDENTIFIER_SEVSNP;
 }
 
 int sevsnp_get_evidence_azure(void *ctx,
-		json_t *jansson_evidence,
-		nonce *nonce,
-		uint8_t *user_data,
-		uint32_t user_data_len)
+							  json_t *jansson_evidence,
+							  nonce *nonce,
+							  uint8_t *user_data,
+							  uint32_t user_data_len)
 {
 	int result = 0;
 	evidence evidence = {0};
@@ -89,7 +90,8 @@ int sevsnp_get_evidence_azure(void *ctx,
 		return result;
 	}
 
-	if (nonce != NULL) {
+	if (nonce != NULL)
+	{
 		result = get_jansson_nonce(nonce, &jansson_nonce);
 		if (STATUS_OK != result)
 		{
@@ -110,10 +112,10 @@ ERROR:
 }
 
 int sevsnp_collect_evidence_azure(void *ctx,
-		evidence *evidence,
-		nonce *nonce,
-		uint8_t *user_data,
-		uint32_t user_data_len)
+								  evidence *evidence,
+								  nonce *nonce,
+								  uint8_t *user_data,
+								  uint32_t user_data_len)
 {
 	// Duplicate code till line EVP_MD_CTX_free(mdctx)
 	sevsnp_adapter_context *sevsnp_ctx = NULL;
@@ -255,7 +257,7 @@ int sevsnp_collect_evidence_azure(void *ctx,
 		status = STATUS_SEVSNP_ERROR_BASE | STATUS_JSON_DECODING_ERROR;
 		goto ERROR;
 	}
-	user_data_string = (char*)json_string_value(user_data_json);
+	user_data_string = (char *)json_string_value(user_data_json);
 	if (user_data_string == NULL)
 	{
 		status = STATUS_SEVSNP_ERROR_BASE | STATUS_JSON_DECODING_ERROR;
@@ -391,12 +393,12 @@ int get_sevsnp_report(uint8_t *report_data, uint8_t **tpm_report)
 
 	/* Create/Fetch ESAPI Handle from TPM public area of the index */
 	rval = Esys_TR_FromTPMPublic(
-			esys_context,
-			REPORT_DATA_NVINDEX,
-			ESYS_TR_NONE,
-			ESYS_TR_NONE,
-			ESYS_TR_NONE,
-			&nvIndex);
+		esys_context,
+		REPORT_DATA_NVINDEX,
+		ESYS_TR_NONE,
+		ESYS_TR_NONE,
+		ESYS_TR_NONE,
+		&nvIndex);
 
 	if (rval != TSS2_RC_SUCCESS)
 	{
@@ -409,9 +411,9 @@ int get_sevsnp_report(uint8_t *report_data, uint8_t **tpm_report)
 				.nameAlg = TPM2_ALG_SHA256,
 				/* allows the owner password or index password r/w access */
 				.attributes = TPMA_NV_OWNERWRITE |
-					TPMA_NV_OWNERREAD |
-					TPMA_NV_AUTHWRITE |
-					TPMA_NV_AUTHREAD,
+							  TPMA_NV_OWNERREAD |
+							  TPMA_NV_AUTHWRITE |
+							  TPMA_NV_AUTHREAD,
 				/* can hold 64 bytes of data */
 				.dataSize = 64,
 				/* Create at NV Index  */
@@ -420,14 +422,14 @@ int get_sevsnp_report(uint8_t *report_data, uint8_t **tpm_report)
 
 		/* Create the NV Index space */
 		rval = Esys_NV_DefineSpace(
-				esys_context,
-				ESYS_TR_RH_OWNER, /* create an NV index in the owner hierarchy */
-				ESYS_TR_PASSWORD, /* auth as the owner with a password, which is empty */
-				ESYS_TR_NONE,
-				ESYS_TR_NONE,
-				NULL,
-				&pub_templ,
-				&nvIndex);
+			esys_context,
+			ESYS_TR_RH_OWNER, /* create an NV index in the owner hierarchy */
+			ESYS_TR_PASSWORD, /* auth as the owner with a password, which is empty */
+			ESYS_TR_NONE,
+			ESYS_TR_NONE,
+			NULL,
+			&pub_templ,
+			&nvIndex);
 		if (rval != TSS2_RC_SUCCESS)
 		{
 			ERROR("Error defining NV space: 0x%x\n", rval);
@@ -473,7 +475,7 @@ int get_sevsnp_report(uint8_t *report_data, uint8_t **tpm_report)
 
 	// Close the file to flush
 	fclose(tmpFile);
-	tmpFile = NULL; //to avoid double close
+	tmpFile = NULL; // to avoid double close
 
 	/*Write report data to nv Index 0x01400002*/
 	char tpm_write_command[100] = {0};
@@ -492,12 +494,12 @@ int get_sevsnp_report(uint8_t *report_data, uint8_t **tpm_report)
 
 	/*Convert the NVIndex from TPM2_HR_NV_INDEX to ESYS_TR*/
 	rval = Esys_TR_FromTPMPublic(
-			esys_context,
-			SEVSNP_REPORT_NVINDEX,
-			ESYS_TR_NONE,
-			ESYS_TR_NONE,
-			ESYS_TR_NONE,
-			&nvIndex);
+		esys_context,
+		SEVSNP_REPORT_NVINDEX,
+		ESYS_TR_NONE,
+		ESYS_TR_NONE,
+		ESYS_TR_NONE,
+		&nvIndex);
 	if (rval != TSS2_RC_SUCCESS)
 	{
 		ERROR("Error fetching ESAPI handle for index 0x%x: 0x%x\n", SEVSNP_REPORT_NVINDEX, rval);

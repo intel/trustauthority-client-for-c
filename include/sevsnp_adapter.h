@@ -24,7 +24,7 @@ extern "C"
 
 	typedef struct sevsnp_adapter_context
 	{
-		void* sevsnp_att_get_report_cb;
+		void *sevsnp_att_get_report_cb;
 		unsigned int priv_level;
 	} sevsnp_adapter_context;
 
@@ -41,7 +41,7 @@ extern "C"
 	 * @return int containing status
 	 */
 	int azure_sevsnp_adapter_new(evidence_adapter **adapter);
- 
+
 	// Delete/free a adapter.
 	int sevsnp_adapter_free(evidence_adapter *adapter);
 
@@ -55,10 +55,10 @@ extern "C"
 	 * @return int containing status
 	 */
 	int sevsnp_collect_evidence(void *ctx,
-			evidence *evidence,
-			nonce *nonce,
-			uint8_t *user_data,
-			uint32_t user_data_len);
+								evidence *evidence,
+								nonce *nonce,
+								uint8_t *user_data,
+								uint32_t user_data_len);
 
 	/**
 	 * Collect the sevsnp report from Azure platform.
@@ -70,10 +70,10 @@ extern "C"
 	 * @return int containing status
 	 */
 	int sevsnp_collect_evidence_azure(void *ctx,
-			evidence *evidence,
-			nonce *nonce,
-			uint8_t *user_data,
-			uint32_t user_data_len);
+									  evidence *evidence,
+									  nonce *nonce,
+									  uint8_t *user_data,
+									  uint32_t user_data_len);
 
 	/**
 	 * Collect the sevsnp report from on-prem/GCP platform.
@@ -85,10 +85,10 @@ extern "C"
 	 * @return int containing status
 	 */
 	int sevsnp_get_evidence(void *ctx,
-			json_t *evidence,
-			nonce *nonce,
-			uint8_t *user_data,
-			uint32_t user_data_len);
+							json_t *evidence,
+							nonce *nonce,
+							uint8_t *user_data,
+							uint32_t user_data_len);
 
 	/**
 	 * Collect the sevsnp report from Azure platform.
@@ -100,20 +100,12 @@ extern "C"
 	 * @return int containing status
 	 */
 	int sevsnp_get_evidence_azure(void *ctx,
-			json_t *evidence,
-			nonce *nonce,
-			uint8_t *user_data,
-			uint32_t user_data_len);
+								  json_t *evidence,
+								  nonce *nonce,
+								  uint8_t *user_data,
+								  uint32_t user_data_len);
 
-	const char* sevsnp_get_evidence_identifier();
-
-	/**
-	 * Collect the sevsnp report from Azure platform.
-	 * @param ctx a void pointer containing context
-	 * @param vmpl_level vm privilege level to be set when retrieving the sevsnp evidence (on-prem or GCP only)
-	 * @return int containing status
-	 */
-	int with_vmpl(sevsnp_adapter_context *ctx, unsigned int vmpl_level);
+	const char *sevsnp_get_evidence_identifier();
 
 #ifdef __cplusplus
 }

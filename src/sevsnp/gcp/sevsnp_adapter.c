@@ -15,22 +15,7 @@
 /**
  * callback to get SEVSNP report
  */
-typedef  TRUST_AUTHORITY_STATUS(*sevsnp_get_report_fx)(Request *req, Response **res);
-
-int with_vmpl(sevsnp_adapter_context *ctx, unsigned int vmpl_level)
-{
-	if (NULL == ctx)
-    {
-		return STATUS_SEVSNP_ERROR_BASE | STATUS_NULL_ADAPTER_CTX;
-    }
-    if (vmpl_level < 0 || vmpl_level > 3)
-    {
-		return STATUS_SEVSNP_ERROR_BASE | STATUS_INVALID_PARAMETER;
-    }
-
-    ctx->priv_level = vmpl_level;
-    return STATUS_OK;
-}
+typedef TRUST_AUTHORITY_STATUS (*sevsnp_get_report_fx)(Request *req, Response **res);
 
 int sevsnp_adapter_new(evidence_adapter **adapter)
 {
@@ -81,15 +66,16 @@ int sevsnp_adapter_free(evidence_adapter *adapter)
 	return STATUS_OK;
 }
 
-const char* sevsnp_get_evidence_identifier() {
+const char *sevsnp_get_evidence_identifier()
+{
 	return EVIDENCE_IDENTIFIER_SEVSNP;
 }
 
 int sevsnp_get_evidence(void *ctx,
-		json_t *jansson_evidence,
-		nonce *nonce,
-		uint8_t *user_data,
-		uint32_t user_data_len)
+						json_t *jansson_evidence,
+						nonce *nonce,
+						uint8_t *user_data,
+						uint32_t user_data_len)
 {
 	int result = 0;
 	evidence evidence = {0};
@@ -108,7 +94,8 @@ int sevsnp_get_evidence(void *ctx,
 		return result;
 	}
 
-	if (nonce != NULL) {
+	if (nonce != NULL)
+	{
 		result = get_jansson_nonce(nonce, &jansson_nonce);
 		if (result != STATUS_OK)
 		{
@@ -129,10 +116,10 @@ ERROR:
 }
 
 int sevsnp_collect_evidence(void *ctx,
-		evidence *evidence,
-		nonce *nonce,
-		uint8_t *user_data,
-		uint32_t user_data_len)
+							evidence *evidence,
+							nonce *nonce,
+							uint8_t *user_data,
+							uint32_t user_data_len)
 {
 	sevsnp_adapter_context *sevsnp_ctx = NULL;
 	if (NULL == ctx)
@@ -213,8 +200,7 @@ int sevsnp_collect_evidence(void *ctx,
 		.priv_level = sevsnp_ctx->priv_level,
 		.in_blob = md_value,
 		.in_blob_size = SEVSNP_REPORT_DATA_SIZE,
-		.get_aux_blob = 0
-	};
+		.get_aux_blob = 0};
 
 	if (sevsnp_ctx->sevsnp_att_get_report_cb == NULL)
 	{
@@ -223,7 +209,7 @@ int sevsnp_collect_evidence(void *ctx,
 		goto ERROR;
 	}
 
-	Response * res = NULL;
+	Response *res = NULL;
 	status = ((sevsnp_get_report_fx)sevsnp_ctx->sevsnp_att_get_report_cb)(&req, &res);
 	if (status != STATUS_OK || res == NULL)
 	{
