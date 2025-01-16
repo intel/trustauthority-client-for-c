@@ -422,7 +422,11 @@ int tpm_get_evidence(void *ctx,
         goto ERROR;
     }
 
-    json_object_set(jansson_evidence, "quote", json_string(b64));
+    if (0 != json_object_set(jansson_evidence, "quote", json_string(b64)))
+    {
+        status = STATUS_TPM_ERROR_BASE | STATUS_JSON_SET_OBJECT_ERROR;
+        goto ERROR;
+    }
     free(b64);
     b64 = NULL;
 
@@ -439,7 +443,11 @@ int tpm_get_evidence(void *ctx,
         goto ERROR;
     }
 
-    json_object_set(jansson_evidence, "signature", json_string(b64));
+    if (0 != json_object_set(jansson_evidence, "signature", json_string(b64)))
+    {
+        status = STATUS_TPM_ERROR_BASE | STATUS_JSON_SET_OBJECT_ERROR;
+        goto ERROR;
+    }
     free(b64);
     b64 = NULL;
 
@@ -458,7 +466,11 @@ int tpm_get_evidence(void *ctx,
             goto ERROR;
         }
 
-        json_object_set(jansson_evidence, "user_data", json_string(b64));
+        if (0 != json_object_set(jansson_evidence, "user_data", json_string(b64)))
+        {
+            status = STATUS_TPM_ERROR_BASE | STATUS_JSON_SET_OBJECT_ERROR;
+            goto ERROR;
+        }
 
         free(b64);
         b64 = NULL;
@@ -489,7 +501,11 @@ int tpm_get_evidence(void *ctx,
         goto ERROR;
     }
 
-    json_object_set(jansson_evidence, "pcrs", json_string(b64));
+    if (0 != json_object_set(jansson_evidence, "pcrs", json_string(b64)))
+    {
+        status = STATUS_TPM_ERROR_BASE | STATUS_JSON_SET_OBJECT_ERROR;
+        goto ERROR;
+    }
     free(b64);
     b64 = NULL;
 
@@ -502,7 +518,11 @@ int tpm_get_evidence(void *ctx,
             goto ERROR;
         }
 
-        json_object_set(jansson_evidence, "ima_logs", json_string(b64));
+        if (0 != json_object_set(jansson_evidence, "ima_logs", json_string(b64)))
+        {
+            status = STATUS_TPM_ERROR_BASE | STATUS_JSON_SET_OBJECT_ERROR;
+            goto ERROR;
+        }
         free(b64);
         b64 = NULL;
     }
@@ -516,7 +536,11 @@ int tpm_get_evidence(void *ctx,
             goto ERROR;
         }
 
-        json_object_set(jansson_evidence, "uefi_event_logs", json_string(b64));
+        if (0 != json_object_set(jansson_evidence, "uefi_event_logs", json_string(b64)))
+        {
+            status = STATUS_TPM_ERROR_BASE | STATUS_JSON_SET_OBJECT_ERROR;
+            goto ERROR;
+        }
         free(b64);
         b64 = NULL;
     }
@@ -530,7 +554,11 @@ int tpm_get_evidence(void *ctx,
             goto ERROR;
         }
 
-        json_object_set(jansson_evidence, "verifier_nonce", jansson_nonce);
+        if (0 != json_object_set(jansson_evidence, "verifier_nonce", jansson_nonce))
+        {
+            status = STATUS_TPM_ERROR_BASE | STATUS_JSON_SET_OBJECT_ERROR;
+            goto ERROR;
+        }
     }
 
 ERROR:

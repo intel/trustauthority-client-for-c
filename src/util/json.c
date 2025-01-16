@@ -163,7 +163,11 @@ TRUST_AUTHORITY_STATUS get_jansson_nonce(nonce *nonce,
 		goto ERROR;
 	}
 
-	json_object_set(*jansson_nonce, "val", json_string(b64));
+	if (0 != json_object_set(*jansson_nonce, "val", json_string(b64)))
+	{
+		ret_status = STATUS_JSON_SET_OBJECT_ERROR;
+		goto ERROR;
+	}
 	free(b64);
 	b64 = NULL;
 
@@ -181,7 +185,11 @@ TRUST_AUTHORITY_STATUS get_jansson_nonce(nonce *nonce,
 		goto ERROR;
 	}
 
-	json_object_set(*jansson_nonce, "iat", json_string(b64));
+	if (0 != json_object_set(*jansson_nonce, "iat", json_string(b64)))
+	{
+		ret_status = STATUS_JSON_SET_OBJECT_ERROR;
+		goto ERROR;
+	}
 	free(b64);
 	b64 = NULL;
 
@@ -200,7 +208,11 @@ TRUST_AUTHORITY_STATUS get_jansson_nonce(nonce *nonce,
 		goto ERROR;
 	}
 
-	json_object_set(*jansson_nonce, "signature", json_string(b64));
+	if (0 != json_object_set(*jansson_nonce, "signature", json_string(b64)))
+	{
+		ret_status = STATUS_JSON_SET_OBJECT_ERROR;
+		goto ERROR;
+	}
 
 ERROR:
 	if (b64 != NULL)
@@ -282,9 +294,17 @@ TRUST_AUTHORITY_STATUS get_jansson_evidence(evidence *evidence,
 
 	if (evidence->type == EVIDENCE_TYPE_SEVSNP)
 	{
-		json_object_set(*jansson_evidence, "report", json_string(b64));
+		if (0 != json_object_set(*jansson_evidence, "report", json_string(b64)))
+		{
+			ret_status = STATUS_JSON_SET_OBJECT_ERROR;
+			goto ERROR;
+		}
 	} else {
-		json_object_set(*jansson_evidence, "quote", json_string(b64));
+		if (0 != json_object_set(*jansson_evidence, "quote", json_string(b64)))
+		{
+			ret_status = STATUS_JSON_SET_OBJECT_ERROR;
+			goto ERROR;
+		}
 	}
 	free(b64);
 	b64 = NULL;
@@ -303,7 +323,11 @@ TRUST_AUTHORITY_STATUS get_jansson_evidence(evidence *evidence,
 		goto ERROR;
 	}
 
-	json_object_set(*jansson_evidence, "runtime_data", json_string(b64));
+	if (0 != json_object_set(*jansson_evidence, "runtime_data", json_string(b64)))
+	{
+		ret_status = STATUS_JSON_SET_OBJECT_ERROR;
+		goto ERROR;
+	}
 	free(b64);
 	b64 = NULL;
 
@@ -322,7 +346,11 @@ TRUST_AUTHORITY_STATUS get_jansson_evidence(evidence *evidence,
 			goto ERROR;
 		}
 
-		json_object_set(*jansson_evidence, "user_data", json_string(b64));
+		if (0 != json_object_set(*jansson_evidence, "user_data", json_string(b64)))
+		{
+			ret_status = STATUS_JSON_SET_OBJECT_ERROR;
+			goto ERROR;
+		}
 	}
 
 ERROR:
@@ -433,7 +461,10 @@ TRUST_AUTHORITY_STATUS json_marshal_token(token *token,
 
 	jansson_token = json_object();
 
-	json_object_set(jansson_token, "token", json_string(token->jwt));
+	if (0 != json_object_set(jansson_token, "token", json_string(token->jwt)))
+	{
+		return STATUS_JSON_SET_OBJECT_ERROR;
+	}
 
 	*json = json_dumps(jansson_token, JANSSON_ENCODING_FLAGS);
 	if (NULL == *json)

@@ -60,7 +60,11 @@ TRUST_AUTHORITY_STATUS json_marshal_appraisal_request(appraisal_request *request
 		goto ERROR;
 	}
 
-	json_object_set(jansson_request, "quote", json_string(b64));
+	if (0 != json_object_set(jansson_request, "quote", json_string(b64)))
+	{
+		status = STATUS_JSON_SET_OBJECT_ERROR;
+		goto ERROR;
+	}
 	free(b64);
 	b64 = NULL;
 
@@ -71,7 +75,11 @@ TRUST_AUTHORITY_STATUS json_marshal_appraisal_request(appraisal_request *request
 		return result;
 	}
 
-	json_object_set(jansson_request, "verifier_nonce", jansson_nonce);
+	if (0 != json_object_set(jansson_request, "verifier_nonce", jansson_nonce))
+	{
+		status = STATUS_JSON_SET_OBJECT_ERROR;
+		goto ERROR;
+	}
 
 	// userdata
 	if (request->runtime_data_len > 0)
@@ -90,7 +98,11 @@ TRUST_AUTHORITY_STATUS json_marshal_appraisal_request(appraisal_request *request
 			goto ERROR;
 		}
 
-		json_object_set(jansson_request, "runtime_data", json_string(b64));
+		if (0 != json_object_set(jansson_request, "runtime_data", json_string(b64)))
+		{
+			status = STATUS_JSON_SET_OBJECT_ERROR;
+			goto ERROR;
+		}
 		free(b64);
 		b64 = NULL;
 	}
@@ -112,22 +124,42 @@ TRUST_AUTHORITY_STATUS json_marshal_appraisal_request(appraisal_request *request
 			goto ERROR;
 		}
 
-		json_object_set(jansson_request, "user_data", json_string(b64));
+		if (0 != json_object_set(jansson_request, "user_data", json_string(b64)))
+		{
+			status = STATUS_JSON_SET_OBJECT_ERROR;
+			goto ERROR;
+		}
 		free(b64);
 		b64 = NULL;
 	}
 	if (request->token_signing_alg != NULL)
 	{
-		json_object_set(jansson_request, "token_signing_alg", json_string(request->token_signing_alg));
+		if (0 != json_object_set(jansson_request, "token_signing_alg", json_string(request->token_signing_alg)))
+		{
+			status = STATUS_JSON_SET_OBJECT_ERROR;
+			goto ERROR;
+		}
 	}
-	json_object_set(jansson_request, "policy_must_match", json_boolean(request->policy_must_match));
+	if (0 != json_object_set(jansson_request, "policy_must_match", json_boolean(request->policy_must_match)))
+	{
+		status = STATUS_JSON_SET_OBJECT_ERROR;
+		goto ERROR;
+	}
 
 	// policy_ids
 	policies = json_array();
-	json_object_set_new(jansson_request, "policy_ids", policies);
+	if (0 != json_object_set_new(jansson_request, "policy_ids", policies))
+	{
+		status = STATUS_JSON_SET_OBJECT_ERROR;
+		goto ERROR;
+	}
 	for (int i = 0; i < request->policy_ids->count; i++)
 	{
-		json_array_append(policies, json_string(request->policy_ids->ids[i]));
+		if (0 != json_array_append(policies, json_string(request->policy_ids->ids[i])))
+		{
+			status = STATUS_JSON_SET_OBJECT_ERROR;
+			goto ERROR;
+		}
 	}
 	// eventlog
 	if (request->event_log_len > 0)
@@ -146,7 +178,11 @@ TRUST_AUTHORITY_STATUS json_marshal_appraisal_request(appraisal_request *request
 			goto ERROR;
 		}
 
-		json_object_set(jansson_request, "event_log", json_string(b64));
+		if (0 != json_object_set(jansson_request, "event_log", json_string(b64)))
+		{
+			status = STATUS_JSON_SET_OBJECT_ERROR;
+			goto ERROR;
+		}
 	}
 	*json = json_dumps(jansson_request, JANSSON_ENCODING_FLAGS);
 	if (NULL == *json)

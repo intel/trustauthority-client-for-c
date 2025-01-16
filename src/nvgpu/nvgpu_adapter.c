@@ -666,11 +666,19 @@ generate_nvgpu_jsonobj (evidence *evi, uint8_t *certchain, uint32_t certchain_sz
 
 	if (use_gpu_nonce == 1)
 	{
-		json_object_set (*evi_jsonobj_ref, "gpu_nonce", json_string (buf_nonce));
+		if (0 != json_object_set (*evi_jsonobj_ref, "gpu_nonce", json_string (buf_nonce)))
+		{
+			ERROR("Error: Failed to set gpu_nonce");
+			return STATUS_NVGPU_ERROR_BASE | STATUS_JSON_SET_OBJECT_ERROR;
+		}
 	}
 	else if (use_gpu_nonce == 0)
 	{
-		json_object_set (*evi_jsonobj_ref, "verifier_nonce", verified_nonce_json);
+		if (0 != json_object_set (*evi_jsonobj_ref, "verifier_nonce", verified_nonce_json))
+		{
+			ERROR("Error: Failed to set verifier_nonce");
+			return STATUS_NVGPU_ERROR_BASE | STATUS_JSON_SET_OBJECT_ERROR;
+		}
 		json_decref (verified_nonce_json);
 		verified_nonce_json = NULL;
 	}
@@ -679,9 +687,21 @@ generate_nvgpu_jsonobj (evidence *evi, uint8_t *certchain, uint32_t certchain_sz
 		ERROR ("Error: Invalid nonce\n");
 		return STATUS_INVALID_PARAMETER;
 	}
-	json_object_set (*evi_jsonobj_ref, "arch", json_string ("HOPPER"));
-	json_object_set (*evi_jsonobj_ref, "evidence", json_string (buf_evi));
-	json_object_set (*evi_jsonobj_ref, "certificate", json_string (buf_certchain));
+	if (0 != json_object_set (*evi_jsonobj_ref, "arch", json_string ("HOPPER")))
+	{
+		ERROR("Error: Failed to set arch");
+		return STATUS_NVGPU_ERROR_BASE | STATUS_JSON_SET_OBJECT_ERROR;
+	}
+	if (0 != json_object_set (*evi_jsonobj_ref, "evidence", json_string (buf_evi)))
+	{
+		ERROR("Error: Failed to set evidence");
+		return STATUS_NVGPU_ERROR_BASE | STATUS_JSON_SET_OBJECT_ERROR;
+	}
+	if (0 != json_object_set (*evi_jsonobj_ref, "certificate", json_string (buf_certchain)))
+	{
+		ERROR("Error: Failed to set certificate");
+		return STATUS_NVGPU_ERROR_BASE | STATUS_JSON_SET_OBJECT_ERROR;
+	}
 
 	return STATUS_OK;
 }
@@ -724,7 +744,13 @@ nvgpu_get_evidence (void *ctx, json_t *evidence_jsonobj_ref, nonce *nonce, uint8
 
 	const char *key;
 	json_t *value;
-	json_object_foreach (evi_jsonobj, key, value) { json_object_set (evidence_jsonobj_ref, key, value); }
+	json_object_foreach (evi_jsonobj, key, value) { 
+		if (0 != json_object_set (evidence_jsonobj_ref, key, value))
+		{
+			ERROR ("Error: Failed to set JSON object\n");
+			return STATUS_NVGPU_ERROR_BASE | STATUS_JSON_SET_OBJECT_ERROR;
+		}	
+	}
 	json_decref (evi_jsonobj);
 
 	return STATUS_OK;

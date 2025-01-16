@@ -98,7 +98,11 @@ int tdx_get_evidence(void *ctx,
 			goto ERROR;
 		}
 
-		json_object_set(jansson_evidence, "verifier_nonce", jansson_nonce);
+		if (0 != json_object_set(jansson_evidence, "verifier_nonce", jansson_nonce))
+		{
+			ERROR("Error: Failed to add nonce json to the evidence payload\n");
+			goto ERROR;
+		}
 	}
 
 ERROR:

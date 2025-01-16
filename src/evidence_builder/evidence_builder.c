@@ -161,7 +161,12 @@ TRUST_AUTHORITY_STATUS evidence_builder_get_evidence(evidence_builder *builder, 
 		}
 
 		// append adapter evidence to composite evidence
-		json_object_set(composite_evidence, evidence_identifier, evidence);
+		if (0 != json_object_set(composite_evidence, evidence_identifier, evidence))
+		{
+			ERROR("Error: Failed to add collected evidene from %s adapter to the evidence payload\n", evidence_identifier);
+			json_decref(evidence);
+			return STATUS_JSON_SET_OBJECT_ERROR;
+		}
 
 		// free the JSON object
 		json_decref(evidence);
@@ -171,16 +176,36 @@ TRUST_AUTHORITY_STATUS evidence_builder_get_evidence(evidence_builder *builder, 
 
 	if (builder->token_signing_alg != NULL)
 	{
-		json_object_set(composite_evidence, "token_signing_alg", json_string(builder->token_signing_alg));
+		if (0 != json_object_set(composite_evidence, "token_signing_alg", json_string(builder->token_signing_alg)))
+		{
+			ERROR("Error: Failed to set token_signing_alg\n");
+			json_decref(evidence);
+			return STATUS_JSON_SET_OBJECT_ERROR;
+		}
 	}
-	json_object_set(composite_evidence, "policy_must_match", json_boolean(builder->policy_must_match));
+	if (0 != json_object_set(composite_evidence, "policy_must_match", json_boolean(builder->policy_must_match)))
+	{
+		ERROR("Error: Failed to set policy_must_match\n");
+		json_decref(evidence);
+		return STATUS_JSON_SET_OBJECT_ERROR;
+	}
 
 	// policy_ids
 	json_t *policy_ids = json_array();
-	json_object_set_new(composite_evidence, "policy_ids", policy_ids);
+	if (0 != json_object_set_new(composite_evidence, "policy_ids", policy_ids))
+	{
+		ERROR("Error: Failed to set policy_ids\n");
+		json_decref(evidence);
+		return STATUS_JSON_SET_OBJECT_ERROR;
+	}
 	for (int i = 0; i < builder->policy_ids->count; i++)
 	{
-		json_array_append(policy_ids, json_string(builder->policy_ids->ids[i]));
+		if (0 != json_array_append(policy_ids, json_string(builder->policy_ids->ids[i])))
+		{
+			ERROR("Error: Failed to append policy id\n");
+			json_decref(evidence);
+			return STATUS_JSON_SET_OBJECT_ERROR;
+		}
 	}
 
 	return STATUS_OK;
