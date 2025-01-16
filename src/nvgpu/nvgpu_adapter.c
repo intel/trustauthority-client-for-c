@@ -7,7 +7,6 @@
 #include <log.h>
 #include <nvgpu_adapter.h>
 #include <nvml.h>
-#include <openssl/crypto.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <stdint.h>
