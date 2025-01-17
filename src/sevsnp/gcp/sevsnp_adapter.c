@@ -72,10 +72,10 @@ const char *sevsnp_get_evidence_identifier()
 }
 
 int sevsnp_get_evidence(void *ctx,
-						json_t *jansson_evidence,
-						nonce *nonce,
-						uint8_t *user_data,
-						uint32_t user_data_len)
+		json_t *jansson_evidence,
+		nonce *nonce,
+		uint8_t *user_data,
+		uint32_t user_data_len)
 {
 	int result = 0;
 	evidence evidence = {0};
@@ -106,6 +106,7 @@ int sevsnp_get_evidence(void *ctx,
 		if (0 != json_object_set(jansson_evidence, "verifier_nonce", jansson_nonce))
 		{
 			ERROR("Error: Failed to add nonce json to the evidence payload\n");
+			result = STATUS_SEVSNP_ERROR_BASE | STATUS_JSON_SET_OBJECT_ERROR;
 			goto ERROR;
 		}
 	}
@@ -120,10 +121,10 @@ ERROR:
 }
 
 int sevsnp_collect_evidence(void *ctx,
-							evidence *evidence,
-							nonce *nonce,
-							uint8_t *user_data,
-							uint32_t user_data_len)
+		evidence *evidence,
+		nonce *nonce,
+		uint8_t *user_data,
+		uint32_t user_data_len)
 {
 	sevsnp_adapter_context *sevsnp_ctx = NULL;
 	if (NULL == ctx)

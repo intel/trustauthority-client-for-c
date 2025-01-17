@@ -103,6 +103,7 @@ int tdx_get_evidence_azure(void *ctx,
 		if (0 != json_object_set(jansson_evidence, "verifier_nonce", jansson_nonce))
 		{
 			ERROR("Error: Failed to add nonce json to the evidence payload\n");
+			result = STATUS_TDX_ERROR_BASE | STATUS_JSON_SET_OBJECT_ERROR;
 			goto ERROR;
 		}
 	}

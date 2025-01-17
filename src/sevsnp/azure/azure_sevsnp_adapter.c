@@ -68,10 +68,10 @@ const char *sevsnp_get_evidence_identifier()
 }
 
 int sevsnp_get_evidence_azure(void *ctx,
-							  json_t *jansson_evidence,
-							  nonce *nonce,
-							  uint8_t *user_data,
-							  uint32_t user_data_len)
+		json_t *jansson_evidence,
+		nonce *nonce,
+		uint8_t *user_data,
+		uint32_t user_data_len)
 {
 	int result = 0;
 	evidence evidence = {0};
@@ -102,6 +102,7 @@ int sevsnp_get_evidence_azure(void *ctx,
 		if (0 != json_object_set(jansson_evidence, "verifier_nonce", jansson_nonce))
 		{
 			ERROR("Error: Failed to add nonce json to the evidence payload\n");
+			result = STATUS_SEVSNP_ERROR_BASE | STATUS_JSON_SET_OBJECT_ERROR;
 			goto ERROR;
 		}
 	}
@@ -116,10 +117,10 @@ ERROR:
 }
 
 int sevsnp_collect_evidence_azure(void *ctx,
-								  evidence *evidence,
-								  nonce *nonce,
-								  uint8_t *user_data,
-								  uint32_t user_data_len)
+		evidence *evidence,
+		nonce *nonce,
+		uint8_t *user_data,
+		uint32_t user_data_len)
 {
 	// Duplicate code till line EVP_MD_CTX_free(mdctx)
 	sevsnp_adapter_context *sevsnp_ctx = NULL;
@@ -397,12 +398,12 @@ int get_sevsnp_report(uint8_t *report_data, uint8_t **tpm_report)
 
 	/* Create/Fetch ESAPI Handle from TPM public area of the index */
 	rval = Esys_TR_FromTPMPublic(
-		esys_context,
-		REPORT_DATA_NVINDEX,
-		ESYS_TR_NONE,
-		ESYS_TR_NONE,
-		ESYS_TR_NONE,
-		&nvIndex);
+			esys_context,
+			REPORT_DATA_NVINDEX,
+			ESYS_TR_NONE,
+			ESYS_TR_NONE,
+			ESYS_TR_NONE,
+			&nvIndex);
 
 	if (rval != TSS2_RC_SUCCESS)
 	{
@@ -415,9 +416,9 @@ int get_sevsnp_report(uint8_t *report_data, uint8_t **tpm_report)
 				.nameAlg = TPM2_ALG_SHA256,
 				/* allows the owner password or index password r/w access */
 				.attributes = TPMA_NV_OWNERWRITE |
-							  TPMA_NV_OWNERREAD |
-							  TPMA_NV_AUTHWRITE |
-							  TPMA_NV_AUTHREAD,
+					TPMA_NV_OWNERREAD |
+					TPMA_NV_AUTHWRITE |
+					TPMA_NV_AUTHREAD,
 				/* can hold 64 bytes of data */
 				.dataSize = 64,
 				/* Create at NV Index  */
@@ -426,14 +427,14 @@ int get_sevsnp_report(uint8_t *report_data, uint8_t **tpm_report)
 
 		/* Create the NV Index space */
 		rval = Esys_NV_DefineSpace(
-			esys_context,
-			ESYS_TR_RH_OWNER, /* create an NV index in the owner hierarchy */
-			ESYS_TR_PASSWORD, /* auth as the owner with a password, which is empty */
-			ESYS_TR_NONE,
-			ESYS_TR_NONE,
-			NULL,
-			&pub_templ,
-			&nvIndex);
+				esys_context,
+				ESYS_TR_RH_OWNER, /* create an NV index in the owner hierarchy */
+				ESYS_TR_PASSWORD, /* auth as the owner with a password, which is empty */
+				ESYS_TR_NONE,
+				ESYS_TR_NONE,
+				NULL,
+				&pub_templ,
+				&nvIndex);
 		if (rval != TSS2_RC_SUCCESS)
 		{
 			ERROR("Error defining NV space: 0x%x\n", rval);
@@ -498,12 +499,12 @@ int get_sevsnp_report(uint8_t *report_data, uint8_t **tpm_report)
 
 	/*Convert the NVIndex from TPM2_HR_NV_INDEX to ESYS_TR*/
 	rval = Esys_TR_FromTPMPublic(
-		esys_context,
-		SEVSNP_REPORT_NVINDEX,
-		ESYS_TR_NONE,
-		ESYS_TR_NONE,
-		ESYS_TR_NONE,
-		&nvIndex);
+			esys_context,
+			SEVSNP_REPORT_NVINDEX,
+			ESYS_TR_NONE,
+			ESYS_TR_NONE,
+			ESYS_TR_NONE,
+			&nvIndex);
 	if (rval != TSS2_RC_SUCCESS)
 	{
 		ERROR("Error fetching ESAPI handle for index 0x%x: 0x%x\n", SEVSNP_REPORT_NVINDEX, rval);
