@@ -8,6 +8,7 @@ include_directories(../connector
 add_library(${PROJECT_NAME}
     token_verifier.c
     util.c
+    ../util/cleanup.c
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC

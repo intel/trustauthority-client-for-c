@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Intel Corporation
+ * Copyright (C) 2024-2025 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include <stdlib.h>
@@ -10,6 +10,7 @@
 #include <openssl/evp.h>
 #include <log.h>
 #include <json.h>
+#include <connector.h>
 #include <report.h>
 
 /**
@@ -84,6 +85,7 @@ int sevsnp_get_evidence(void *ctx,
 	result = sevsnp_collect_evidence(ctx, &evidence, nonce, user_data, user_data_len);
 	if (result != STATUS_OK)
 	{
+		ERROR("Error: Failed to collect evidence: 0x%04x\n", result);
 		return result;
 	}
 
@@ -91,7 +93,7 @@ int sevsnp_get_evidence(void *ctx,
 	if (result != STATUS_OK)
 	{
 		ERROR("Error: Failed to create evidence json: 0x%04x\n", result);
-		return result;
+		goto ERROR;
 	}
 
 	if (nonce != NULL)
@@ -117,6 +119,7 @@ ERROR:
 		json_decref(jansson_nonce);
 		jansson_nonce = NULL;
 	}
+	evidence_free(&evidence);
 	return result;
 }
 

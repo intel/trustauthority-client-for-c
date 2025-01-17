@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023-2024 Intel Corporation
+ * Copyright (C) 2023-2025 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #ifndef __CONNECTOR_H__
@@ -13,6 +13,13 @@ extern "C"
 {
 #endif
 
+	typedef struct trust_authority_connector
+	{
+		char api_key[API_KEY_MAX_LEN + 1]; /* character array containing API KEY use to authenticate to Intel trust Authority */
+		char api_url[API_URL_MAX_LEN + 1]; /* character array containing URL of Intel Trust Authority */
+		retry_config *retries;
+	} trust_authority_connector;
+
 	// get_token_args holds the request parameters needed for getting token from Intel Trust Authority
 	typedef struct get_token_args {
 		nonce *nonce;
@@ -21,7 +28,7 @@ extern "C"
 		const char *request_id;
 		const char *token_signing_alg;
 		bool policy_must_match;
-	}get_token_args;
+	} get_token_args;
 
 	// collect_token_args structure holds user provided request paramaters used in nonce/token rest calls
 	typedef struct collect_token_args {
@@ -29,12 +36,12 @@ extern "C"
 		const char *request_id;
 		const char *token_signing_alg;
 		bool policy_must_match;
-	}collect_token_args;
+	} collect_token_args;
 
 	//get_nonce_args holds the request parameters needed for getting nonce from Intel Trust Authority
 	typedef struct get_nonce_args {
 		const char *request_id;
-	}get_nonce_args;
+	} get_nonce_args;
 
 	/**
 	 * Create a new trust authority connector client to make REST calls to Intel Trust Authority

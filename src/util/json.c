@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Intel Corporation
+ * Copyright (C) 2023-2025 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include <jansson.h>
@@ -144,11 +144,6 @@ TRUST_AUTHORITY_STATUS get_jansson_nonce(nonce *nonce,
 	}
 
 	*jansson_nonce = json_object();
-	if (*jansson_nonce == NULL)
-	{
-		return STATUS_JSON_ALLOCATION_ERROR;
-	}
-
 	input_length = nonce->val_len;
 	output_length = ((input_length + 2) / 3) * 4 + 1;
 	b64 = (char *)calloc(1, output_length * sizeof(char));
@@ -384,20 +379,17 @@ TRUST_AUTHORITY_STATUS json_marshal_evidence(evidence *evidence,
 	result = get_jansson_evidence(evidence, &jansson_evidence);
 	if (result != STATUS_OK)
 	{
+		json_decref(jansson_evidence);
 		return result;
 	}
 
 	*json = json_dumps(jansson_evidence, JANSSON_ENCODING_FLAGS);
 	if (NULL == *json)
 	{
+		json_decref(jansson_evidence);
 		return STATUS_JSON_ENCODING_ERROR;
 	}
-
-	if (jansson_evidence)
-	{
-		json_decref(jansson_evidence);
-		jansson_evidence = NULL;
-	}
+	json_decref(jansson_evidence);
 
 	return STATUS_OK;
 }
@@ -429,6 +421,7 @@ TRUST_AUTHORITY_STATUS json_unmarshal_token(token *token,
 	tmp = json_object_get(jansson_token, "token");
 	if (NULL == tmp || !json_is_string(tmp))
 	{
+		json_decref(jansson_token);
 		return STATUS_JSON_TOKEN_PARSING_ERROR;
 	}
 
@@ -436,9 +429,11 @@ TRUST_AUTHORITY_STATUS json_unmarshal_token(token *token,
 	token->jwt = (char *)calloc(size + 1, sizeof(char));
 	if (NULL == token->jwt)
 	{
+		json_decref(jansson_token);
 		return STATUS_ALLOCATION_ERROR;
 	}
 	memcpy(token->jwt, json_string_value(tmp), size);
+	json_decref(jansson_token);
 
 	return STATUS_OK;
 }
@@ -469,8 +464,10 @@ TRUST_AUTHORITY_STATUS json_marshal_token(token *token,
 	*json = json_dumps(jansson_token, JANSSON_ENCODING_FLAGS);
 	if (NULL == *json)
 	{
+		json_decref(jansson_token);
 		return STATUS_JSON_ENCODING_ERROR;
 	}
+	json_decref(jansson_token);
 
 	return STATUS_OK;
 }
@@ -481,6 +478,7 @@ TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwk_set **key_sets,
 	json_t *jansson_sign_cert;
 	json_t *tmp;
 	json_error_t error;
+	TRUST_AUTHORITY_STATUS status = STATUS_OK;
 
 	if (NULL == key_sets)
 	{
@@ -501,32 +499,42 @@ TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwk_set **key_sets,
 	json_t *keys_arr = json_object_get(jansson_sign_cert, "keys");
 	if (!keys_arr)
 	{
-		return STATUS_JSON_SIGN_CERT_PARSING_KEYS_FIELD_NOT_FOUND_ERROR;
+		status = STATUS_JSON_SIGN_CERT_PARSING_KEYS_FIELD_NOT_FOUND_ERROR;
+		goto ERROR;
 	}
 
 	if (!json_is_array(keys_arr))
 	{
-		return STATUS_JSON_SIGN_CERT_PARSING_KEYS_FIELD_NOT_AN_ARRAY_ERROR;
+		status = STATUS_JSON_SIGN_CERT_PARSING_KEYS_FIELD_NOT_AN_ARRAY_ERROR;
+		goto ERROR;
 	}
 
 	size_t keys_count = json_array_size(keys_arr);
 	*key_sets = (jwk_set *)malloc(sizeof(jwk_set));
 	if (NULL == *key_sets)
 	{
-		return STATUS_ALLOCATION_ERROR;
+		status = STATUS_ALLOCATION_ERROR;
+		goto ERROR;
 	}
 	(*key_sets)->key_cnt = keys_count;
 	(*key_sets)->keys = (jwks **)calloc(keys_count, sizeof(jwks *));
 	if (NULL == (*key_sets)->keys)
 	{
-		return STATUS_ALLOCATION_ERROR;
+		free(*key_sets);
+		*key_sets = NULL;
+		status = STATUS_ALLOCATION_ERROR;
+		goto ERROR;
 	}
 
 	jwks *key = NULL;
-
 	for (size_t i = 0; i < keys_count; i++)
 	{
 		(*key_sets)->keys[i] = (jwks *)calloc(1, sizeof(jwks));
+		if (NULL == (*key_sets)->keys[i])
+		{
+			status = STATUS_ALLOCATION_ERROR;
+			goto ERROR;
+		}
 		key = (*key_sets)->keys[i];
 		
 		json_t *key_obj = json_array_get(keys_arr, i);
@@ -535,22 +543,21 @@ TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwk_set **key_sets,
 		json_t *n_obj = json_object_get(key_obj, "n");
 		if (NULL == n_obj)
 		{
-			json_decref(jansson_sign_cert);
-			return STATUS_JSON_SIGN_CERT_PARSING_MODULUS_MISSING_ERROR;
+			status = STATUS_JSON_SIGN_CERT_PARSING_MODULUS_MISSING_ERROR;
+			goto ERROR;
 		}
 		json_t *e_obj = json_object_get(key_obj, "e");
 		if (NULL == e_obj)
 		{
-			json_decref(jansson_sign_cert);
-			return STATUS_JSON_SIGN_CERT_PARSING_EXPONENT_MISSING_ERROR;
+			status = STATUS_JSON_SIGN_CERT_PARSING_EXPONENT_MISSING_ERROR;
+			goto ERROR;
 		}
 		json_t *alg_obj = json_object_get(key_obj, "alg");
 		json_t *x5c_arr_obj = json_object_get(key_obj, "x5c");
-
 		if (!x5c_arr_obj || !json_is_array(x5c_arr_obj))
 		{
-			json_decref(jansson_sign_cert);
-			return STATUS_JSON_SIGN_CERT_PARSING_KEYS_X5C_FIELD_NOT_AN_ARRAY_ERROR;
+			status = STATUS_JSON_SIGN_CERT_PARSING_KEYS_X5C_FIELD_NOT_AN_ARRAY_ERROR;
+			goto ERROR;
 		}
 
 		size_t x5c_count = json_array_size(x5c_arr_obj);
@@ -558,15 +565,16 @@ TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwk_set **key_sets,
 		key->x5c = (char **)calloc(x5c_count, sizeof(char *));
 		if (NULL == key->x5c)
 		{
-			return STATUS_ALLOCATION_ERROR;
+			status = STATUS_ALLOCATION_ERROR;
+			goto ERROR;
 		}
 		for (size_t j = 0; j < x5c_count; j++)
 		{
 			json_t *x5c_obj = json_array_get(x5c_arr_obj, j);
 			if (!x5c_obj || !json_is_string(x5c_obj))
 			{
-				json_decref(jansson_sign_cert);
-				return STATUS_JSON_SIGN_CERT_PARSING_KEYS_X5C_OBJECT_ERROR;
+				status = STATUS_JSON_SIGN_CERT_PARSING_KEYS_X5C_OBJECT_ERROR;
+				goto ERROR;
 			}
 			const char *x5c = json_string_value(x5c_obj);
 			size_t x5c_length = strlen(x5c);
@@ -574,7 +582,8 @@ TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwk_set **key_sets,
 			key->x5c[j] = (char *)malloc((x5c_length + 1) * sizeof(char));
 			if (key->x5c[j] == NULL)
 			{
-				return STATUS_ALLOCATION_ERROR;
+				status = STATUS_ALLOCATION_ERROR;
+				goto ERROR;
 			}
 			strncpy((char *)key->x5c[j], x5c, x5c_length);
 			key->x5c[j][x5c_length] = '\0';
@@ -595,7 +604,8 @@ TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwk_set **key_sets,
 		key->keytype = (char *)malloc((kty_length + 1) * sizeof(char));
 		if (key->keytype == NULL)
 		{
-			return STATUS_ALLOCATION_ERROR;
+			status = STATUS_ALLOCATION_ERROR;
+			goto ERROR;
 		}
 
 		strncpy((char *)key->keytype, kty, kty_length);
@@ -604,7 +614,8 @@ TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwk_set **key_sets,
 		key->kid = (char *)malloc((kid_length + 1) * sizeof(char));
 		if (key->kid == NULL)
 		{
-			return STATUS_ALLOCATION_ERROR;
+			status = STATUS_ALLOCATION_ERROR;
+			goto ERROR;
 		}
 
 		strncpy((char *)key->kid, kid, kid_length);
@@ -613,7 +624,8 @@ TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwk_set **key_sets,
 		key->n = (char *)malloc((n_length + 1) * sizeof(char));
 		if (key->n == NULL)
 		{
-			return STATUS_ALLOCATION_ERROR;
+			status = STATUS_ALLOCATION_ERROR;
+			goto ERROR;
 		}
 
 		strncpy((char *)key->n, n, n_length);
@@ -622,7 +634,8 @@ TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwk_set **key_sets,
 		key->e = (char *)malloc((e_length + 1) * sizeof(char));
 		if (key->e == NULL)
 		{
-			return STATUS_ALLOCATION_ERROR;
+			status = STATUS_ALLOCATION_ERROR;
+			goto ERROR;
 		}
 
 		strncpy((char *)key->e, e, e_length);
@@ -631,18 +644,19 @@ TRUST_AUTHORITY_STATUS json_unmarshal_token_signing_cert(jwk_set **key_sets,
 		key->alg = (char *)malloc((alg_length + 1) * sizeof(char));
 		if (key->alg == NULL)
 		{
-			return STATUS_ALLOCATION_ERROR;
+			status = STATUS_ALLOCATION_ERROR;
+			goto ERROR;
 		}
 
 		strncpy((char *)key->alg, alg, alg_length);
 		key->alg[alg_length] = '\0';
 	}
 
+ERROR:
 	if (jansson_sign_cert)
 	{
 		json_decref(jansson_sign_cert);
 		jansson_sign_cert = NULL;
 	}
-
-	return STATUS_OK;
+	return status;
 }

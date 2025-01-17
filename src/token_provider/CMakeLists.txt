@@ -4,6 +4,7 @@ project(trustauthority_token_provider)
 
 add_library(${PROJECT_NAME}
     token_provider.c
+    ../util/cleanup.c
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC

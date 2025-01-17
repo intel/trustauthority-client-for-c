@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Intel Corporation
+ * Copyright (C) 2023-2025 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include <stdio.h>
@@ -60,15 +60,11 @@ TRUST_AUTHORITY_STATUS verify_token(token *token,
 		result = get_token_signing_certificate(jwks_url, &jwks_data, retry_max, retry_wait_time);
 		if (result != STATUS_OK || jwks_data == NULL)
 		{
-			free(jwks_url);
-			jwks_url = NULL;
-			return STATUS_GET_SIGNING_CERT_ERROR;
+			status = STATUS_GET_SIGNING_CERT_ERROR;
+			goto ERROR;
 		}
 
-		free(jwks_url);
-		jwks_url = NULL;
-		DEBUG("Successfully retrieved JWKS response from Intel Trust Authority\n :%s",
-				jwks_data);
+		DEBUG("Successfully retrieved JWKS response from Intel Trust Authority\n :%s", jwks_data);
 	}
 
 	result = json_unmarshal_token_signing_cert(&key_set, jwks_data);
@@ -134,6 +130,22 @@ ERROR:
 		free((void *)formatted_pub_key);
 		formatted_pub_key = NULL;
 	}
+	if(NULL != token_kid)
+	{
+		free((void *)token_kid);
+		token_kid = NULL;
+	}
+	if(NULL != jwks_data)
+	{
+		free(jwks_data);
+		jwks_data = NULL;
+	}
+	if(NULL != jwks_url)
+	{
+		free(jwks_url);
+		jwks_url = NULL;
+	}
 	jwks_free(key_set);
+	EVP_PKEY_free(pubkey);
 	return status;
 }

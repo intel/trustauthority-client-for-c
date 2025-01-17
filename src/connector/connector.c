@@ -1,12 +1,10 @@
 /*
- * Copyright (C) 2023-2024 Intel Corporation
+ * Copyright (C) 2023-2025 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/sha.h>
-#include <openssl/pem.h>
 #include <connector.h>
 #include <types.h>
 #include <json.h>
@@ -15,7 +13,6 @@
 #include "rest.h"
 #include <log.h>
 #include <base64.h>
-#include <jwt.h>
 #include <regex.h>
 
 TRUST_AUTHORITY_STATUS trust_authority_connector_new(trust_authority_connector **connector,
@@ -24,8 +21,6 @@ TRUST_AUTHORITY_STATUS trust_authority_connector_new(trust_authority_connector *
 		const int retry_max,
 		const int retry_wait_time)
 {
-	size_t base64_input_length = 0, output_length = 0;
-	unsigned char *buf = NULL;
 	TRUST_AUTHORITY_STATUS status = STATUS_OK;
 
 	if (NULL == connector)
@@ -73,6 +68,8 @@ TRUST_AUTHORITY_STATUS trust_authority_connector_new(trust_authority_connector *
 	(*connector)->retries = (retry_config *)calloc(1, sizeof(retry_config));
 	if (NULL == (*connector)->retries)
 	{
+		free(*connector);
+		*connector = NULL;
 		return STATUS_ALLOCATION_ERROR;
 	}
 
@@ -495,22 +492,20 @@ TRUST_AUTHORITY_STATUS get_token_signing_certificate(const char *jwks_url,
 		char **jwks,
 		const int retry_max,
 		const int retry_wait_time)
-
 {
-	if ( jwks == NULL && jwks_url == NULL)
-	{
-		return STATUS_INVALID_PARAMETER;
-	}
 	CURLcode status = CURLE_OK;
 	char *header = NULL;
 	TRUST_AUTHORITY_STATUS ret = STATUS_OK;
+	if (jwks == NULL || jwks_url == NULL)
+	{
+		return STATUS_INVALID_PARAMETER;
+	}
 
 	retry_config *retries = NULL;
-	retries  = (retry_config *)calloc(1, sizeof(retry_config));
+	retries = (retry_config *)calloc(1, sizeof(retry_config));
 	if (NULL == retries)
 	{
-		ret = STATUS_ALLOCATION_ERROR;
-		goto ERROR;
+		return STATUS_ALLOCATION_ERROR;
 	}
 	if (retry_max != 0)
 	{
@@ -524,17 +519,17 @@ TRUST_AUTHORITY_STATUS get_token_signing_certificate(const char *jwks_url,
 	status = get_request(jwks_url, NULL, ACCEPT_APPLICATION_JSON, NULL, NULL, jwks, &jwks_length, &header, retries);
 	if (CURLE_OK != status || *jwks == NULL)
 	{
+		ERROR("Error: GET request to %s failed", jwks_url);
 		ret = STATUS_GET_SIGNING_CERT_ERROR;
-		goto ERROR;
 	}
 
-ERROR:
-	if (NULL != retries)
+	free(retries);
+	retries = NULL;
+	if (NULL != header)
 	{
-		free(retries);
-		retries = NULL;
+		free(header);
+		header = NULL;
 	}
-
 	return ret;
 }
 
@@ -549,135 +544,6 @@ TRUST_AUTHORITY_STATUS connector_free(trust_authority_connector *connector)
 		}
 		free(connector);
 		connector = NULL;
-	}
-	return STATUS_OK;
-}
-
-TRUST_AUTHORITY_STATUS nonce_free(nonce *nonce)
-{
-	if (NULL != nonce)
-	{
-		if (NULL != nonce->val)
-		{
-			free(nonce->val);
-			nonce->val = NULL;
-		}
-
-		if (NULL != nonce->iat)
-		{
-			free(nonce->iat);
-			nonce->iat = NULL;
-		}
-
-		if (NULL != nonce->signature)
-		{
-			free(nonce->signature);
-			nonce->signature = NULL;
-		}
-	}
-	return STATUS_OK;
-}
-
-TRUST_AUTHORITY_STATUS token_free(token *token)
-{
-	if (token)
-	{
-		if (token->jwt)
-		{
-			free(token->jwt);
-			token->jwt = NULL;
-		}
-	}
-	return STATUS_OK;
-}
-
-TRUST_AUTHORITY_STATUS evidence_free(evidence *evidence)
-{
-	if (NULL != evidence)
-	{
-		if (NULL != evidence->evidence)
-		{
-			free(evidence->evidence);
-			evidence->evidence = NULL;
-		}
-
-		if (NULL != evidence->user_data)
-		{
-			free(evidence->user_data);
-			evidence->user_data = NULL;
-		}
-
-		if (NULL != evidence->event_log)
-		{
-			free(evidence->event_log);
-			evidence->event_log = NULL;
-		}
-	}
-	return STATUS_OK;
-}
-
-TRUST_AUTHORITY_STATUS response_headers_free(response_headers *header)
-{
-	if (NULL != header)
-	{
-		if(NULL != header->headers)
-		{
-			free(header->headers);
-			header->headers = NULL;
-		}
-	}
-	return STATUS_OK;
-}
-
-TRUST_AUTHORITY_STATUS jwks_free(jwk_set *key_set)
-{
-	if (NULL != key_set)
-	{
-		jwks *jwks = NULL;
-		for (int k=0; k<key_set->key_cnt; k++)
-		{
-			jwks = key_set->keys[k];
-			for(int i=0; i < jwks->num_of_x5c; i++)
-			{
-				if(NULL != jwks->x5c[i])
-				{
-					free((void *)jwks->x5c[i]);
-					jwks->x5c[i] = NULL;
-				}
-			}
-
-			if(NULL != jwks->alg)
-			{
-				free((void *)jwks->alg);
-				jwks->alg = NULL;
-			}
-			if(NULL != jwks->e)
-			{
-				free((void *)jwks->e);
-				jwks->e = NULL;
-			}
-			if(NULL != jwks->n)
-			{
-				free((void *)jwks->n);
-				jwks->n = NULL;
-			}
-			if(NULL != jwks->kid)
-			{
-				free((void *)jwks->kid);
-				jwks->kid = NULL;
-			}
-			if(NULL != jwks->keytype)
-			{
-				free((void *)jwks->keytype);
-				jwks->keytype = NULL;
-			}
-			free(jwks);
-			jwks = NULL;
-		}
-		free(key_set->keys);
-		key_set->keys = NULL;
-		free(key_set);
-		key_set = NULL;
 	}
 	return STATUS_OK;
 }

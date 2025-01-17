@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Intel Corporation
+ * Copyright (C) 2024-2025 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include <stdio.h>
@@ -99,12 +99,18 @@ TRUST_AUTHORITY_STATUS evidence_builder_new(evidence_builder **builder,
 	policies *policy_ids = (policies *)calloc(1, sizeof(policies));
 	if (NULL == policy_ids)
 	{
+		free(*builder);
+		*builder = NULL;
 		return STATUS_ALLOCATION_ERROR;
 	}
 
 	int status = parse_policies(opts->policy_ids, policy_ids);
 	if (STATUS_OK != status) {
 		ERROR("Error: Failed to parse policy_ids: 0x%04x\n", status);
+		free(*builder);
+		*builder = NULL;
+		free(policy_ids);
+		policy_ids = NULL;
 		return status;
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023-2024 Intel Corporation
+ * Copyright (C) 2023-2025 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include <stdlib.h>
@@ -11,6 +11,7 @@
 #include <sgx_dcap_ql_wrapper.h>
 #include <log.h>
 #include <json.h>
+#include <connector.h>
 
 int sgx_adapter_new(evidence_adapter **adapter,
 		int eid,
@@ -82,6 +83,7 @@ int sgx_get_evidence(void *ctx,
 	result = sgx_collect_evidence(ctx, &evidence, nonce, user_data, user_data_len);
 	if (result != STATUS_OK)
 	{
+		ERROR("Error: Failed to collect evidence: 0x%04x\n", result);
 		return result;
 	}
 
@@ -89,7 +91,7 @@ int sgx_get_evidence(void *ctx,
 	if (result != STATUS_OK)
 	{
 		ERROR("Error: Failed to create evidence json: 0x%04x\n", result);
-		return result;
+		goto ERROR;
 	}
 
 	if (nonce != NULL) {
@@ -114,6 +116,7 @@ ERROR:
 		json_decref(jansson_nonce);
 		jansson_nonce = NULL;
 	}
+	evidence_free(&evidence);
 	return result;
 }
 

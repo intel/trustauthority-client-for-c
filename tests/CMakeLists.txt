@@ -22,6 +22,7 @@ set(TEST_SOURCES
     ../src/connector/rest.c
     ../src/util/json.c
     ../src/util/base64.c
+    ../src/util/cleanup.c
     ../src/configfs_tsm/report.c
     ../src/sgx/sgx_adapter.c
     ../src/tdx/intel/tdx_adapter.c

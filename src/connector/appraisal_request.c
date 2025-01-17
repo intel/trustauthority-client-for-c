@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Intel Corporation
+ * Copyright (C) 2024-2025 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include <jansson.h>
@@ -81,7 +81,7 @@ TRUST_AUTHORITY_STATUS json_marshal_appraisal_request(appraisal_request *request
 		goto ERROR;
 	}
 
-	// userdata
+	// runtime-data
 	if (request->runtime_data_len > 0)
 	{
 		input_length = request->runtime_data_len;
@@ -161,6 +161,7 @@ TRUST_AUTHORITY_STATUS json_marshal_appraisal_request(appraisal_request *request
 			goto ERROR;
 		}
 	}
+
 	// eventlog
 	if (request->event_log_len > 0)
 	{
@@ -184,12 +185,13 @@ TRUST_AUTHORITY_STATUS json_marshal_appraisal_request(appraisal_request *request
 			goto ERROR;
 		}
 	}
+
 	*json = json_dumps(jansson_request, JANSSON_ENCODING_FLAGS);
 	if (NULL == *json)
 	{
-		return STATUS_JSON_ENCODING_ERROR;
+		status = STATUS_JSON_ENCODING_ERROR;
+		goto ERROR;
 	}
-
 	DEBUG("Appraisal Request: %s", *json);
 
 ERROR:

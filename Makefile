@@ -108,8 +108,8 @@ azure_tpm_token_docker:
 		--target azure_tpm_token \
 		-t $(ORGNAME)/azure_tpm_token:$(VERSION) \
 		--build-arg MAKEFILE_DIR=${MAKEFILE_DIR} \
-        	--build-arg VERSION=${VERSION} \
-        	--build-arg COMMIT=${COMMIT} .
+		--build-arg VERSION=${VERSION} \
+		--build-arg COMMIT=${COMMIT} .
 
 sevsnp_token_docker:
 	DOCKER_BUILDKIT=1 docker build \
@@ -140,8 +140,6 @@ azure_tdx_token_docker: tdx_token_docker
 azure_sevsnp_token_docker: USE_AZURE_SEVSNP_ADAPTER = ON
 azure_sevsnp_token_docker: SEVSNP_TOKEN_BUILD_PREFIX = azure
 azure_sevsnp_token_docker: sevsnp_token_docker
-
-nvgpu_token_docker: nvgpu_token_docker
 
 clean:
 	rm -rf ${MAKEFILE_DIR}bin

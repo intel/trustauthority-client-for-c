@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023-2024 Intel Corporation
+ * Copyright (C) 2023-2025 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #ifndef __TYPES_H__
@@ -71,13 +71,6 @@ typedef struct retry_config
 	int retry_wait_time;
 	int retry_max;
 } retry_config;
-
-typedef struct trust_authority_connector
-{
-	char api_key[API_KEY_MAX_LEN + 1]; /* character array containing API KEY use to authenticate to Intel trust Authority */
-	char api_url[API_URL_MAX_LEN + 1]; /* character array containing URL of Intel Trust Authority */
-	retry_config *retries;
-} trust_authority_connector;
 
 typedef struct jwks
 {
@@ -203,8 +196,6 @@ typedef enum
 	STATUS_JSON_NO_OF_SIGN_CERT_EXCEEDING_ERROR,
 	STATUS_JSON_APPRAISAL_REQUEST_PARSING_ERROR,
 	STATUS_JSON_INVALID_APPRAISAL_REQUEST_ERROR,
-	STATUS_JSON_APPRAISAL_REQUEST_POLICIES_FIELD_NOT_FOUND_ERROR,
-	STATUS_JSON_APPRAISAL_REQUEST_POLICIES_IDS_FIELD_NOT_FOUND_ERROR,
 
 	STATUS_TOKEN_VERIFICATION_FAILED_ERROR = 0x700,
 

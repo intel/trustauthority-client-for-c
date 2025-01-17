@@ -9,6 +9,7 @@ add_library(${PROJECT_NAME}
     azure_sevsnp_adapter.c
     ../../log/log.c
     ../../util/json.c
+    ../../util/cleanup.c
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC

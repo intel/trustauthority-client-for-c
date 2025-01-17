@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Intel Corporation
+ * Copyright (C) 2024-2025 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include <stdlib.h>
@@ -12,6 +12,7 @@
 #include <rest.h>
 #include <json.h>
 #include <base64.h>
+#include <connector.h>
 #include <log.h>
 #include <tss2/tss2_esys.h>
 
@@ -82,6 +83,7 @@ int tdx_get_evidence_azure(void *ctx,
 	result = tdx_collect_evidence_azure(ctx, &evidence, nonce, user_data, user_data_len);
 	if (result != STATUS_OK)
 	{
+		ERROR("Error: Failed to collect evidence: 0x%04x\n", result);
 		return result;
 	}
 
@@ -89,7 +91,7 @@ int tdx_get_evidence_azure(void *ctx,
 	if (result != STATUS_OK)
 	{
 		ERROR("Error: Failed to create evidence json: 0x%04x\n", result);
-		return result;
+		goto ERROR;
 	}
 
 	if (nonce != NULL) {
@@ -114,6 +116,7 @@ ERROR:
 		json_decref(jansson_nonce);
 		jansson_nonce = NULL;
 	}
+	evidence_free(&evidence);
 	return result;
 }
 

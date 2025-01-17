@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Intel Corporation
+ * Copyright (C) 2024-2025 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include <stdio.h>
@@ -20,7 +20,7 @@
 #include <jwt.h>
 #include <types.h>
 #include "util.h"
-#include "rest.h"
+#include <rest.h>
 
 TRUST_AUTHORITY_STATUS parse_token_header_for_kid(token *token,
         const char **token_kid)
@@ -31,7 +31,6 @@ TRUST_AUTHORITY_STATUS parse_token_header_for_kid(token *token,
         unsigned char *buf = NULL;
         json_error_t error;
         json_t *js = NULL, *js_val = NULL;
-        const char *val = NULL;
         TRUST_AUTHORITY_STATUS status = STATUS_OK;
 
         // Check if token or token jwt pointer is NULL
@@ -54,7 +53,7 @@ TRUST_AUTHORITY_STATUS parse_token_header_for_kid(token *token,
         }
 
         // Allocate memory for the substring
-        substring = calloc(1, (base64_input_length + 1) * sizeof(char));
+        substring = (char *)calloc(1, (base64_input_length + 1) * sizeof(char));
         if (NULL == substring)
         {
                 return STATUS_ALLOCATION_ERROR;
@@ -94,17 +93,20 @@ TRUST_AUTHORITY_STATUS parse_token_header_for_kid(token *token,
                 status = STATUS_TOKEN_KID_NULL_ERROR;
                 goto ERROR;
         }
-        if (json_typeof(js_val) == JSON_STRING)
-        {
-                val = json_string_value(js_val);
-        }
-        else
+        if (json_typeof(js_val) != JSON_STRING)
         {
                 status = STATUS_INVALID_KID_ERROR;
                 goto ERROR;
         }
 
-        *token_kid = val;
+        size_t size = strlen(json_string_value(js_val));
+        *token_kid = (char *)calloc(size + 1, sizeof(char));
+        if (NULL == *token_kid)
+        {
+                status = STATUS_ALLOCATION_ERROR;
+                goto ERROR;
+        }
+        memcpy((void *)*token_kid, json_string_value(js_val), size);
 
 ERROR:
         if (buf != NULL)
@@ -117,7 +119,11 @@ ERROR:
                 free(substring);
                 substring = NULL;
         }
-
+	if (js)
+	{
+		json_decref(js);
+		js = NULL;
+	}
         return status;
 }
 
@@ -396,24 +402,40 @@ TRUST_AUTHORITY_STATUS extract_pubkey_from_certificate(char *certificate,
         TRUST_AUTHORITY_STATUS status = STATUS_OK;
         size_t pem_len = strlen(begin_cert_header) + strlen(certificate) + strlen(end_cert_header);
         leaf_cert = (char *)calloc(1, (pem_len + 1) * sizeof(char));
-        if (leaf_cert == NULL)
+        if (NULL == leaf_cert)
         {
-                status = STATUS_ALLOCATION_ERROR;
-                goto ERROR;
+                return STATUS_ALLOCATION_ERROR;
         }
         strcat(leaf_cert, begin_cert_header);
         strcat(leaf_cert, certificate);
         strcat(leaf_cert, end_cert_header);
         bio = BIO_new(BIO_s_mem());
+        if (NULL == bio)
+        {
+                status = STATUS_EXTRACT_PUBKEY_ERROR;
+                goto ERROR;
+        }
         BIO_puts(bio, leaf_cert);
         x509_certificate = PEM_read_bio_X509(bio, NULL, NULL, NULL);
+        if (NULL == x509_certificate)
+        {
+                status = STATUS_EXTRACT_PUBKEY_ERROR;
+                goto ERROR;
+        }
         *pubkey = X509_get_pubkey(x509_certificate);
+        if (NULL == *pubkey)
+        {
+                status = STATUS_EXTRACT_PUBKEY_ERROR;
+        }
 
 ERROR:
+        // Cleanup
         if (leaf_cert) {
                 free(leaf_cert);
                 leaf_cert = NULL;
         }
+        BIO_free(bio);
+        X509_free(x509_certificate);
         return status;
 }
 

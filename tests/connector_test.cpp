@@ -492,6 +492,7 @@ TEST(EvidenceFree, SuccessCase)
 	ta_evidence = (evidence *) malloc(sizeof(evidence));
 	ta_evidence->evidence = (uint8_t *) malloc(10);
 	ta_evidence->user_data = (uint8_t *) malloc(20);
+	ta_evidence->runtime_data = (uint8_t *) malloc(20);
 	ta_evidence->event_log = (uint8_t *) malloc(20);
 
 	TRUST_AUTHORITY_STATUS result = evidence_free(ta_evidence);
