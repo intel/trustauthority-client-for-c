@@ -1,10 +1,11 @@
-# NVGPU Token Example
-The NVGPU Token example is a C program that uses the Intel Trust Authority Attestation Client libraries
-to fetch token from Intel Trust Authority. The program contains an example NVGPU H100 host. When run, 
-it collects GPU evidence from the NVGPU H100 and sends it to Intel Trust Authority to retrieve a token.
+# NVIDIA H100 Attestation Token Example
+
+<p style="font-size: 0.875em;">· 17 January 2025 ·</p>
+
+The NVIDIA H100 GPU attestation example ("NVGPU") is a C program that uses the Intel® Trust Authority Attestation Client libraries to to attest the GPU and the Intel® Trust Domain Extensions (Intel® TDX) host. When run, NVGPU collects GPU evidence from the NVGPU H100, and then sends a quote to Intel Trust Authority to retrieve an attestation token. If attestation is successful, NVGPU prints the contents of the token and other information to the screen.
 
 ```
-On TDX box
+Intel TDX host
 ┌────────────────────────────────────────────────┐
 │    ┌──────────────────────────────────────┐    │
 │    │          Docker Container            │    │
@@ -41,32 +42,34 @@ On TDX box
 │    │                                      │    │
 │    └──────────────────────────────────────┘    │
 │                                                │
-│                  NVIDIA GPU Host               │
+│             NVIDIA H100 GPU Host               │
 └────────────────────────────────────────────────┘
 ```
-The diagram above depicts the components used in the NVGPU Token while running within
-a docker container. The NVGPU Token example can also be run directly on a NVIDIA H100 host.
+The diagram above depicts the components used in the NVGPU example while running within a Docker container. The NVGPU example can also be run directly on a NVIDIA H100 host.
 
 ## Prerequisites
+
 - Ability to build the Intel Trust Authority Attestation Client (see [Build Instructions](../../docs/builds.md)).
 - A *production* NVGPU host with the NVIDIA driver and Docker installed.
 - The NVGPU host must be able to generate GPU evidence with CC_mode enabled.
 - NVIDIA container toolkit Installed (see [NVIDIA Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html))
-- A running instance of Intel Trust Authority.
+
 
 ## Build Instructions
-- Build  NVGPU Token docker image in release/debug mode under project root directory:
+
+1. Build  NVGPU Token docker image in release/debug mode under project root directory:
+
 ```shell
   - To Build in release mode:  
   docker build -f examples/nvgpu_token/Dockerfile -t taas/nvgpu_token:v1.3.0 .
   - To Build in debug mode:  
 	docker build --build-arg ENABLE_DEBUG=Debug -f examples/nvgpu_token/Dockerfile -t taas/nvgpu_token:v1.3.0 .
 ```
-- When successfully built, running `docker image ls -a` includes `taas/nvgpu_token:v1.3.0`.
+When successfully built, running `docker image ls -a` includes `taas/nvgpu_token:v1.3.0`.
 
-## Deployment Instructions
 
-- The docker image must be present on the NVGPU host.  For example, it can be exported/copied from a build machine as follows...
+2. The docker image must be present on the NVGPU host.  For example, it can be exported/copied from a build machine as follows.
+
 ```shell
 #Save the nvgpu_token Docker image into trust_authority.nvgpu_token.tar.gz
 docker save taas/nvgpu_token:v1.3.0 > trust_authority.nvgpu_token.tar.gz
@@ -75,17 +78,12 @@ docker save taas/nvgpu_token:v1.3.0 > trust_authority.nvgpu_token.tar.gz
 docker load -i trust_authority.nvgpu_token.tar.gz
 ```
 
-## Running the Sample
-Running the sample requires the following steps...
-1. Collect the NVGPU evidence and certificate chain from the example NVIDIA H100 host.
-2. Creating an Intel Trust Authority policy that will be evaluated during token creation.
-3. Running the NVGPU Token application via docker on an NVGPU Host.
+## Running the example
 
-### Example Environment Variables
-- The following table lists the environment variables used in nvgpu_token.env
+The example requires an environment file to provide the API key and other information. The following table lists the environment variables used in `nvgpu_token.env`.
 
     |Variable			|Description							|
-    |:--------------------------|:--------------------------------------------------------------|
+    |:--------------------------|:------------------------------------|
     |TRUSTAUTHORITY_API_KEY	|The Intel Trust Authority API key.				|
     |TRUSTAUTHORITY_API_URL	|The Intel Trust Authority API URL.				|
     |TRUSTAUTHORITY_POLICY_ID	|The policy id created using Intel Trust Authority portal.	|
@@ -96,7 +94,8 @@ Running the sample requires the following steps...
     |RETRY_WAIT_TIME		|Wait time between retries. Default value is 2 seconds.		|
     |RETRY_MAX			|Maximum number of retries. Default value is 2 seconds.		|
 
-### Run the example...
+The following commands create the env file and run the sample in a Docker container.
+
 ```shell
 #Creating nvgpu_token.env file
 cat <<EOF | tee nvgpu_token.env
@@ -109,5 +108,4 @@ EOF
 sudo docker run --privileged -u root -v /sys/kernel/config:/sys/kernel/config --rm --runtime=nvidia --gpus all --env-file nvgpu_token.env taas/nvgpu_token:v1.3.0
 ```
 
-### Output when example is run...
-- When successful, the token and other information will be displayed...
+When successful, the token and other information will be displayed.

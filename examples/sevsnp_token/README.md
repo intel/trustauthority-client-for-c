@@ -1,30 +1,44 @@
-# Sevsnp Token Example
-The Sevsnp Token example is a C program that uses the Intel Trust Authority Attestation Client libraries
-to fetch token from Intel Trust Authority. The program suppose to run inside a sevsnp VM.  When run, 
-it collects a report from the Sevsnp VM and sends it to Intel Trust Authority to retrieve a token. 
+# AMD SEV-SNP Token Example
+
+<p style="font-size: 0.875em;">· 17 January 2025 ·</p>
+
+The AMD SEV-SNP\* token example is a C program that uses the Intel® Trust Authority Attestation Client libraries to request an attestation token from Intel Trust Authority. The example runs inside a confidential VM (CVM) with SEV-SNP. When run, the example collects evidence for a quote from the CVM, and then sends it to Intel Trust Authority for attestation.  
+
+> [!NOTE]
+> AMD SEV-SNP attestation is currently in limited preview status in the Intel Trust Authority pilot environment only. For preview access, please contact your Intel representative.
 
 ## Build Instructions
-- Build the Sevsnp Token docker image in release/debug mode:
-```shell
-  - To Build in release mode:  
-	make sevsnp_token_docker
-  - To Build in debug mode:  
-	make DEBUG=1 sevsnp_token_docker
-```
-- When successfully built, running `docker image ls -a` includes `taas/sevsnp_token:v1.3.0`.
 
-**_NOTE:_** If you are building for Azure, use below commands:
+You can build the SEV-SNP token example Docker image in release or debug mode using the following commands.
+
+### Build for on-premises or Google Cloud Platform
+
+To build the example in release mode:
 ```shell
-  - To Build in release mode:
-	make azure_sevsnp_token_docker
-  - To Build in debug mode:
-	make DEBUG=1 azure_sevsnp_token_docker
+make sevsnp_token_docker
 ```
-- When successfully built, running `docker image ls -a` includes `taas/azure_sevsnp_token:v1.3.0`.
+To build the example in release mode:
+```shell
+make DEBUG=1 sevsnp_token_docker
+```
+When successfully built, running `docker image ls -a` includes `taas/sevsnp_token:v1.3.0`.
+
+### Build for Azure 
+
+To build the example in release mode:
+```shell
+make azure_sevsnp_token_docker
+```
+To build the example in release mode:
+```shell
+make DEBUG=1 azure_sevsnp_token_docker
+```
+When successfully built, running `docker image ls -a` includes `taas/azure_sevsnp_token:v1.3.0`.
 
 ## Deployment Instructions
-- The docker image must be present inside the sevsnp vm.  For example, it can be exported/copied 
-from a build machine as follows...
+
+The Docker image must be present inside the SEV-SNP CVM.  For example, it can be copied from a build machine as follows.
+
 ```shell
 #Save the sevsnp_token Docker image into trust_authority.sevsnp_token.tar.gz
 docker save taas/sevsnp_token:v0.1.0 > trust_authority.sevsnp_token.tar.gz
@@ -33,14 +47,9 @@ docker save taas/sevsnp_token:v0.1.0 > trust_authority.sevsnp_token.tar.gz
 docker load -i trust_authority.sevsnp_token.tar.gz
 ``` 
 
-## Running the Sample
-Running the sample requires the following steps...
-1. Collect the measurements from the example application.
-2. Creating an Intel Trust Authority policy that will be evaluated during token creation (Please use the Composite Attestation policy format).
-3. Running the Sevsnp Token application via docker in a sevsnp VM.
 
-### Example Environment Variables
-- The following table lists the environment variables used in tdx_token.env
+The example relies on an environment file for information such as the API key and Intel Trust Authority base URL. The following table lists the environment variables used in `sevsnp_token.env`.
+
     |Variable|Description|
     |:--------|:-----------|
     |TRUSTAUTHORITY_API_KEY|The Intel Trust Authority API key.|
@@ -53,30 +62,32 @@ Running the sample requires the following steps...
     |RETRY_WAIT_TIME|Wait time between retries. Default value is 2 seconds.|
     |RETRY_MAX|Maximum number of retries. Default value is 2 seconds.|
     
+1. Create the sevsnp_token.env file
 
-### Run the example...
-- Use docker to run the Sevsnp Token example...
-    ```
-    cat <<EOF | tee sevsnp_token.env
-    TRUSTAUTHORITY_API_KEY=<trustauthority-api-key>
-    TRUSTAUTHORITY_POLICY_ID=<trustauthority-policy-id>
-    TRUSTAUTHORITY_API_URL="https://api.pilot.trustauthority.intel.com"
-    TRUSTAUTHORITY_BASE_URL="https://portal.pilot.trustauthority.intel.com"
-    EOF
-    sudo docker run -it --rm --privileged --network host -v /sys/kernel/config:/sys/kernel/config  --env-file sevsnp_token.env taas/sevsnp_token:v1.3.0
-    ```
 
-- Use docker to run the Azure Sevsnp Token example...
-    ```
-    cat <<EOF | tee sevsnp_token.env
-    TRUSTAUTHORITY_API_KEY=<trustauthority-api-key>
-    TRUSTAUTHORITY_POLICY_ID=<trustauthority-policy-id>
-    TRUSTAUTHORITY_API_URL="https://api.pilot.trustauthority.intel.com"
-    TRUSTAUTHORITY_BASE_URL="https://portal.pilot.trustauthority.intel.com"
-    EOF
+  ```shell
+  cat <<EOF | tee sevsnp_token.env
+  TRUSTAUTHORITY_API_KEY=<trustauthority-api-key>
+  TRUSTAUTHORITY_POLICY_ID=<trustauthority-policy-id>
+  TRUSTAUTHORITY_API_URL="https://api.pilot.trustauthority.intel.com"
+  TRUSTAUTHORITY_BASE_URL="https://portal.pilot.trustauthority.intel.com"
+  EOF
+  ```
 
-    sudo docker run -it --rm --device=/dev/tpm0 --device=/dev/tpmrm0 --env-file sevsnp_token.env --group-add $(getent group tss | cut -d: -f3) taas/azure_sevsnp_token:v1.3.0
-    ```
+2. Run the example in the Docker container you built previously.
 
-### Output when Sevsnp example is run...
-- When successful, the token and other information will be displayed...
+  ```shell
+  sudo docker run -it --rm --privileged --network host -v /sys/kernel/config:/sys/kernel/config  --env-file sevsnp_token.env taas/sevsnp_token:v1.3.0
+  ```
+
+  ```shell
+  sudo docker run -it --rm --device=/dev/tpm0 --device=/dev/tpmrm0 --env-file sevsnp_token.env --group-add $(getent group tss | cut -d: -f3) taas/azure_sevsnp_token:v1.3.0
+  ```
+
+When the example is successfully run, the attestation token and other information will be displayed.
+
+
+<br><br>
+
+---
+**\*** Other names and brands may be claimed as the property of others.

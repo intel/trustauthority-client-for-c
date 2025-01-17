@@ -1,15 +1,18 @@
-# Intel Trust Authority C NVIDIA GPU Adapter
-This is the beta version of C NVGPU Adapter for collecting GPU evidence from NVIDIA H100 enabled platform.
+# Intel® Trust Authority Client for C NVIDIA H100 GPU Adapter
+
+<p style="font-size: 0.875em;">· 17 January 2025 ·</p>
+
+This is the limited preview version of the Intel Trust Authority Client for C NVGPU Adapter for collecting GPU evidence from a NVIDIA H100 and Intel® Trust Domain Extensions (Intel® TDX).
 
 ## System Requirement
 
 Use <b>Ubuntu 24.04</b>. 
 
-## Usage
+## Example usage
 
 Create a new C NVGPU adapter, then use the adapter to collect GPU evidence from NVGPU enabled platform.
 
-```C Header
+```c
 #include <nvgpu-adapter.h> 
 evidence_adapter *adapter = NULL;
 status = nvgpu_adapter_new(&adapter);  
@@ -32,3 +35,7 @@ if (STATUS_OK != status)
 
 This library is distributed under the BSD-style license found in the [LICENSE](../../LICENSE)
 file.
+
+## Contributing and Code of Conduct
+
+Contributions to this project are welcome. For more information, see [Contributing](../../CONTRIBUTING.md). This project has a [Code of Conduct](../../CODE_OF_CONDUCT.md) for contributors. 
