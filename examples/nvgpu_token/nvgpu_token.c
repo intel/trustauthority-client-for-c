@@ -159,12 +159,6 @@ int main(int argc, char *argv[])
 		goto MAIN_ERROR;
 	}
 
-	result = tdx_get_evidence_azure(tdx_adapter->ctx, evidence, NULL, user_data, user_data_len);
-	if (STATUS_OK != result)
-	{
-		ERROR("ERROR: Failed to collect evidence from Azure adapter 0x%04x\n", result);
-       		goto MAIN_ERROR;
-	}
 #else
 	result = tdx_adapter_new(&tdx_adapter);
 	if (STATUS_OK != result)
@@ -173,12 +167,6 @@ int main(int argc, char *argv[])
 		goto MAIN_ERROR;
 	}
 
-	result = tdx_get_evidence(tdx_adapter->ctx, evidence, NULL, user_data, user_data_len);
-	if (STATUS_OK != result)
-	{
-		ERROR("ERROR: Failed to collect evidence from adapter 0x%04x\n", result);
-		goto MAIN_ERROR;
-	}
 #endif
 
 	nonce_args.request_id = request_id;
