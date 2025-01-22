@@ -129,7 +129,7 @@ nvgpu_token_docker:
 		${DOCKER_PROXY_FLAGS} \
 		-f examples/nvgpu_token/Dockerfile \
 		--target ${NVGPU_TOKEN_BUILD_PREFIX}_token \
-		-t $(ORGNAME)/${NVGPU_TOKEN_BUILD_PREFIX}_nvgpu_token:$(VERSION) \
+		-t $(ORGNAME)/${NVGPU_TOKEN_BUILD_PREFIX}_token:$(VERSION) \
 		--build-arg VERSION=${VERSION} \
 		--build-arg COMMIT=${COMMIT} .
 

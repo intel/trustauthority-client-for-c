@@ -496,7 +496,11 @@ TRUST_AUTHORITY_STATUS get_token_signing_certificate(const char *jwks_url,
 	CURLcode status = CURLE_OK;
 	char *header = NULL;
 	TRUST_AUTHORITY_STATUS ret = STATUS_OK;
-	if (jwks == NULL || jwks_url == NULL)
+	if (jwks_url == NULL)
+	{
+		return STATUS_INVALID_PARAMETER;
+	}
+	if (jwks == NULL)
 	{
 		return STATUS_INVALID_PARAMETER;
 	}

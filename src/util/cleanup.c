@@ -135,7 +135,6 @@ TRUST_AUTHORITY_STATUS jwks_free(jwk_set *key_set)
 					jwks->keytype = NULL;
 				}
 				free(jwks);
-				jwks = NULL;
 			}
 		}
 		free(key_set->keys);

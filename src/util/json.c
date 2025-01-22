@@ -56,63 +56,48 @@ TRUST_AUTHORITY_STATUS json_unmarshal_nonce(nonce *nonce,
 		return STATUS_JSON_NONCE_PARSING_ERROR;
 	}
 
-	if (json_is_object(nonce_json))
+	for (int i = 0; i < COUNT_OF(mappings); i++)
 	{
-		for (int i = 0; i < COUNT_OF(mappings); i++)
+		tmp = json_object_get(nonce_json, mappings[i].json_name);
+		if (NULL == tmp || !json_is_string(tmp))
 		{
-
-			tmp = json_object_get(nonce_json, mappings[i].json_name);
-			if (NULL == tmp || !json_is_string(tmp))
-			{
-				return STATUS_JSON_NONCE_PARSING_ERROR;
-			}
-
-			base64_input_length = strlen(json_string_value(tmp));
-			output_length = (base64_input_length / 4) * 3; // Estimate the output length
-			buf = (unsigned char *)calloc(output_length + 1, sizeof(unsigned char));
-			if (NULL == buf)
-			{
-				return STATUS_ALLOCATION_ERROR;
-			}
-			int status = base64_decode(json_string_value(tmp), base64_input_length, buf, &output_length);
-			if (BASE64_SUCCESS != status)
-			{
-				status = STATUS_JSON_DECODING_ERROR;
-				goto ERROR;
-			}
-
-			if (output_length <= 0 || output_length > MAX_USER_DATA_LEN)
-			{
-				ERROR("Error: Failed to decode Nonce field '%s'\n", mappings[i].json_name);
-				status = STATUS_JSON_NONCE_PARSING_ERROR;
-				goto ERROR;
-			}
-
-			*mappings[i].ptr = (uint8_t *)calloc(output_length + 1, sizeof(uint8_t));
-			if (NULL == *mappings[i].ptr)
-			{
-				status = STATUS_ALLOCATION_ERROR;
-				goto ERROR;
-			}
-
-			memcpy(*mappings[i].ptr, buf, output_length);
-			*mappings[i].len_ptr = output_length;
-
-			free(buf);
-			buf = NULL;
-			output_length = 0;
-			base64_input_length = 0;
+			status = STATUS_JSON_NONCE_PARSING_ERROR;
+			goto ERROR;
 		}
-		if (nonce_json)
+
+		base64_input_length = strlen(json_string_value(tmp));
+		output_length = (base64_input_length / 4) * 3; // Estimate the output length
+		buf = (unsigned char *)calloc(output_length + 1, sizeof(unsigned char));
+		if (NULL == buf)
 		{
-			json_decref(nonce_json);
-			nonce_json = NULL;
+			status = STATUS_ALLOCATION_ERROR;
+			goto ERROR;
 		}
-	}
-	else
-	{
-		ERROR("Error: Invalid json type\n");
-		return STATUS_JSON_NONCE_PARSING_ERROR;
+		int status = base64_decode(json_string_value(tmp), base64_input_length, buf, &output_length);
+		if (BASE64_SUCCESS != status)
+		{
+			status = STATUS_JSON_DECODING_ERROR;
+			goto ERROR;
+		}
+
+		if (output_length <= 0 || output_length > MAX_USER_DATA_LEN)
+		{
+			ERROR("Error: Failed to decode Nonce field '%s'\n", mappings[i].json_name);
+			status = STATUS_JSON_NONCE_PARSING_ERROR;
+			goto ERROR;
+		}
+
+		*mappings[i].ptr = (uint8_t *)calloc(output_length + 1, sizeof(uint8_t));
+		if (NULL == *mappings[i].ptr)
+		{
+			status = STATUS_ALLOCATION_ERROR;
+			goto ERROR;
+		}
+
+		memcpy(*mappings[i].ptr, buf, output_length);
+		*mappings[i].len_ptr = output_length;
+		free(buf);
+		buf = NULL;
 	}
 
 ERROR:
@@ -121,7 +106,7 @@ ERROR:
 		free(buf);
 		buf = NULL;
 	}
-
+	json_decref(nonce_json);
 	return status;
 }
 

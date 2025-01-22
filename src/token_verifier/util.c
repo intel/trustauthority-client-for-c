@@ -442,6 +442,7 @@ ERROR:
 TRUST_AUTHORITY_STATUS format_pubkey(EVP_PKEY *pkey,
                 const char **formatted_pub_key)
 {
+        char *key_str = NULL;
         TRUST_AUTHORITY_STATUS status = STATUS_OK;
         // Create a BIO to hold the key data
         BIO *bio = BIO_new(BIO_s_mem());
@@ -458,7 +459,7 @@ TRUST_AUTHORITY_STATUS format_pubkey(EVP_PKEY *pkey,
         // Determine the length of the key data.
         size_t key_len = BIO_pending(bio);
         // Allocate memory for the mutable buffer, including space for null terminator
-        char *key_str = (char *)malloc((key_len + 1) * sizeof(char));
+        key_str = (char *)malloc((key_len + 1) * sizeof(char));
         if (NULL == key_str)
         {
                 status = STATUS_ALLOCATION_ERROR;
