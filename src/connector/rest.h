@@ -11,13 +11,13 @@
 struct write_result
 {
 	char *data;
-	int pos;
+	size_t pos;
 };
 
 struct write_headers
 {
 	char *headers;
-	size_t pos;
+	int pos;
 };
 
 #ifdef __cplusplus

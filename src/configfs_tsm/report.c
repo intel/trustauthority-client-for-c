@@ -91,11 +91,15 @@ char *create_temp_directory(const char *base_path, const char *prefix)
 
 TRUST_AUTHORITY_STATUS create_file_path(const char *temp_dir, const char *path, char **file_path)
 {
+    if (file_path == NULL)
+    {
+        return STATUS_INVALID_PARAMETER;
+    }
     // Calculate the length of the filepath string
     int filepath_len = strlen(temp_dir) + strlen(path) + 1;
     // Allocate memory for the filepath string
     *file_path = malloc(filepath_len);
-    if (file_path == NULL)
+    if (*file_path == NULL)
     {
         ERROR("Failed to allocate memory for file_path");
         return STATUS_ALLOCATION_ERROR;
@@ -106,17 +110,16 @@ TRUST_AUTHORITY_STATUS create_file_path(const char *temp_dir, const char *path, 
 
 TRUST_AUTHORITY_STATUS get_report(Request *r, Response **response)
 {
-    int fd;
+    int fd = -1;
     char *provider = NULL;
     size_t provider_len = 0;
     unsigned char *td_report = NULL;
-    size_t td_report_size = 0;
+    size_t td_report_len = 0;
     char *temp_dir = NULL;
     char *file_path_inblob = NULL;
     char *file_path_outblob = NULL;
     char *file_path_gen = NULL;
     char *file_path_provider = NULL;
-    size_t size = 0;
     TRUST_AUTHORITY_STATUS status = STATUS_OK;
 
     if (access(TSM_SUBSYSTEM_PATH, F_OK) != 0)
@@ -130,8 +133,7 @@ TRUST_AUTHORITY_STATUS get_report(Request *r, Response **response)
     if (temp_dir == NULL)
     {
         ERROR("temporary directory not created\n");
-        status = STATUS_TSM_SUBSYSTEM_ERROR;
-        goto CLEANUP;
+        return STATUS_TSM_SUBSYSTEM_ERROR;
     }
 #else
     temp_dir = TSM_SUBSYSTEM_PATH;
@@ -160,6 +162,7 @@ TRUST_AUTHORITY_STATUS get_report(Request *r, Response **response)
     {
         ERROR("failed to write to in_blob\n");
         status = STATUS_FILE_WRITE_ERROR;
+        close(fd);
         goto CLEANUP;
     }
     close(fd);
@@ -177,16 +180,7 @@ TRUST_AUTHORITY_STATUS get_report(Request *r, Response **response)
         status = STATUS_TSM_SUBSYSTEM_ERROR;
         goto CLEANUP;
     }
-
-    fd = open(file_path_outblob, O_RDONLY);
-    if (fd == -1)
-    {
-        ERROR("Failed to open file: %s.\n", file_path_outblob);
-        status = STATUS_FILE_OPEN_ERROR;
-        goto CLEANUP;
-    }
-
-    td_report = read_file(file_path_outblob, "rb", &size);
+    td_report = read_file(file_path_outblob, "rb", &td_report_len);
     if (td_report == NULL)
     {
         ERROR("Failed to read from outblob file\n");
@@ -223,8 +217,7 @@ TRUST_AUTHORITY_STATUS get_report(Request *r, Response **response)
         goto CLEANUP;
     }
     // Check if the outblob has been corrupted during file open
-    int generation = atoi(generation_str);
-    if (generation > 1)
+    if (atoi(generation_str) > 1)
     {
         ERROR("Report generation was greater than 1 when expecting 1 while reading subtree\n");
         status = STATUS_GENERATION_ERROR;
@@ -238,7 +231,7 @@ TRUST_AUTHORITY_STATUS get_report(Request *r, Response **response)
         status = STATUS_ALLOCATION_ERROR;
         goto CLEANUP;
     }
-    (*response)->out_blob = (unsigned char *)malloc(size);
+    (*response)->out_blob = (unsigned char *)malloc(td_report_len);
     if ((*response)->out_blob == NULL)
     {
         ERROR("error in allocating memory for response out_blob\n")
@@ -246,8 +239,8 @@ TRUST_AUTHORITY_STATUS get_report(Request *r, Response **response)
         response_free(*response);
         goto CLEANUP;
     }
-    memcpy((*response)->out_blob, td_report, size);
-    (*response)->out_blob_size = size;
+    memcpy((*response)->out_blob, td_report, td_report_len);
+    (*response)->out_blob_size = td_report_len;
     (*response)->aux_blob = 0;
     (*response)->provider = (char *)malloc(provider_len);
     if ((*response)->provider == NULL)
@@ -261,7 +254,6 @@ TRUST_AUTHORITY_STATUS get_report(Request *r, Response **response)
     (*response)->provider_size = provider_len;
 
 CLEANUP:
-    rmdir(temp_dir);
     if (file_path_inblob != NULL)
     {
         free(file_path_inblob);
@@ -282,10 +274,21 @@ CLEANUP:
         free(file_path_gen);
         file_path_gen = NULL;
     }
-    if (fd)
+    if (td_report != NULL)
     {
-        close(fd);
+        free(td_report);
+        td_report = NULL;
     }
+    if (provider != NULL)
+    {
+        free(provider);
+        provider = NULL;
+    }
+    if (rmdir(temp_dir) < 0) {
+        ERROR("error removing directory: %s", temp_dir);
+    }
+    free(temp_dir);
+    temp_dir = NULL;
     return status;
 }
 
@@ -293,6 +296,11 @@ TRUST_AUTHORITY_STATUS response_free(Response *res)
 {
     if (res != NULL)
     {
+        if (res->aux_blob != NULL)
+        {
+            free(res->aux_blob);
+            res->aux_blob = NULL;
+        }
         if (res->out_blob != NULL)
         {
             free(res->out_blob);

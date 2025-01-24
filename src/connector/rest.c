@@ -159,10 +159,10 @@ CURLcode make_http_request(const char *url,
 	}
 
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &write_result);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&write_result);
 
 	curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, write_response_headers);
-	curl_easy_setopt(curl, CURLOPT_HEADERDATA, &write_headers);
+	curl_easy_setopt(curl, CURLOPT_HEADERDATA, (void *)&write_headers);
 
 	int retry_count = 0;
 	status = curl_easy_perform(curl);
@@ -180,7 +180,7 @@ CURLcode make_http_request(const char *url,
 
 			//TODO: Try to increase sleep time exponentially.
 			const int sleep_secs = retries->retry_wait_time;
-			memset(write_result.data, 0x00, sizeof(write_result.data));
+			memset(write_result.data, 0x00, write_result.pos);
 			write_result.pos=0;
 			sleep(sleep_secs);
 		}

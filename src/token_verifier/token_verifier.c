@@ -52,7 +52,8 @@ TRUST_AUTHORITY_STATUS verify_token(token *token,
 		jwks_url = (char *)calloc(API_URL_MAX_LEN + 1, sizeof(char));
 		if (NULL == jwks_url)
 		{
-			return STATUS_ALLOCATION_ERROR;
+			status = STATUS_ALLOCATION_ERROR;
+			goto ERROR;
 		}
 		strncat(jwks_url, base_url, API_URL_MAX_LEN);
 		strncat(jwks_url, "/certs", API_URL_MAX_LEN);
