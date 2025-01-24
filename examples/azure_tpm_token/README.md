@@ -39,7 +39,7 @@ docker load -i trust_authority.azure_tpm_token.tar.gz
 
 ## Running the Sample
 
-The sample relies on an environment file to provide information such as the API key and Intel Trust Authority base URL. The following table lists the environment variables used in `tdx_token.env`. Most of these are optional for this example, which uses the default values.
+The sample relies on an environment file to provide information such as the API key and Intel Trust Authority base URL. The following table lists the environment variables used in `tpm_token.env`. Most of these are optional for this example, which uses the default values.
 
 |Variable|Description|
 |:--------|:-----------|

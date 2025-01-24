@@ -10,7 +10,7 @@ The Intel® Software Guard Extensions (Intel® SGX) attestation example is a C p
 │    │          Docker Container            │    │
 │    │                                      │    │
 │    │    ┌──────────────────────────┐      │    │
-│    │    │  Intel SGX Token         │      │    │                ┌────────────────┐
+│    │    │      Intel SGX Token     │      │    │                ┌────────────────┐
 │    │    └──────────────────────────┘      │    │                │                │
 │    │                                      │    │                │                │
 │    │    ┌──────────────────────────┐      │◄───┼───────────────►│ INTEL TRUST    |
@@ -18,30 +18,30 @@ The Intel® Software Guard Extensions (Intel® SGX) attestation example is a C p
 │    │    └──────────────────────────┘      │    │                │ SERVER         |
 │    │                                      │    │                └────────────────┘   
 │    │    ┌──────────────────────────┐      |    |                                                  
-│    │    |libtrustauthotiy_sgx.so   |      |    |
+│    │    | libtrustauthority_sgx.so |      |    |
 │    │    └──────────────────────────┘      │    │
 │    │                                      │    │              
 │    │    ┌──────────────────────────┐      │    │
-│    │    │      libtrustauthotiy_   |      |    |
-|    |    |      connector.so        │      │    │
+│    │    │    libtrustauthority_    |      |    |
+|    |    |    connector.so          │      │    │
 │    │    └──────────────────────────┘      │    │
 │    │                                      │    │
 │    │    ┌────────────────────────────┐    │    │
-│    │    │   libtrustauthotiy_        |    |    |
-|    |    |   token_provider.so        │    │    │
+│    │    │    libtrustauthority_      |    |    |
+|    |    |    evidence_builder.so     │    │    │
 │    │    └────────────────────────────┘    │    │
 │    │                                      │    │
 │    │    ┌────────────────────────────┐    │    │
-│    │    │  libtrustauthotiy_         |    |    |
-|    |    |  token_verifier.so         │    │    │
+│    │    │    libtrustauthority_      |    |    |
+|    |    |    token_verifier.so       │    │    │
 │    │    └────────────────────────────┘    │    │
 │    │                                      │    │
 │    └──────────────────────────────────────┘    │
 │                                                │
-│            Intel SGX Host                      │
+│                  Intel SGX VM                  │
 └────────────────────────────────────────────────┘
 ```
-The diagram above depicts the components used in the Intel SGX example while running within a docker container. The Intel SGX example can also be run directly on an Intel SGX host (provided the appropriate dependencies like Intel® SGX DCAP have been installed).
+The diagram above depicts the components used in the Intel SGX Token example while running within a docker container. The Intel SGX Token example can also be run directly on an Intel SGX Host (provided the appropriate dependencies like Intel® SGX DCAP have been installed).
 
 ## Prerequisites
 

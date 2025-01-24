@@ -19,25 +19,26 @@ Intel TDX host
 │    │    └──────────────────────────┘      │    │                │ SERVER         |
 │    │                                      │    │                └────────────────┘   
 │    │    ┌──────────────────────────┐      |    |                                                  
-│    │    |libtrustauthotiy_nvgpu.so |      |    |
+│    │    |libtrustauthority_nvgpu.so|      |    |
 │    │    └──────────────────────────┘      │    │
 │    │                                      │    │              
 │    │    ┌──────────────────────────┐      |    |                                                  
-│    │    |libtrustauthotiy_tdx.so   |      |    |
+│    │    | libtrustauthority_tdx.so |      |    |
 │    │    └──────────────────────────┘      │    │
 │    │                                      │    │              
 │    │    ┌──────────────────────────┐      |    |                                                  
-│    │    |libtrust.._evi_builder.so |      |    |
+│    │    |    libtrustauthority_    |      |    |
+|    |    |    evidence_builder.so   |      |    |
 │    │    └──────────────────────────┘      │    │
 │    │                                      │    │              
 │    │    ┌──────────────────────────┐      │    │
-│    │    │      libtrustauthotiy_   |      |    |
-|    |    |      connector.so        │      │    │
+│    │    │    libtrustauthority_    |      |    |
+|    |    |    connector.so          │      │    │
 │    │    └──────────────────────────┘      │    │
 │    │                                      │    │
 │    │    ┌────────────────────────────┐    │    │
-│    │    │  libtrustauthotiy_         |    |    |
-|    |    |  token_verifier.so         │    │    │
+│    │    │    libtrustauthority_      |    |    |
+|    |    |    token_verifier.so       │    │    │
 │    │    └────────────────────────────┘    │    │
 │    │                                      │    │
 │    └──────────────────────────────────────┘    │
@@ -57,15 +58,19 @@ The diagram above depicts the components used in the NVGPU example while running
 
 ## Build Instructions
 
-1. Build  NVGPU Token docker image in release/debug mode under project root directory:
+Build the NVGPU Token docker image in release/debug mode under `trustauthority-client` home folder.
 
+To build the example in release mode, run the following command. 
 ```shell
-  - To Build in release mode:  
-  docker build -f examples/nvgpu_token/Dockerfile -t taas/nvgpu_token:v1.3.0 .
-  - To Build in debug mode:  
-	docker build --build-arg ENABLE_DEBUG=Debug -f examples/nvgpu_token/Dockerfile -t taas/nvgpu_token:v1.3.0 .
+make nvgpu_token_docker
 ```
-When successfully built, running `docker image ls -a` includes `taas/nvgpu_token:v1.3.0`.
+
+To build the example in debug mode, run the following command.
+```shell
+make DEBUG=1 nvgpu_token_docker
+```
+
+When successfully built, run `docker image ls -a` includes `taas/nvgpu_token:v1.3.0`.
 
 
 2. The docker image must be present on the NVGPU host.  For example, it can be exported/copied from a build machine as follows.

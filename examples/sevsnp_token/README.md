@@ -17,7 +17,7 @@ To build the example in release mode:
 ```shell
 make sevsnp_token_docker
 ```
-To build the example in release mode:
+To build the example in debug mode:
 ```shell
 make DEBUG=1 sevsnp_token_docker
 ```
@@ -29,7 +29,7 @@ To build the example in release mode:
 ```shell
 make azure_sevsnp_token_docker
 ```
-To build the example in release mode:
+To build the example in debug mode:
 ```shell
 make DEBUG=1 azure_sevsnp_token_docker
 ```
@@ -41,7 +41,7 @@ The Docker image must be present inside the SEV-SNP CVM.  For example, it can be
 
 ```shell
 #Save the sevsnp_token Docker image into trust_authority.sevsnp_token.tar.gz
-docker save taas/sevsnp_token:v0.1.0 > trust_authority.sevsnp_token.tar.gz
+docker save taas/sevsnp_token:v1.3.0 > trust_authority.sevsnp_token.tar.gz
 #scp trust_authority.sevsnp_token.tar.gz to the sevsnp vm.
 #On the sevsnp vm load/import trust_authority.sevsnp_token.tar.gz docker image using below command
 docker load -i trust_authority.sevsnp_token.tar.gz

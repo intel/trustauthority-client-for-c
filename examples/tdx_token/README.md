@@ -10,26 +10,26 @@ The Intel® Trust Domain Extensions (Intel® TDX) attestation token example is a
 │    │          Docker Container            │    │
 │    │                                      │    │
 │    │    ┌──────────────────────────┐      │    │
-│    │    │     Intel TDX Token      │      │    │                ┌────────────────┐
+│    │    │      Intel TDX Token     │      │    │                ┌────────────────┐
 │    │    └──────────────────────────┘      │    │                │                │
 │    │                                      │    │                │                │
 │    │    ┌──────────────────────────┐      │◄───┼───────────────►│   INTEL TRUST  │
-│    │    │  libtrustauthotiy_tdx.so │      │    │                │   AUTHORITY    │
+│    │    │ libtrustauthority_tdx.so │      │    │                │   AUTHORITY    │
 │    │    └──────────────────────────┘      │    │                │   SERVER       │
 │    │                                      │    │                └────────────────┘
 │    │    ┌──────────────────────────┐      │    │
-│    │    │lib_trustauthotiy_        |      |    |
-|    │    │    connector.so          |      |    |
+│    │    │ lib_trustauthority_      |      |    |
+|    │    │ connector.so             |      |    |
 │    │    └──────────────────────────┘      │    │
 │    │                                      │    │
 │    │    ┌────────────────────────────┐    │    │
-│    │    │ libtrustauthotiy_          |    |    |
-|    |    | token_provider.so          │    │    │
+│    │    │ libtrustauthority_         |    |    |
+|    |    | evidence_builder.so        │    │    │
 │    │    └────────────────────────────┘    │    │
 │    │                                      │    │
 │    │    ┌────────────────────────────┐    │    │
-│    │    │ libtrustauthotiy_          |    |    |
-|    |    |  token_verifier.so         │    │    │
+│    │    │ libtrustauthority_         |    |    |
+|    |    | token_verifier.so          │    │    │
 │    │    └────────────────────────────┘    │    │
 │    │                                      │    │
 │    └──────────────────────────────────────┘    │
@@ -37,7 +37,7 @@ The Intel® Trust Domain Extensions (Intel® TDX) attestation token example is a
 │                  Intel TDX VM                  │
 └────────────────────────────────────────────────┘
 ```
-The diagram above depicts the components used in the TDX Token while running within a docker container.  The TDX Token example can also be run directly inside a TD VM.
+The diagram above depicts the components used in the Intel TDX Token example while running within a docker container. The Intel TDX Token example can also be run directly inside a TD VM.
 
 ## Prerequisites
 - Ability to build the Intel Trust Authority Attestation Client (see [Build Instructions](../../docs/builds.md)).
@@ -59,7 +59,7 @@ Build the Intel TDX example Docker image. You can build the image in debug or re
     ```shell
       make DEBUG=1 tdx_token_docker
     ```
-  1. When successfully built, running `docker image ls -a` includes `taas/tdx_token:v1.3.
+  1. When successfully built, running `docker image ls -a` includes `taas/tdx_token:v1.3.0`.
 
 2. If you are building for Azure, use following commands.
   1. Release mode:
@@ -76,7 +76,7 @@ Build the Intel TDX example Docker image. You can build the image in debug or re
 3. The docker image must be present inside the TD vm.  For example, it can be exported/copied from a build machine as follows.
   ```shell
   #Save the tdx_token Docker image into trust_authority.tdx_token.tar.gz
-  docker save taas/tdx_token:v0.1.0 > trust_authority.tdx_token.tar.gz
+  docker save taas/tdx_token:v1.3.0 > trust_authority.tdx_token.tar.gz
   #scp trust_authority.tdx_token.tar.gz to the TD VM.
   #On the TD VM load/import trust_authority.tdx_token.tar.gz docker image using below command
   docker load -i trust_authority.tdx_token.tar.gz
