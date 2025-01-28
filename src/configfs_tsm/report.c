@@ -26,7 +26,7 @@ char *read_file(const char *filepath, const char *mode, size_t *size)
     if (!buffer)
     {
         fclose(file);
-        ERROR("Error in opening file: %s\n", filepath);
+        ERROR("Error in allocating memory");
         return NULL;
     }
     size_t bytes_read;
@@ -41,7 +41,7 @@ char *read_file(const char *filepath, const char *mode, size_t *size)
             {
                 free(buffer);
                 fclose(file);
-                ERROR("Error in reallocating memory for %s: \n", filepath);
+                ERROR("Error in reallocating memory");
                 return NULL;
             }
             buffer = new_buffer;
@@ -52,7 +52,7 @@ char *read_file(const char *filepath, const char *mode, size_t *size)
     {
         free(buffer);
         fclose(file);
-        ERROR("Error in reading file %s: \n", filepath);
+        ERROR("Error in reading file: %s \n", filepath);
         return NULL;
     }
 
@@ -63,6 +63,27 @@ char *read_file(const char *filepath, const char *mode, size_t *size)
         *size = total_size;
     }
     return buffer;
+}
+
+int write_file(const char *filepath, const char *mode, unsigned char *input, size_t size)
+{
+    FILE *file = fopen(filepath, mode);
+    if (!file)
+    {
+        ERROR("Failed to open file: %s \n", filepath);
+        return -1;
+    }
+
+    fwrite(input, 1, size, file);
+    if (ferror(file))
+    {
+        fclose(file);
+        ERROR("Error in writing file: %s \n", filepath);
+        return -1;
+    }
+
+    fclose(file);
+    return 0;
 }
 
 char *create_temp_directory(const char *base_path, const char *prefix)
@@ -110,12 +131,12 @@ TRUST_AUTHORITY_STATUS create_file_path(const char *temp_dir, const char *path, 
 
 TRUST_AUTHORITY_STATUS get_report(Request *r, Response **response)
 {
-    int fd = -1;
     char *provider = NULL;
     size_t provider_len = 0;
     unsigned char *td_report = NULL;
     size_t td_report_len = 0;
     char *temp_dir = NULL;
+    char *generation_str = NULL;
     char *file_path_inblob = NULL;
     char *file_path_outblob = NULL;
     char *file_path_gen = NULL;
@@ -139,45 +160,25 @@ TRUST_AUTHORITY_STATUS get_report(Request *r, Response **response)
     temp_dir = TSM_SUBSYSTEM_PATH;
 #endif
 
+    /// Write to inblob
     status = create_file_path(temp_dir, "/inblob", &file_path_inblob);
     if (status != STATUS_OK)
     {
-        ERROR("Failed to create path for inblob\n");
+        ERROR("Failed to create inblob path\n");
         goto CLEANUP;
     }
-    if (access(file_path_inblob, F_OK) != 0)
+    if (write_file(file_path_inblob, "wb", r->in_blob, r->in_blob_size) == -1)
     {
-        ERROR("Inblob file not found under TSM directory\n");
-        status = STATUS_TSM_SUBSYSTEM_ERROR;
-        goto CLEANUP;
-    }
-    fd = open(file_path_inblob, O_WRONLY, 0200);
-    if (fd == -1)
-    {
-        ERROR("Failed to open inblob file\n");
-        status = STATUS_FILE_OPEN_ERROR;
-        goto CLEANUP;
-    }
-    if (write(fd, r->in_blob, r->in_blob_size) == -1)
-    {
-        ERROR("failed to write to in_blob\n");
+        ERROR("Failed to write to inblob file\n");
         status = STATUS_FILE_WRITE_ERROR;
-        close(fd);
         goto CLEANUP;
     }
-    close(fd);
 
     /// Read from outblob
     status = create_file_path(temp_dir, "/outblob", &file_path_outblob);
     if (status != STATUS_OK)
     {
         ERROR("Failed to create outblob path\n");
-        goto CLEANUP;
-    }
-    if (access(file_path_outblob, F_OK) != 0)
-    {
-        ERROR("Outblob file not found under TSM directory\n");
-        status = STATUS_TSM_SUBSYSTEM_ERROR;
         goto CLEANUP;
     }
     td_report = read_file(file_path_outblob, "rb", &td_report_len);
@@ -188,6 +189,7 @@ TRUST_AUTHORITY_STATUS get_report(Request *r, Response **response)
         goto CLEANUP;
     }
 
+    // Read provider file
     status = create_file_path(temp_dir, "/provider", &file_path_provider);
     if (status != STATUS_OK)
     {
@@ -209,13 +211,14 @@ TRUST_AUTHORITY_STATUS get_report(Request *r, Response **response)
         ERROR("Failed to create generation path\n");
         goto CLEANUP;
     }
-    char *generation_str = read_file(file_path_gen, "r", NULL);
+    generation_str = read_file(file_path_gen, "r", NULL);
     if (generation_str == NULL)
     {
         ERROR("Failed to read generation value\n");
         status = STATUS_FILE_READ_ERROR;
         goto CLEANUP;
     }
+
     // Check if the outblob has been corrupted during file open
     if (atoi(generation_str) > 1)
     {
@@ -273,6 +276,11 @@ CLEANUP:
     {
         free(file_path_gen);
         file_path_gen = NULL;
+    }
+    if (generation_str != NULL)
+    {
+        free(generation_str);
+        generation_str = NULL;
     }
     if (td_report != NULL)
     {
