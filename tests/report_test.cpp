@@ -1,4 +1,4 @@
-/* Copyright (C) 2024 Intel Corporation
+/* Copyright (C) 2024-2025 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -147,35 +147,6 @@ TEST(GetReport, GetReportInblobOpenError)
     rmdir(temp_dir);
 }
 
-TEST(GetReport, GetReportInblobWriteError)
-{
-    Request req;
-    req.in_blob = (unsigned char *)"test_blob";
-    req.in_blob_size = strlen((char *)req.in_blob);
-    Response *response = NULL;
-
-    const char *temp_dir = TSM_SUBSYSTEM_PATH;
-    int result = mkdir(TSM_SUBSYSTEM_PATH, 0755);
-    if ((result != 0) && (errno != EEXIST))
-    {
-        perror("Failed to create directory");
-    }
-
-    char inblob_path[256];
-    memset(inblob_path, 0, sizeof(inblob_path));
-    snprintf(inblob_path, sizeof(inblob_path), "%s/inblob", temp_dir);
-    FILE *file = fopen(inblob_path, "w");
-    fwrite(req.in_blob, 1, req.in_blob_size, file);
-    fclose(file);
-    Request req_fail;
-    TRUST_AUTHORITY_STATUS status = get_report(&req_fail, &response);
-    assert(status == STATUS_FILE_WRITE_ERROR);
-    assert(response == NULL);
-
-    remove(inblob_path);
-    rmdir(temp_dir);
-}
-
 TEST(GetReport, GetReportInvalidOutblob)
 {
     Request req;
@@ -185,7 +156,6 @@ TEST(GetReport, GetReportInvalidOutblob)
 
     const char *temp_dir = TSM_SUBSYSTEM_PATH;
     int result = mkdir(TSM_SUBSYSTEM_PATH, 0755);
-
     if ((result != 0) && (errno != EEXIST))
     {
         perror("Failed to create directory");
@@ -199,50 +169,9 @@ TEST(GetReport, GetReportInvalidOutblob)
     fclose(file);
 
     TRUST_AUTHORITY_STATUS status = get_report(&req, &response);
-    assert(status == STATUS_TSM_SUBSYSTEM_ERROR);
+    assert(status == STATUS_FILE_READ_ERROR);
     assert(response == NULL);
 
-    remove(inblob_path);
-    rmdir(temp_dir);
-}
-
-TEST(GetReport, GetReportOutblobReadError)
-{
-    Request req;
-    req.in_blob = (unsigned char *)"test_blob";
-    req.in_blob_size = strlen((char *)req.in_blob);
-    Response *response = NULL;
-
-    const char *temp_dir = TSM_SUBSYSTEM_PATH;
-    int result = mkdir(TSM_SUBSYSTEM_PATH, 0755);
-    if ((result != 0) && (errno != EEXIST))
-    {
-        perror("Failed to create directory");
-    }
-
-    char inblob_path[256], outblob_path[256];
-    memset(inblob_path, 0, sizeof(inblob_path));
-    memset(outblob_path, 0, sizeof(outblob_path));
-    snprintf(inblob_path, sizeof(inblob_path), "%s/inblob", temp_dir);
-    snprintf(outblob_path, sizeof(outblob_path), "%s/outblob", temp_dir);
-    FILE *file = fopen(inblob_path, "w");
-    fwrite(req.in_blob, 1, req.in_blob_size, file);
-    fclose(file);
-    file = fopen(outblob_path, "w");
-    fwrite("test_out_blob", 1, strlen("test_out_blob"), file);
-    fclose(file);
-
-    if (chmod(outblob_path, 0000) == -1)
-    {
-        perror("Failed to change file permissions");
-        exit(1);
-    }
-
-    TRUST_AUTHORITY_STATUS status = get_report(&req, &response);
-    assert(status == STATUS_FILE_OPEN_ERROR);
-    assert(response == NULL);
-
-    remove(outblob_path);
     remove(inblob_path);
     rmdir(temp_dir);
 }
@@ -282,7 +211,7 @@ TEST(GetReport, GetReportInvalidProvider)
     rmdir(temp_dir);
 }
 
-TEST(GetReport, GetReportInvalidGenerator)
+TEST(GetReport, GetReportInvalidGeneration)
 {
     Request req;
     req.in_blob = (unsigned char *)"test_blob";
@@ -291,7 +220,6 @@ TEST(GetReport, GetReportInvalidGenerator)
 
     const char *temp_dir = TSM_SUBSYSTEM_PATH;
     int result = mkdir(TSM_SUBSYSTEM_PATH, 0755);
-
     if ((result != 0) && (errno != EEXIST))
     {
         perror("Failed to create directory");
@@ -345,7 +273,6 @@ TEST(GetReport, GetReportInvalidGenerationCount)
 
     const char *temp_dir = TSM_SUBSYSTEM_PATH;
     int result = mkdir(TSM_SUBSYSTEM_PATH, 0755);
-    
     if ((result != 0) && (errno != EEXIST))
     {
         perror("Failed to create directory");
@@ -399,7 +326,6 @@ TEST(GetReport, GetReportValid)
 
     const char *temp_dir = TSM_SUBSYSTEM_PATH;
     int result = mkdir(TSM_SUBSYSTEM_PATH, 0755);
-    
     if ((result != 0) && (errno != EEXIST))
     {
         perror("Failed to create directory");

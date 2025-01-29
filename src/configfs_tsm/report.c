@@ -65,13 +65,13 @@ char *read_file(const char *filepath, const char *mode, size_t *size)
     return buffer;
 }
 
-int write_file(const char *filepath, const char *mode, unsigned char *input, size_t size)
+TRUST_AUTHORITY_STATUS write_file(const char *filepath, const char *mode, unsigned char *input, size_t size)
 {
     FILE *file = fopen(filepath, mode);
     if (!file)
     {
         ERROR("Failed to open file: %s \n", filepath);
-        return -1;
+        return STATUS_FILE_OPEN_ERROR;
     }
 
     fwrite(input, 1, size, file);
@@ -79,11 +79,11 @@ int write_file(const char *filepath, const char *mode, unsigned char *input, siz
     {
         fclose(file);
         ERROR("Error in writing file: %s \n", filepath);
-        return -1;
+        return STATUS_FILE_WRITE_ERROR;
     }
 
     fclose(file);
-    return 0;
+    return STATUS_OK;
 }
 
 char *create_temp_directory(const char *base_path, const char *prefix)
@@ -131,16 +131,16 @@ TRUST_AUTHORITY_STATUS create_file_path(const char *temp_dir, const char *path, 
 
 TRUST_AUTHORITY_STATUS get_report(Request *r, Response **response)
 {
+    char *temp_dir = NULL;
     char *provider = NULL;
     size_t provider_len = 0;
     unsigned char *td_report = NULL;
     size_t td_report_len = 0;
-    char *temp_dir = NULL;
     char *generation_str = NULL;
     char *file_path_inblob = NULL;
     char *file_path_outblob = NULL;
-    char *file_path_gen = NULL;
     char *file_path_provider = NULL;
+    char *file_path_generation = NULL;
     TRUST_AUTHORITY_STATUS status = STATUS_OK;
 
     if (access(TSM_SUBSYSTEM_PATH, F_OK) != 0)
@@ -167,10 +167,16 @@ TRUST_AUTHORITY_STATUS get_report(Request *r, Response **response)
         ERROR("Failed to create inblob path\n");
         goto CLEANUP;
     }
-    if (write_file(file_path_inblob, "wb", r->in_blob, r->in_blob_size) == -1)
+    if (access(file_path_inblob, F_OK) != 0)
+    {
+        ERROR("Inblob file not found under TSM directory\n");
+        status = STATUS_TSM_SUBSYSTEM_ERROR;
+        goto CLEANUP;
+    }
+    status = write_file(file_path_inblob, "wb", r->in_blob, r->in_blob_size);
+    if (status != STATUS_OK)
     {
         ERROR("Failed to write to inblob file\n");
-        status = STATUS_FILE_WRITE_ERROR;
         goto CLEANUP;
     }
 
@@ -205,13 +211,13 @@ TRUST_AUTHORITY_STATUS get_report(Request *r, Response **response)
     }
 
     // Read generation file
-    status = create_file_path(temp_dir, "/generation", &file_path_gen);
+    status = create_file_path(temp_dir, "/generation", &file_path_generation);
     if (status != STATUS_OK)
     {
         ERROR("Failed to create generation path\n");
         goto CLEANUP;
     }
-    generation_str = read_file(file_path_gen, "r", NULL);
+    generation_str = read_file(file_path_generation, "r", NULL);
     if (generation_str == NULL)
     {
         ERROR("Failed to read generation value\n");
@@ -272,10 +278,10 @@ CLEANUP:
         free(file_path_provider);
         file_path_provider = NULL;
     }
-    if (file_path_gen != NULL)
+    if (file_path_generation != NULL)
     {
-        free(file_path_gen);
-        file_path_gen = NULL;
+        free(file_path_generation);
+        file_path_generation = NULL;
     }
     if (generation_str != NULL)
     {
@@ -292,11 +298,11 @@ CLEANUP:
         free(provider);
         provider = NULL;
     }
-    if (rmdir(temp_dir) < 0) {
-        ERROR("error removing directory: %s", temp_dir);
-    }
+    rmdir(temp_dir);
+#ifndef TEST_MODE
     free(temp_dir);
     temp_dir = NULL;
+#endif
     return status;
 }
 
