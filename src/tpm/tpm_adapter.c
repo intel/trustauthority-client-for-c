@@ -68,35 +68,39 @@ bool pcr_parse_selections(const char *arg, TPML_PCR_SELECTION *pcr_select, void 
 int tpm_adapter_new(evidence_adapter **adapter)
 {
     tpm_adapter_context *ctx = NULL;
+    int result = STATUS_OK;
     if (NULL == adapter)
     {
-        return STATUS_TPM_ERROR_BASE | STATUS_NULL_ADAPTER;
+        result = STATUS_TPM_ERROR_BASE | STATUS_NULL_ADAPTER;
+        goto ERROR;
     }
 
     *adapter = (evidence_adapter *)malloc(sizeof(evidence_adapter));
     if (NULL == *adapter)
     {
-        return STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
+        result = STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
+        goto ERROR;
     }
 
     ctx = (tpm_adapter_context *)calloc(1, sizeof(tpm_adapter_context));
     if (NULL == ctx)
     {
-        free(*adapter);
-        *adapter = NULL;
-        return STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
+        result = STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
+        goto ERROR;
     }
 
     ctx->owner_auth = (char *)calloc(1, sizeof(TPMU_HA));
     if (NULL == ctx->owner_auth)
     {
-        return STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
+        result = STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
+        goto ERROR;
     }
 
     ctx->pcr_selection = (TPML_PCR_SELECTION *)calloc(1, sizeof(TPML_PCR_SELECTION));
     if (NULL == ctx->pcr_selection)
     {
-        return STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
+        result = STATUS_TPM_ERROR_BASE | STATUS_ALLOCATION_ERROR;
+        goto ERROR;
     }
     memcpy(ctx->pcr_selection, &DEFAULT_TPML_PCR_SELECTION, sizeof(TPML_PCR_SELECTION));
 
@@ -109,6 +113,29 @@ int tpm_adapter_new(evidence_adapter **adapter)
     (*adapter)->get_evidence_identifier = tpm_get_evidence_identifier;
 
     return STATUS_OK;
+
+ERROR:
+    if (ctx->owner_auth != NULL)
+    {
+        free(ctx->owner_auth);
+        ctx->owner_auth = NULL;
+    }
+    if (ctx != NULL)
+    {
+        free(ctx);
+        ctx = NULL;
+    }
+    if ((*adapter)->ctx != NULL)
+    {
+        free((*adapter)->ctx);
+        (*adapter)->ctx = NULL;
+    }
+    if (*adapter != NULL)
+    {
+        free(*adapter);
+        *adapter = NULL;
+    }
+    return result;
 }
 
 int tpm_adapter_free(evidence_adapter *adapter)
