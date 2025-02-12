@@ -70,7 +70,7 @@ EOF
 
 2. Run the example in a Docker container
 ``` shell
-sudo docker run -it --rm --device=/dev/tpm0 --device=/dev/tpmrm0 --env-file tpm_token.env --group-add $(getent group tss | cut -d: -f3) taas/azure_tpm_token:v1.3.0
+sudo docker run -it --rm --device=/dev/tpm0 --device=/dev/tpmrm0 --privileged -u root -v /sys:/sys --env-file tpm_token.env --group-add $(getent group tss | cut -d: -f3) taas/azure_tpm_token:v1.3.0
 ```
 
 When successful, the token and other information will be displayed.
