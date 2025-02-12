@@ -413,14 +413,14 @@ int is_valid_uuid(const char *uuid_str)
 
 TRUST_AUTHORITY_STATUS is_valid_token_sigining_alg(const char *input)
 {
-	if (input == NULL)
+	if (input == NULL || strcmp(input, "") == 0)
 	{
-		return STATUS_INPUT_ERROR;
+		return STATUS_OK;
 	}
-	if ((strcmp(input, PS384) != 0) && (strcmp(input, RS256) != 0)){
-		return STATUS_INVALID_TOKEN_SIGNING_ALG;
+	if ((strcmp(input, PS384) == 0) || (strcmp(input, RS256) == 0)){
+		return STATUS_OK;
 	}
-	return STATUS_OK;
+	return STATUS_INVALID_TOKEN_SIGNING_ALG;
 }
 
 TRUST_AUTHORITY_STATUS validate_and_get_policy_must_match(const char *input, bool *policy_must_match)

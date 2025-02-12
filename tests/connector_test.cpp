@@ -506,7 +506,7 @@ TEST(TokenSigningAlgorithmTest, NullAlgorithm)
 {
 	char *signing_alg = NULL;
 	int status = is_valid_token_sigining_alg(signing_alg);
-	ASSERT_NE(status,0);
+	ASSERT_EQ(status,0);
 }
 
 // Test case to check Token Signing Algorithm - Invalid Token Signing Algorithm
@@ -518,7 +518,7 @@ TEST(TokenSigningAlgorithmTest, InvalidAlgorithm)
 }
 
 // Test case to check Token Signing Algorithm - Valid Token Signing Algorithm
-TEST(TokenSigningAlgorithmTest, SuccessCase)
+TEST(TokenSigningAlgorithmTest, ValidAlgorithm)
 {
 	char *signing_alg = "PS384";
 	int status = is_valid_token_sigining_alg(signing_alg);

@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (token_signing_alg_str != NULL && STATUS_OK != is_valid_token_sigining_alg(token_signing_alg_str))
+	if (STATUS_OK != is_valid_token_sigining_alg(token_signing_alg_str))
 	{
 		ERROR("ERROR: Unsupported Token Signing Algorithm, supported algorithms are RS256/PS384\n");
 		return 1;
