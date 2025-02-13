@@ -442,6 +442,11 @@ TRUST_AUTHORITY_STATUS validate_and_get_policy_must_match(const char *input, boo
 
 int validate_request_id(const char *req_id)
 {
+	if (req_id == NULL || strcmp(req_id, "") == 0)
+	{
+		return 0;
+	}
+
 	// Define the regex pattern for allowed characters
 	regex_t regex;
 	int ret = regcomp(&regex, "^[a-zA-Z0-9_ \\/.-]{1,128}$", REG_EXTENDED);
@@ -459,7 +464,7 @@ int validate_request_id(const char *req_id)
 		return ret;
 	}
 
-	return ret;
+	return 0;
 }
 
 // Validate format of api_key

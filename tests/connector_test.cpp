@@ -560,6 +560,13 @@ TEST(PolicyMustMatchTest, InvalidInput)
     ASSERT_NE(result, 0);
 }
 
+TEST(RequestIdTest, NullRequestId)
+{
+	const char* request_id = NULL;
+	int ret = validate_request_id(request_id);
+	ASSERT_EQ(ret, 0);
+}
+
 TEST(RequestIdTest, InvalidRequestId)
 {
 	const char* request_id = "Hello#1234";
