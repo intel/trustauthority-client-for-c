@@ -386,6 +386,7 @@ int get_sevsnp_report(uint8_t *report_data, uint8_t **tpm_report)
 	TSS2_ABI_VERSION *abiVersion = NULL;
 	TRUST_AUTHORITY_STATUS status = STATUS_OK;
 	uint8_t *report_string = NULL;
+	unsigned char rand_buffer[4];
 
 	/*Initialize to get the ESYS Context*/
 	TSS2_RC rval = Esys_Initialize(&esys_context, tcti, abiVersion);
@@ -446,7 +447,12 @@ int get_sevsnp_report(uint8_t *report_data, uint8_t **tpm_report)
 	}
 
 	// Get a random number to be appended to the end of file name to make it random
-	int rand_num = rand();
+	if (RAND_bytes(rand_buffer, sizeof(rand_buffer)) != 1) {
+    		status = STATUS_SEVSNP_ERROR_BASE | STATUS_INVALID_PARAMETER;
+    		goto ERROR;
+    	}
+
+    	int rand_num = *(int*)rand_buffer;
 
 	// Create file name using snprintf to avoid buffer overflow
 	size_t nbytes = snprintf(NULL, 0, "/tmp/report_azure_%d.txt", rand_num) + 1; // +1 for null terminator
