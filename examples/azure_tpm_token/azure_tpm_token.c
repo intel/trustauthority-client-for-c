@@ -6,7 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <connector.h>
+#ifdef AZURE_SEVSNP
+#include <sevsnp_adapter.h>
+#else
 #include <tdx_adapter.h>
+#endif
 #include <tpm_adapter.h>
 #include <token_verifier.h>
 #include <evidence_builder.h>
@@ -44,7 +48,11 @@ int main(int argc, char *argv[])
 {
 	int result;
 	trust_authority_connector *connector = NULL;
+#ifdef AZURE_SEVSNP
+	evidence_adapter *sevsnp_adapter = NULL;
+#else
 	evidence_adapter *tdx_adapter = NULL;
+#endif
 	evidence_adapter *tpm_adapter = NULL;
 	evidence_builder *builder = NULL;
 	nonce nonce = {0};
@@ -149,12 +157,21 @@ int main(int argc, char *argv[])
 		goto DONE;
 	}
 
+#ifdef AZURE_SEVSNP
+	result = azure_sevsnp_adapter_new(&sevsnp_adapter);
+	if (STATUS_OK != result)
+	{
+		ERROR("ERROR: Failed to create Azure SEVSNP Adapter: 0x%04x\n", result);
+		goto DONE;
+	}
+#else
 	result = azure_tdx_adapter_new(&tdx_adapter);
 	if (STATUS_OK != result)
 	{
 		ERROR("ERROR: Failed to create Azure TDX Adapter: 0x%04x\n", result);
 		goto DONE;
 	}
+#endif
 
 	result = tpm_adapter_new(&tpm_adapter);
 	if (STATUS_OK != result)
@@ -209,12 +226,21 @@ int main(int argc, char *argv[])
 		goto DONE;
 	}
 
+#ifdef AZURE_SEVSNP
+	result = evidence_builder_add_adapter(builder, sevsnp_adapter);
+	if (STATUS_OK != result)
+	{
+		ERROR("ERROR: Failed to add sevsnp adapter to builder: 0x%04x\n", result);
+		goto DONE;
+	}
+#else
 	result = evidence_builder_add_adapter(builder, tdx_adapter);
 	if (STATUS_OK != result)
 	{
 		ERROR("ERROR: Failed to add tdx adapter to builder: 0x%04x\n", result);
 		goto DONE;
 	}
+#endif
 
 	result = evidence_builder_add_adapter(builder, tpm_adapter);
 	if (STATUS_OK != result)
@@ -275,7 +301,11 @@ DONE:
 
 	response_headers_free(&headers);
 	evidence_builder_free(builder);
+#ifdef AZURE_SEVSNP
+	sevsnp_adapter_free(sevsnp_adapter);
+#else
 	tdx_adapter_free(tdx_adapter);
+#endif
 	tpm_adapter_free(tpm_adapter);
 	connector_free(connector);
 	token_free(&token);
