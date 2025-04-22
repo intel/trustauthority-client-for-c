@@ -9,9 +9,9 @@ on:
 permissions: read-all
 
 jobs:
-  build-test:
-    runs-on: [ ubuntu-20.04 ]
-    if: github.repository == 'intel-innersource/applications.security.amber.trustauthority-client-for-c'
+  build-push:
+    if: github.repository != 'intel/trustauthority-client-for-c'
+    runs-on: [ self-hosted ]
     env:
       http_proxy: ${{ secrets.HTTP_PROXY }}
       https_proxy: ${{ secrets.HTTPS_PROXY }}
