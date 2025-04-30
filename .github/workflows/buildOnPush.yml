@@ -24,14 +24,13 @@ jobs:
           path: client-c
           fetch-depth: 0
 
-      - name: Build Client C
+      - name: Build Client C docker images
         run: |
-          make azure_tpm_token_docker
-          LATEST_IMAGE=$(docker images --format "{{.Repository}}:{{.Tag}}" taas/azure_tpm_token)
-          docker save $LATEST_IMAGE > client-c/trust_authority.azure_tpm_token.tar.gz
-
+          make all
+          make tar-images
+          
       - name: Upload Client Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: client-c-${{ github.run_number }}
-          path: client-c/trust_authority.azure_tpm_token.tar.gz
+          path: client-c/trust_authority.*.tar.gz
