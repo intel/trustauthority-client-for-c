@@ -152,8 +152,8 @@ tar-images:
 	@LATEST_IMAGES=$$(docker images --format "{{.Repository}}:{{.Tag}}" taas/*); \
 	for image in $$LATEST_IMAGES; do \
 		image_name=$$(echo $$image | cut -d':' -f1 | cut -d'/' -f2); \
-		echo "Saving $$image to $$image_name.tar.gz"; \
-		docker save $$image | gzip > $$image_name.tar.gz; \
+		echo "Saving $$image to trust_authority.$$image_name.tar.gz"; \
+		docker save $$image | gzip > trust_authority.$$image_name.tar.gz; \
 	done
 
 clean:
