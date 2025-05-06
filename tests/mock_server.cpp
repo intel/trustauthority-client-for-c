@@ -128,7 +128,7 @@ string MockServer::generateResponse(const http_request & request,
                         httpResponse = responseJson;
                 } else if (path == "/appraisal/v2/nonce") {
                         httpResponse = responseJson;
-                } else if (path == "/token_signing_cert") {
+                } else if (path == "/certs") {
                         httpResponse = responseJson;
                 } else if (path == "/invalid-cert/certs") {
                         httpResponse = responseJson;

@@ -40,25 +40,40 @@ TRUST_AUTHORITY_STATUS trust_authority_connector_new(trust_authority_connector *
 
 	if (strnlen(api_key, API_KEY_MAX_LEN + 1) > API_KEY_MAX_LEN)
 	{
+		ERROR("Invalid Trust Authority Api key, must be lesser than %d in length\n", API_KEY_MAX_LEN);
 		return STATUS_INVALID_API_KEY;
 	}
 
-	if (strnlen(api_url, API_URL_MAX_LEN + 1) >
-			API_URL_MAX_LEN)
+	int api_url_len = strnlen(api_url, API_URL_MAX_LEN + 1);
+	if (api_url_len > API_URL_MAX_LEN)
 	{
+		ERROR("Invalid Trust Authority Api URL, must be lesser than %d in length\n", API_URL_MAX_LEN);
 		return STATUS_INVALID_API_URL;
 	}
+
 	// Validate format of api_url
 	if (0 != is_valid_url(api_url))
 	{
+		ERROR("Invalid Trust Authority Api URL\n");
 		return STATUS_INVALID_API_URL;
 	}
 	// Validate format of api_key
 	status = is_valid_api_key(api_key);
 	if (STATUS_OK != status)
 	{
+		ERROR("Invalid Trust Authority Api key\n");
 		return status;
 	}
+
+	// Handling trailing slashes in api_url
+	char mutable_api_url[API_URL_MAX_LEN + 1];
+	strncpy(mutable_api_url, api_url, api_url_len);
+	mutable_api_url[api_url_len] = '\0'; // Ensure null termination
+	if (mutable_api_url[api_url_len - 1] == '/')
+	{
+		mutable_api_url[api_url_len - 1] = '\0';
+	}
+	api_url = mutable_api_url; // Update api_url to point to the mutable copy
 
 	*connector = (trust_authority_connector *)calloc(1, sizeof(trust_authority_connector));
 	if (NULL == *connector)
@@ -493,15 +508,16 @@ TRUST_AUTHORITY_STATUS is_valid_api_key(const char *api_key)
 	return STATUS_OK;
 }
 
-TRUST_AUTHORITY_STATUS get_token_signing_certificate(const char *jwks_url,
+TRUST_AUTHORITY_STATUS get_token_signing_certificate(const char *base_url,
 		char **jwks,
 		const int retry_max,
 		const int retry_wait_time)
 {
 	CURLcode status = CURLE_OK;
 	char *header = NULL;
+	char jwks_url[API_URL_MAX_LEN + 1] = {0};
 	TRUST_AUTHORITY_STATUS ret = STATUS_OK;
-	if (jwks_url == NULL)
+	if (base_url == NULL)
 	{
 		return STATUS_INVALID_PARAMETER;
 	}
@@ -524,6 +540,12 @@ TRUST_AUTHORITY_STATUS get_token_signing_certificate(const char *jwks_url,
 	{
 		retries->retry_wait_time = retry_wait_time;
 	}
+
+	strncat(jwks_url, base_url, API_URL_MAX_LEN);
+	strncat(jwks_url, "/certs", API_URL_MAX_LEN);
+	DEBUG("JWKS url: %s\n", jwks_url);
+
+	//Get JWKS from Intel Trust Authority
 	int jwks_length = 0;
 	status = get_request(jwks_url, NULL, ACCEPT_APPLICATION_JSON, NULL, NULL, jwks, &jwks_length, &header, retries);
 	if (CURLE_OK != status || *jwks == NULL)

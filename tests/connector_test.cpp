@@ -409,7 +409,7 @@ TEST(TokenTest, RetrieveTokenSuccess)
 // Test case for failure to retrieve token signing certificate
 TEST(GetJwksTest, RetrieveCertificateFailure)
 {
-	const char *certUrl = "http://localhost:8081/token_signing_cert1";
+	const char *certUrl = "http://localhost:8081/";
 	char *pemCertificate = nullptr;
 
 	// Call the get_token_signing_certificate function
@@ -429,7 +429,7 @@ TEST(GetJwksTest, RetrieveCertificateSuccess)
 	MockServer mockServer("Mock Cert data");
 	mockServer.start();
 
-	const char *certUrl = "http://localhost:8081/token_signing_cert";
+	const char *certUrl = "http://localhost:8081";
 	char *pemCertificate = nullptr;
 	retry_config retries = { .retry_wait_time=1, .retry_max=1 };
 

@@ -16,7 +16,7 @@ extern "C"
 	typedef struct trust_authority_connector
 	{
 		char api_key[API_KEY_MAX_LEN + 1]; /* character array containing API KEY use to authenticate to Intel trust Authority */
-		char api_url[API_URL_MAX_LEN + 1]; /* character array containing URL of Intel Trust Authority */
+		char api_url[API_URL_MAX_LEN + 1]; /* character array containing API URL of Intel Trust Authority */
 		retry_config *retries;
 	} trust_authority_connector;
 
@@ -104,13 +104,13 @@ extern "C"
 
 	/**
 	 * Get a token signing certificate from Intel Trust Authority.
-	 * @param tokensigncerturl Intel Trust Authority URL
-	 * @param jwks jwks signing certificate recieved from Intel Trust Authority
+	 * @param base_url Intel Trust Authority Base URL
+	 * @param jwks jwt signing certificate recieved from Intel Trust Authority
 	 * @param retry_max integer containing maximum number of retries
 	 * @param retry_wait_time integer containing wait time between retries
 	 * @return return status
 	 */
-	TRUST_AUTHORITY_STATUS get_token_signing_certificate(const char *tokensigncerturl,
+	TRUST_AUTHORITY_STATUS get_token_signing_certificate(const char *base_url,
 			char **jwks,
 			const int retry_max,
 			const int retry_wait_time);
