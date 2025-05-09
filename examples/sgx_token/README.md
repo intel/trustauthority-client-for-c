@@ -1,6 +1,6 @@
 # Intel® SGX Attestation Example
 
-<p style="font-size: 0.875em;">· 17 January 2025 ·</p>
+<p style="font-size: 0.875em;">· 07 May 2025 ·</p>
 
 The Intel® Software Guard Extensions (Intel® SGX) attestation example is a C program that uses the Intel® Trust Authority Attestation Client libraries to request an attestation token from Intel Trust Authority. The program contains an example Intel SGX enclave. When run, it collects a quote from the enclave and sends it to Intel Trust Authority to retrieve a token.
 
@@ -92,8 +92,8 @@ The example app relies on an environment file to provide the API key and other i
 cat <<EOF | tee sgx_token.env
 TRUSTAUTHORITY_API_KEY=<trustauthority-api-key>
 TRUSTAUTHORITY_POLICY_ID=<trustauthority-policy-id>
-TRUSTAUTHORITY_API_URL="https://api.trustauthority.intel.com"
-TRUSTAUTHORITY_BASE_URL="https://portal.trustauthority.intel.com"
+TRUSTAUTHORITY_API_URL=https://api.trustauthority.intel.com
+TRUSTAUTHORITY_BASE_URL=https://portal.trustauthority.intel.com
 SGX_AESM_ADDR=1
 EOF
 ```

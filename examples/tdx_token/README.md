@@ -1,6 +1,6 @@
 # Intel® TDX Attestation Token Example
 
-<p style="font-size: 0.875em;">· 17 January 2025 ·</p>
+<p style="font-size: 0.875em;">· 07 May 2025 ·</p>
 
 The Intel® Trust Domain Extensions (Intel® TDX) attestation token example is a C program that uses the Intel® Trust Authority Attestation Client libraries to collect evidence from the TEE and then request a token from Intel Trust Authority. If the token request is successful, the example prints the contents of the token and other information to the screen. 
 
@@ -48,28 +48,28 @@ The diagram above depicts the components used in the Intel TDX Token example whi
 
 ## Build and run the example
 
-Build the Intel TDX example Docker image. You can build the image in debug or release mode. 
+Build the Intel TDX example Docker image. You can build the image in debug or release mode under `trustauthority-client` home folder. 
 
 1. For on-premises Intel TDX server and GCP CVMs with Intel TDX, use the following commands.
   1. To build the image in release mode:
-    ```shell
-      make tdx_token_docker
-    ```
+  ```shell
+    make tdx_token_docker
+  ```
   1. To build the image in debug mode:
-    ```shell
-      make DEBUG=1 tdx_token_docker
-    ```
+  ```shell
+    make DEBUG=1 tdx_token_docker
+  ```
   1. When successfully built, running `docker image ls -a` includes `taas/tdx_token:v1.3.0`.
 
 2. If you are building for Azure, use following commands.
   1. Release mode:
-    ```shell
-      make azure_tdx_token_docker
-    ```
+  ```shell
+    make azure_tdx_token_docker
+  ```
   1. Debug mode
-    ```shell
-      make DEBUG=1 azure_tdx_token_docker
-    ```
+  ```shell
+    make DEBUG=1 azure_tdx_token_docker
+  ```
   1. When successfully built, running `docker image ls -a` includes `taas/azure_tdx_token:v1.3.0`.
 
 
@@ -102,19 +102,19 @@ The example relies on an environment file for information such as the API key an
   cat <<EOF | tee tdx_token.env
     TRUSTAUTHORITY_API_KEY=<trustauthority-api-key>
     TRUSTAUTHORITY_POLICY_ID=<trustauthority-policy-id>
-    TRUSTAUTHORITY_API_URL="https://api.trustauthority.intel.com"
-    TRUSTAUTHORITY_BASE_URL="https://portal.trustauthority.intel.com"
+    TRUSTAUTHORITY_API_URL=https://api.trustauthority.intel.com
+    TRUSTAUTHORITY_BASE_URL=https://portal.trustauthority.intel.com
     EOF
 ```
 
 
 5: Use docker to run the Intel TDX example. Use the command that matches your Intel TDX platform.
   1. On-prem servers and GCP CVMs with Intel TDX:
-    ```shell
-      sudo docker run -it --rm --privileged --network host -v /sys/kernel/config:/sys/kernel/config  --env-file tdx_token.env taas/intel_tdx_token:v1.3.0
-    ```
+  ```shell
+    sudo docker run -it --rm --privileged --network host -v /sys/kernel/config:/sys/kernel/config  --env-file tdx_token.env taas/intel_tdx_token:v1.3.0
+  ```
   1. Azure CVM with Intel TDX:
-    ```shell
+  ```shell
     sudo docker run -it --rm --device=/dev/tpm0 --device=/dev/tpmrm0 --env-file tdx_token.env --group-add $(getent group tss | cut -d: -f3) taas/azure_tdx_token:v1.3.0
-    ```
+  ```
 If the request for an attestation token is successful, the example prints the contents of the token and other information to the screen.

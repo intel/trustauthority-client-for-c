@@ -1,6 +1,6 @@
 # NVIDIA H100 Attestation Token Example
 
-<p style="font-size: 0.875em;">· 17 January 2025 ·</p>
+<p style="font-size: 0.875em;">· 07 May 2025 ·</p>
 
 The NVIDIA H100 GPU attestation example ("NVGPU") is a C program that uses the Intel® Trust Authority Attestation Client libraries to to attest the GPU and the Intel® Trust Domain Extensions (Intel® TDX) host. When run, NVGPU collects GPU evidence from the NVGPU H100, and then sends a quote to Intel Trust Authority to retrieve an attestation token. If attestation is successful, NVGPU prints the contents of the token and other information to the screen.
 
@@ -106,8 +106,8 @@ The following commands create the env file and run the sample in a Docker contai
 cat <<EOF | tee nvgpu_token.env
 TRUSTAUTHORITY_API_KEY=<trustauthority-api-key>
 TRUSTAUTHORITY_POLICY_ID=<trustauthority-policy-id>
-TRUSTAUTHORITY_API_URL="https://api.trustauthority.intel.com"
-TRUSTAUTHORITY_BASE_URL="https://portal.trustauthority.intel.com"
+TRUSTAUTHORITY_API_URL=https://api.trustauthority.intel.com
+TRUSTAUTHORITY_BASE_URL=https://portal.trustauthority.intel.com
 EOF
 #Use docker to run the nvgpu Token example...
 sudo docker run --privileged -u root -v /sys/kernel/config:/sys/kernel/config --rm --runtime=nvidia --gpus all --env-file nvgpu_token.env taas/nvgpu_token:v1.3.0

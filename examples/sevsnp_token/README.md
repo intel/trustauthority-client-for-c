@@ -1,6 +1,6 @@
 # AMD SEV-SNP Token Example
 
-<p style="font-size: 0.875em;">· 17 January 2025 ·</p>
+<p style="font-size: 0.875em;">· 07 May 2025 ·</p>
 
 The AMD SEV-SNP\* token example is a C program that uses the Intel® Trust Authority Attestation Client libraries to request an attestation token from Intel Trust Authority. The example runs inside a confidential VM (CVM) with SEV-SNP. When run, the example collects evidence for a quote from the CVM, and then sends it to Intel Trust Authority for attestation.  
 
@@ -69,8 +69,8 @@ The example relies on an environment file for information such as the API key an
   cat <<EOF | tee sevsnp_token.env
   TRUSTAUTHORITY_API_KEY=<trustauthority-api-key>
   TRUSTAUTHORITY_POLICY_ID=<trustauthority-policy-id>
-  TRUSTAUTHORITY_API_URL="https://api.pilot.trustauthority.intel.com"
-  TRUSTAUTHORITY_BASE_URL="https://portal.pilot.trustauthority.intel.com"
+  TRUSTAUTHORITY_API_URL=https://api.pilot.trustauthority.intel.com
+  TRUSTAUTHORITY_BASE_URL=https://portal.pilot.trustauthority.intel.com
   EOF
   ```
 

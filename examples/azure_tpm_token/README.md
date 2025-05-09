@@ -1,6 +1,6 @@
 # Azure CVM with Intel TDX and vTPM Attestation Example
 
-<p style="font-size: 0.875em;">· 176 January 2025 ·</p>
+<p style="font-size: 0.875em;">· 07 May 2025 ·</p>
 
 The Azure confidential VM with Intel® TDX + vTPM Token example is a C program that uses the Intel® Trust Authority Attestation Client libraries to get an attestation token from Intel® Trust Authority. The program runs inside a trust domain on Azure CVM with Intel TDX.  When run, it collects a quote from the CVM trust domain (TD) and a quote from the vTPM, forming a composite quote, and then sends it to Intel Trust Authority to retrieve a token. If the token request is successful, the contents of the token and other information are printed to the screen. 
 
@@ -63,8 +63,8 @@ The sample relies on an environment file to provide information such as the API 
 cat <<EOF | tee tpm_token.env
 TRUSTAUTHORITY_API_KEY=<trustauthority-api-key>
 TRUSTAUTHORITY_POLICY_ID=<trustauthority-policy-id>
-TRUSTAUTHORITY_API_URL="https://api.trustauthority.intel.com"
-TRUSTAUTHORITY_BASE_URL="https://portal.trustauthority.intel.com"
+TRUSTAUTHORITY_API_URL=https://api.trustauthority.intel.com
+TRUSTAUTHORITY_BASE_URL=https://portal.trustauthority.intel.com
 EOF
 ```
 
