@@ -85,7 +85,7 @@ When run, the example collects a SEV-SNP report from the CVM and a quote from th
 
 ## Prerequisites
 - Ability to build the Intel Trust Authority Attestation Client (see [Build Instructions](../../docs/builds.md)).
-- Azure confidential VM (CVM) with SEVSNP.
+- Azure Confidential VM (CVM) with AMD SEV-SNP.
 - **tpm2-tools** installed on the Azure CVM.
 
 
