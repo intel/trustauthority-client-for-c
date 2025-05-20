@@ -140,7 +140,12 @@ The sample relies on an environment file to provide information such as the API 
 |TPM_WITH_IMA_LOGS|When "true", includes IMA logs into TPM evidence.|
 |TPM_WITH_UEFI_LOGS|When "true", includes UEFI event logs into TPM evidence.|
 
-    
+     The API_URL and BASE_URL depend on your location. There are two Intel Trust Authority deployment regions: European Union (EU) region, and a global region for all other countries. There is a different BaseUrl and ApiUrl for each region, as follows:
+
+    | Region | BASE_URL | API_URL |
+    |--- | --- | --- |
+    | **EU** | `https://portal.eu.trustauthority.intel.com` | `https://api.eu.trustauthority.intel.com` |
+    | **World/US** | `https://portal.trustauthority.intel.com` | `api.trustauthority.intel.com` |
 
 1. Create tpm_token.env by running the following command. Replace values in <> with your values. Note that if you're in the EU, you also have a different API_URL and BASE_URL than shown here.
 
