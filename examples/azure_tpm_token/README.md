@@ -99,7 +99,8 @@ To build the example in release mode, run the following command:
 make azure_sevsnp_tpm_token_docker
 ```
 
-To build the example in debug mode, run the following command.
+To build the example in debug mode, run the following command:
+
 ```shell
 make DEBUG=1 azure_sevsnp_tpm_token_docker
 ```
