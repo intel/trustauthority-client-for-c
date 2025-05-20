@@ -93,7 +93,8 @@ When run, the example collects a SEV-SNP report from the CVM and a quote from th
 
 Build the Azure TPM Token docker image in release/debug mode under `trustauthority-client` home folder.
 
-To build the example in release mode, run the following command. 
+To build the example in release mode, run the following command:
+
 ```shell
 make azure_sevsnp_tpm_token_docker
 ```
