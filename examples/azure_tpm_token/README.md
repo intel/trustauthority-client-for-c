@@ -111,7 +111,8 @@ When the example is successfully built, run  following command:
 docker image ls -a` includes `taas/azure_sevsnp_tpm_token:v1.3.0
 
 ## Deployment Instructions
-The docker image must be present inside the SEVSNP CVM.  For example, it can be exported/copied from a build machine as follows.
+The docker image must be present inside the CVM.  For example, it can be exported from the build machine as follows:
+
 
 ```shell
 #Save the azure_sevsnp_tpm_token Docker image into trust_authority.azure_sevsnp_tpm_token.tar.gz
