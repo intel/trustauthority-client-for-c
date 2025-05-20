@@ -105,7 +105,10 @@ To build the example in debug mode, run the following command:
 make DEBUG=1 azure_sevsnp_tpm_token_docker
 ```
 
-When successfully built, run `docker image ls -a` includes `taas/azure_sevsnp_tpm_token:v1.3.0`.
+When the example is successfully built, run  following command: 
+
+```shell
+docker image ls -a` includes `taas/azure_sevsnp_tpm_token:v1.3.0
 
 ## Deployment Instructions
 The docker image must be present inside the SEVSNP CVM.  For example, it can be exported/copied from a build machine as follows.
