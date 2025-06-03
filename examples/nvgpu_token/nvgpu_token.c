@@ -111,6 +111,10 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	if (token_signing_alg_str == NULL || strcmp(token_signing_alg_str, "") == 0) 
+	{
+		token_signing_alg_str = PS384;
+	}
 
 	if (STATUS_OK != is_valid_token_sigining_alg(token_signing_alg_str))
 	{
@@ -118,11 +122,15 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-
 	if (STATUS_OK != validate_and_get_policy_must_match(policy_must_match_str, &policy_must_match))
 	{
 		ERROR("ERROR: Unsupported Policy Match Value, supported values are true/false\n");
 		return 1;
+	}
+
+	if (request_id == NULL)
+	{
+		request_id = "";
 	}
 
 	if (0 != validate_request_id(request_id))
