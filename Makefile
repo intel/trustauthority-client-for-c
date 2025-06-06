@@ -149,6 +149,7 @@ azure_sevsnp_tpm_token_docker: AZURE_TPM_TOKEN_BUILD_PREFIX = azure_sevsnp
 azure_sevsnp_tpm_token_docker: azure_tpm_token_docker
 
 tar-images:
+	@mkdir -p client-c
 	@LATEST_IMAGES=$$(docker images --format "{{.Repository}}:{{.Tag}}" taas/*); \
 	for image in $$LATEST_IMAGES; do \
 		image_name=$$(echo $$image | cut -d':' -f1 | cut -d'/' -f2); \

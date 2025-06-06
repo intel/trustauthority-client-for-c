@@ -13,4 +13,4 @@ src/connector/libjwt/
 examples/sgx_token/Enclave_u*
 minimal-enclave/.config_HW_RELEASE_x64
 **/.cache/
-
+client-c/

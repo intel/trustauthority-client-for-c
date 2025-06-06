@@ -39,12 +39,6 @@ RUN cmake -DBUILD_EXAMPLES=ON -DBUILD_NVGPU=ON -DBUILD_TDX=ON -DUSE_AZURE_TDX_AD
 FROM ubuntu:24.04 as nvgpu_token
 ARG MAKEFILE_DIR
 ARG DEBIAN_FRONTEND=noninteractive
-ARG USERNAME=intel
-ARG USER_UID=2000
-ARG USER_GID=$USER_UID
-
-RUN groupadd --gid $USER_GID $USERNAME \
-    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
 
 RUN apt-get update; \
     apt-get upgrade -y; \
@@ -59,5 +53,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends libjansson4 lib
 WORKDIR /nvgpu_token
 COPY --from=build /usr/local/lib/libjwt* /usr/local/lib/
 COPY --from=build /trustauthority-client/build/examples/nvgpu_token/nvgpu_token .
-USER $USERNAME
 CMD ["env",  "LD_LIBRARY_PATH=/nvgpu_token:/usr/local/lib/", "./nvgpu_token"]

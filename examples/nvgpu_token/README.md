@@ -110,7 +110,7 @@ TRUSTAUTHORITY_API_URL=https://api.trustauthority.intel.com
 TRUSTAUTHORITY_BASE_URL=https://portal.trustauthority.intel.com
 EOF
 #Use docker to run the nvgpu Token example...
-sudo docker run --privileged -u root -v /sys/kernel/config:/sys/kernel/config --rm --runtime=nvidia --gpus all --env-file nvgpu_token.env taas/nvgpu_token:v1.3.0
+sudo docker run --privileged -v /sys/kernel/config:/sys/kernel/config --rm --runtime=nvidia --gpus all --env-file nvgpu_token.env taas/nvgpu_token:v1.3.0
 ```
 
 When successful, the token and other information will be displayed.
