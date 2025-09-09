@@ -300,6 +300,14 @@ int tdx_collect_evidence_azure(void *ctx,
 		strcat(report_data_hex, tmp_hex);
 	}
 
+	size_t str_len = strnlen(user_data_string, user_data_string_len);
+
+	for (int i = 0; i < str_len; i++)
+ 	{
+               user_data_string[i] = tolower(user_data_string[i]);
+               report_data_hex[i] = tolower(report_data_hex[i]);
+ 	}
+
 	if (strcmp(user_data_string, report_data_hex) != 0)
 	{
 		ERROR("User data calculated does not match the same received from TPM");
