@@ -463,8 +463,9 @@ int validate_request_id(const char *req_id)
 	}
 
 	// Define the regex pattern for allowed characters
+	const char *pattern = "^[a-zA-Z0-9_ /.-]{1,128}$";
 	regex_t regex;
-	int ret = regcomp(&regex, "^[a-zA-Z0-9_ \\/.-]{1,128}$", REG_EXTENDED);
+	int ret = regcomp(&regex, pattern, REG_EXTENDED);
 	if (ret) {
 		ERROR("Error: Could not compile regex\n");
 		return ret;

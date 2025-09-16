@@ -78,7 +78,7 @@ struct curl_slist *build_headers(struct curl_slist *headers,
 	{
 		char request_id_header[sizeof(REQUEST_ID_HEADER) + API_URL_MAX_LEN + 1];
 		sprintf(request_id_header, "%s%s", REQUEST_ID_HEADER, request_id);
-		DEBUG("Adding header: %s", request_id);
+		DEBUG("Adding header: %s", request_id_header);
 		headers = curl_slist_append(headers, request_id_header);
 	}
 	return headers;
