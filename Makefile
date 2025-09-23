@@ -136,17 +136,14 @@ nvgpu_token_docker:
 		--build-arg VERSION=${VERSION} \
 		--build-arg COMMIT=${COMMIT} .
 
-azure_tdx_token_docker: USE_AZURE_TDX_ADAPTER = ON
-azure_tdx_token_docker: TDX_TOKEN_BUILD_PREFIX = azure
-azure_tdx_token_docker: tdx_token_docker
+azure_tdx_token_docker:
+	$(MAKE) USE_AZURE_TDX_ADAPTER=ON TDX_TOKEN_BUILD_PREFIX=azure tdx_token_docker
 
-azure_sevsnp_token_docker: USE_AZURE_SEVSNP_ADAPTER = ON
-azure_sevsnp_token_docker: SEVSNP_TOKEN_BUILD_PREFIX = azure
-azure_sevsnp_token_docker: sevsnp_token_docker
+azure_sevsnp_token_docker:
+	$(MAKE) USE_AZURE_SEVSNP_ADAPTER=ON SEVSNP_TOKEN_BUILD_PREFIX=azure sevsnp_token_docker
 
-azure_sevsnp_tpm_token_docker: USE_AZURE_SEVSNP_ADAPTER = ON
-azure_sevsnp_tpm_token_docker: AZURE_TPM_TOKEN_BUILD_PREFIX = azure_sevsnp
-azure_sevsnp_tpm_token_docker: azure_tpm_token_docker
+azure_sevsnp_tpm_token_docker:
+	$(MAKE) USE_AZURE_SEVSNP_ADAPTER=ON AZURE_TPM_TOKEN_BUILD_PREFIX=azure_sevsnp azure_tpm_token_docker
 
 tar-images:
 	@mkdir -p client-c
