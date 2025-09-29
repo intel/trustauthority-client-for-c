@@ -79,9 +79,9 @@ When successful, the token and other information will be displayed.
 
 <p style="font-size: 0.875em;">· 07 May 2025 ·</p>
 
-The Azure confidential VM with SEVSNP + vTPM Token example application is a C program that uses the Intel® Tiber™ Trust Authority Attestation Client libraries to get an attestation token from Intel Trust Authority. The program runs inside an Azure CVM with AMD SEV-SNP.  
+The Azure confidential VM with SEVSNP + vTPM Token example application is a C program that uses the Intel® Trust Authority Attestation Client libraries to get an attestation token from Intel Trust Authority. The program runs inside an Azure CVM with AMD SEV-SNP.  
 
-When run, the example collects a SEV-SNP report from the CVM and a quote from the vTPM. The evidence collected from SEV-SNP and the vTPM is combined to create a composite evidence report, which is then sent to Intel Trust Authority for validation and an attestation token. If the token request is successful, the contents of the token and other information are printed to the screen. 
+When run, the example collects a SEV-SNP report from the CVM and a quote from the vTPM. The evidence collected from SEV-SNP and the vTPM is combined to create a composite evidence report, which is then sent to Intel Trust Authority for validation and an attestation token. If the token request is successful, the contents of the token and other information are printed to the screen.
 
 ## Prerequisites
 - Ability to build the Intel Trust Authority Attestation Client (see [Build Instructions](../../docs/builds.md)).
