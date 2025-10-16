@@ -52,7 +52,7 @@ The diagram above depicts the components used in the Intel SGX Token example whi
 
 ## Build and Run Instructions
 
-1. Build  SGX Token docker image in release/debug mode:
+1. Build SGX Token docker image in release/debug mode under `trustauthority-client` home folder.
 
 ```shell
   - To Build in release mode:  
@@ -60,13 +60,13 @@ The diagram above depicts the components used in the Intel SGX Token example whi
   - To Build in debug mode:  
 	make DEBUG=1 sgx_token_docker
 ```
-When successfully built, running `docker image ls -a` includes `taas/sgx_token:v1.3.0`.
+When successfully built, running `docker image ls -a` includes `taas/sgx_token:v1.x.x`.
 
 
 2. The docker image must be present on the SGX host.  For example, it can be exported/copied from a build machine as follows...
 ```shell
 #Save the sgx_token Docker image into trust_authority.sgx_token.tar.gz
-docker save taas/sgx_token:v1.3.0 > trust_authority.sgx_token.tar.gz
+docker save taas/sgx_token:v1.x.x > trust_authority.sgx_token.tar.gz
 #scp trust_authority.sgx_token.tar.gz to the SGX host.
 #On the SGX host load/import trust_authority.sgx_token.tar.gz docker image using below command
 docker load -i trust_authority.sgx_token.tar.gz
@@ -101,7 +101,7 @@ EOF
 4. Use Docker to run the Intel SGX attestation token example.
 
 ```shell
-sudo docker run -it --rm --device=/dev/sgx_enclave --device=/dev/sgx_provision -v /var/run/aesmd/aesm.socket:/var/run/aesmd/aesm.socket --env-file sgx_token.env --group-add $(getent group sgx_prv | cut -d: -f3) taas/sgx_token:v1.3.0
+sudo docker run -it --rm --device=/dev/sgx_enclave --device=/dev/sgx_provision -v /var/run/aesmd/aesm.socket:/var/run/aesmd/aesm.socket --env-file sgx_token.env --group-add $(getent group sgx_prv | cut -d: -f3) taas/sgx_token:v1.x.x
 ```
 
 If the token request is successful, the contents of the attestation token and other information are printed to the screen.

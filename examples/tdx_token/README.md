@@ -48,7 +48,7 @@ The diagram above depicts the components used in the Intel TDX Token example whi
 
 ## Build and run the example
 
-Build the Intel TDX example Docker image. You can build the image in debug or release mode under `trustauthority-client` home folder. 
+Build the Intel TDX example Docker image. You can build the image in debug or release mode under `trustauthority-client` home folder.
 
 1. For on-premises Intel TDX server and GCP CVMs with Intel TDX, use the following commands.
   1. To build the image in release mode:
@@ -59,7 +59,7 @@ Build the Intel TDX example Docker image. You can build the image in debug or re
   ```shell
     make DEBUG=1 tdx_token_docker
   ```
-  1. When successfully built, running `docker image ls -a` includes `taas/tdx_token:v1.3.0`.
+  1. When successfully built, running `docker image ls -a` includes `taas/tdx_token:v1.x.x`.
 
 2. If you are building for Azure, use following commands.
   1. Release mode:
@@ -70,13 +70,13 @@ Build the Intel TDX example Docker image. You can build the image in debug or re
   ```shell
     make DEBUG=1 azure_tdx_token_docker
   ```
-  1. When successfully built, running `docker image ls -a` includes `taas/azure_tdx_token:v1.3.0`.
+  1. When successfully built, running `docker image ls -a` includes `taas/azure_tdx_token:v1.x.x`.
 
 
 3. The docker image must be present inside the TD vm.  For example, it can be exported/copied from a build machine as follows.
   ```shell
   #Save the tdx_token Docker image into trust_authority.tdx_token.tar.gz
-  docker save taas/tdx_token:v1.3.0 > trust_authority.tdx_token.tar.gz
+  docker save taas/tdx_token:v1.x.x > trust_authority.tdx_token.tar.gz
   #scp trust_authority.tdx_token.tar.gz to the TD VM.
   #On the TD VM load/import trust_authority.tdx_token.tar.gz docker image using below command
   docker load -i trust_authority.tdx_token.tar.gz
@@ -111,10 +111,10 @@ The example relies on an environment file for information such as the API key an
 5: Use docker to run the Intel TDX example. Use the command that matches your Intel TDX platform.
   1. On-prem servers and GCP CVMs with Intel TDX:
   ```shell
-    sudo docker run -it --rm --privileged --network host -v /sys/kernel/config:/sys/kernel/config  --env-file tdx_token.env taas/intel_tdx_token:v1.3.0
+    sudo docker run -it --rm --privileged --network host -v /sys/kernel/config:/sys/kernel/config  --env-file tdx_token.env taas/intel_tdx_token:v1.x.x
   ```
   1. Azure CVM with Intel TDX:
   ```shell
-    sudo docker run -it --rm --device=/dev/tpm0 --device=/dev/tpmrm0 --env-file tdx_token.env --group-add $(getent group tss | cut -d: -f3) taas/azure_tdx_token:v1.3.0
+    sudo docker run -it --rm --device=/dev/tpm0 --device=/dev/tpmrm0 --env-file tdx_token.env --group-add $(getent group tss | cut -d: -f3) taas/azure_tdx_token:v1.x.x
   ```
 If the request for an attestation token is successful, the example prints the contents of the token and other information to the screen.

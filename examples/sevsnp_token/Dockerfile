@@ -57,7 +57,7 @@ WORKDIR /trustauthority-client/build
 RUN cmake -DBUILD_EXAMPLES=ON -DBUILD_SEVSNP=ON -DCMAKE_BUILD_TYPE=$ENABLE_DEBUG -DUSE_AZURE_SEVSNP_ADAPTER=${USE_AZURE_SEVSNP_ADAPTER} .. \
     && cmake --build . --target sevsnp_token
 
-FROM ubuntu:20.04 as amd_sevsnp_token
+FROM ubuntu:20.04 as sevsnp_token
 ARG MAKEFILE_DIR
 ##AMI - below line needs to be removed
 ARG DEBIAN_FRONTEND=noninteractive

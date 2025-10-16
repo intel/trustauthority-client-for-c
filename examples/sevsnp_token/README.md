@@ -21,7 +21,7 @@ To build the example in debug mode:
 ```shell
 make DEBUG=1 sevsnp_token_docker
 ```
-When successfully built, running `docker image ls -a` includes `taas/sevsnp_token:v1.3.0`.
+When successfully built, running `docker image ls -a` includes `taas/sevsnp_token:v1.x.x`.
 
 ### Build for Azure 
 
@@ -33,7 +33,7 @@ To build the example in debug mode:
 ```shell
 make DEBUG=1 azure_sevsnp_token_docker
 ```
-When successfully built, running `docker image ls -a` includes `taas/azure_sevsnp_token:v1.3.0`.
+When successfully built, running `docker image ls -a` includes `taas/azure_sevsnp_token:v1.x.x`.
 
 ## Deployment Instructions
 
@@ -41,7 +41,7 @@ The Docker image must be present inside the SEV-SNP CVM.  For example, it can be
 
 ```shell
 #Save the sevsnp_token Docker image into trust_authority.sevsnp_token.tar.gz
-docker save taas/sevsnp_token:v1.3.0 > trust_authority.sevsnp_token.tar.gz
+docker save taas/sevsnp_token:v1.x.x > trust_authority.sevsnp_token.tar.gz
 #scp trust_authority.sevsnp_token.tar.gz to the sevsnp vm.
 #On the sevsnp vm load/import trust_authority.sevsnp_token.tar.gz docker image using below command
 docker load -i trust_authority.sevsnp_token.tar.gz
@@ -77,11 +77,11 @@ The example relies on an environment file for information such as the API key an
 2. Run the example in the Docker container you built previously.
 
   ```shell
-  sudo docker run -it --rm --privileged --network host -v /sys/kernel/config:/sys/kernel/config  --env-file sevsnp_token.env taas/sevsnp_token:v1.3.0
+  sudo docker run -it --rm --privileged --network host -v /sys/kernel/config:/sys/kernel/config  --env-file sevsnp_token.env taas/sevsnp_token:v1.x.x
   ```
 
   ```shell
-  sudo docker run -it --rm --device=/dev/tpm0 --device=/dev/tpmrm0 --env-file sevsnp_token.env --group-add $(getent group tss | cut -d: -f3) taas/azure_sevsnp_token:v1.3.0
+  sudo docker run -it --rm --device=/dev/tpm0 --device=/dev/tpmrm0 --env-file sevsnp_token.env --group-add $(getent group tss | cut -d: -f3) taas/azure_sevsnp_token:v1.x.x
   ```
 
 When the example is successfully run, the attestation token and other information will be displayed.

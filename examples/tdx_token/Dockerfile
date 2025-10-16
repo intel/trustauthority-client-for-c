@@ -57,7 +57,7 @@ WORKDIR /trustauthority-client/build
 RUN cmake -DBUILD_EXAMPLES=ON -DBUILD_TDX=ON -DCMAKE_BUILD_TYPE=$ENABLE_DEBUG -DUSE_AZURE_TDX_ADAPTER=${USE_AZURE_TDX_ADAPTER} .. \
     && cmake --build . --target tdx_token
 
-FROM ubuntu:20.04 as intel_tdx_token
+FROM ubuntu:20.04 as tdx_token
 ARG MAKEFILE_DIR
 ##AMI - below line needs to be removed
 ARG DEBIAN_FRONTEND=noninteractive

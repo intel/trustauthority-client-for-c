@@ -24,14 +24,14 @@ To build the example in debug mode, run the following command.
 make DEBUG=1 azure_tpm_token_docker
 ```
 
-When successfully built, run `docker image ls -a` includes `taas/azure_tpm_token:v1.3.0`.
+When successfully built, run `docker image ls -a` includes `taas/azure_tpm_token:v1.x.x`.
 
 ## Deployment Instructions
 The docker image must be present inside the CVM trust domain (TD).  For example, it can be exported/copied from a build machine as follows.
 
 ```shell
 #Save the azure_tpm_token Docker image into trust_authority.azure_tpm_token.tar.gz
-docker save taas/azure_tpm_token:v1.3.0 > trust_authority.azure_tpm_token.tar.gz
+docker save taas/azure_tpm_token:v1.x.x > trust_authority.azure_tpm_token.tar.gz
 #scp trust_authority.azure_tpm_token.tar.gz to the TD VM.
 #On the TD VM load/import trust_authority.azure_tpm_token.tar.gz docker image using below command
 docker load -i trust_authority.azure_tpm_token.tar.gz
@@ -70,7 +70,7 @@ EOF
 
 2. Run the example in a Docker container
 ``` shell
-sudo docker run -it --rm --device=/dev/tpm0 --device=/dev/tpmrm0 --privileged -u root -v /sys:/sys --env-file tpm_token.env --group-add $(getent group tss | cut -d: -f3) taas/azure_tpm_token:v1.3.0
+sudo docker run -it --rm --device=/dev/tpm0 --device=/dev/tpmrm0 --privileged -u root -v /sys:/sys --env-file tpm_token.env --group-add $(getent group tss | cut -d: -f3) taas/azure_tpm_token:v1.x.x
 ```
 
 When successful, the token and other information will be displayed.

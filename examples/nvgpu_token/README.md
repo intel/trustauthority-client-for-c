@@ -70,14 +70,14 @@ To build the example in debug mode, run the following command.
 make DEBUG=1 nvgpu_token_docker
 ```
 
-When successfully built, run `docker image ls -a` includes `taas/nvgpu_token:v1.3.0`.
+When successfully built, run `docker image ls -a` includes `taas/nvgpu_token:v1.x.x`.
 
 
 2. The docker image must be present on the NVGPU host.  For example, it can be exported/copied from a build machine as follows.
 
 ```shell
 #Save the nvgpu_token Docker image into trust_authority.nvgpu_token.tar.gz
-docker save taas/nvgpu_token:v1.3.0 > trust_authority.nvgpu_token.tar.gz
+docker save taas/nvgpu_token:v1.x.x > trust_authority.nvgpu_token.tar.gz
 #scp trust_authority.nvgpu_token.tar.gz to the nvgpu host.
 #On the nvgpu host load/import trust_authority.nvgpu_token.tar.gz docker image using below command
 docker load -i trust_authority.nvgpu_token.tar.gz
@@ -110,7 +110,7 @@ TRUSTAUTHORITY_API_URL=https://api.trustauthority.intel.com
 TRUSTAUTHORITY_BASE_URL=https://portal.trustauthority.intel.com
 EOF
 #Use docker to run the nvgpu Token example...
-sudo docker run --privileged -v /sys/kernel/config:/sys/kernel/config --rm --runtime=nvidia --gpus all --env-file nvgpu_token.env taas/nvgpu_token:v1.3.0
+sudo docker run --privileged -v /sys/kernel/config:/sys/kernel/config --rm --runtime=nvidia --gpus all --env-file nvgpu_token.env taas/nvgpu_token:v1.x.x
 ```
 
 When successful, the token and other information will be displayed.

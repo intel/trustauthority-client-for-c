@@ -6,10 +6,10 @@ DCAP_VERSION := 1.19.100.3-focal1
 PSW_VERSION := 2.22.100.3
 USE_AZURE_TDX_ADAPTER := OFF
 USE_AZURE_SEVSNP_ADAPTER := OFF
-TDX_TOKEN_BUILD_PREFIX := intel
-SEVSNP_TOKEN_BUILD_PREFIX := amd
+TDX_TOKEN_BUILD_PREFIX := tdx
+SEVSNP_TOKEN_BUILD_PREFIX := sevsnp
 NVGPU_TOKEN_BUILD_PREFIX := nvgpu
-AZURE_TPM_TOKEN_BUILD_PREFIX := azure
+AZURE_TPM_TOKEN_BUILD_PREFIX := azure_tpm
 
 # By default set the build in release mode
 ENABLE_DEBUG ?= Release
@@ -18,7 +18,7 @@ ifeq ($(DEBUG),1)
 endif
 
 COMMIT := $(shell git rev-parse --short HEAD)
-VERSION := v1.3.0
+VERSION := v1.4.0
 BUILDDATE := $(shell TZ=UTC date +%Y-%m-%dT%H:%M:%S%z)
 PROXY_EXISTS := $(shell if [[ "${https_proxy}" || "${http_proxy}" || "${no_proxy}" ]]; then echo 1; else echo 0; fi)
 DOCKER_PROXY_FLAGS := ""
@@ -94,8 +94,8 @@ tdx_token_docker:
 		--build-arg ENABLE_DEBUG=${ENABLE_DEBUG} \
 		${DOCKER_PROXY_FLAGS} \
 		-f examples/tdx_token/Dockerfile \
-		--target ${TDX_TOKEN_BUILD_PREFIX}_tdx_token \
-		-t $(ORGNAME)/${TDX_TOKEN_BUILD_PREFIX}_tdx_token:$(VERSION) \
+		--target ${TDX_TOKEN_BUILD_PREFIX}_token \
+		-t $(ORGNAME)/${TDX_TOKEN_BUILD_PREFIX}_token:$(VERSION) \
 		--build-arg USE_AZURE_TDX_ADAPTER=${USE_AZURE_TDX_ADAPTER} \
 		--build-arg DCAP_VERSION=${DCAP_VERSION} \
 		--build-arg MAKEFILE_DIR=${MAKEFILE_DIR} \
@@ -107,8 +107,8 @@ azure_tpm_token_docker:
 		--build-arg ENABLE_DEBUG=${ENABLE_DEBUG} \
 		${DOCKER_PROXY_FLAGS} \
 		-f examples/azure_tpm_token/Dockerfile \
-		--target ${AZURE_TPM_TOKEN_BUILD_PREFIX}_tpm_token \
-		-t $(ORGNAME)/${AZURE_TPM_TOKEN_BUILD_PREFIX}_tpm_token:$(VERSION) \
+		--target ${AZURE_TPM_TOKEN_BUILD_PREFIX}_token \
+		-t $(ORGNAME)/${AZURE_TPM_TOKEN_BUILD_PREFIX}_token:$(VERSION) \
 		--build-arg USE_AZURE_SEVSNP_ADAPTER=${USE_AZURE_SEVSNP_ADAPTER} \
 		--build-arg MAKEFILE_DIR=${MAKEFILE_DIR} \
 		--build-arg VERSION=${VERSION} \
@@ -119,8 +119,8 @@ sevsnp_token_docker:
 		--build-arg ENABLE_DEBUG=${ENABLE_DEBUG} \
 		${DOCKER_PROXY_FLAGS} \
 		-f examples/sevsnp_token/Dockerfile \
-		--target ${SEVSNP_TOKEN_BUILD_PREFIX}_sevsnp_token \
-		-t $(ORGNAME)/${SEVSNP_TOKEN_BUILD_PREFIX}_sevsnp_token:$(VERSION) \
+		--target ${SEVSNP_TOKEN_BUILD_PREFIX}_token \
+		-t $(ORGNAME)/${SEVSNP_TOKEN_BUILD_PREFIX}_token:$(VERSION) \
 		--build-arg USE_AZURE_SEVSNP_ADAPTER=${USE_AZURE_SEVSNP_ADAPTER} \
 		--build-arg MAKEFILE_DIR=${MAKEFILE_DIR} \
 		--build-arg VERSION=${VERSION} \
@@ -137,13 +137,13 @@ nvgpu_token_docker:
 		--build-arg COMMIT=${COMMIT} .
 
 azure_tdx_token_docker:
-	$(MAKE) USE_AZURE_TDX_ADAPTER=ON TDX_TOKEN_BUILD_PREFIX=azure tdx_token_docker
+	$(MAKE) USE_AZURE_TDX_ADAPTER=ON TDX_TOKEN_BUILD_PREFIX=azure_tdx tdx_token_docker
 
 azure_sevsnp_token_docker:
-	$(MAKE) USE_AZURE_SEVSNP_ADAPTER=ON SEVSNP_TOKEN_BUILD_PREFIX=azure sevsnp_token_docker
+	$(MAKE) USE_AZURE_SEVSNP_ADAPTER=ON SEVSNP_TOKEN_BUILD_PREFIX=azure_sevsnp sevsnp_token_docker
 
 azure_sevsnp_tpm_token_docker:
-	$(MAKE) USE_AZURE_SEVSNP_ADAPTER=ON AZURE_TPM_TOKEN_BUILD_PREFIX=azure_sevsnp azure_tpm_token_docker
+	$(MAKE) USE_AZURE_SEVSNP_ADAPTER=ON AZURE_TPM_TOKEN_BUILD_PREFIX=azure_sevsnp_tpm azure_tpm_token_docker
 
 tar-images:
 	@mkdir -p client-c
