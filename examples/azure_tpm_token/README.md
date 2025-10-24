@@ -1,6 +1,6 @@
 # Azure CVM with Intel TDX and vTPM Attestation Example
 
-<p style="font-size: 0.875em;">· 07 May 2025 ·</p>
+<p style="font-size: 0.875em;">· 07 Oct 2025 ·</p>
 
 The Azure confidential VM with Intel® TDX + vTPM Token example is a C program that uses the Intel® Trust Authority Attestation Client libraries to get an attestation token from Intel® Trust Authority. The program runs inside a trust domain on Azure CVM with Intel TDX.  When run, it collects a quote from the CVM trust domain (TD) and a quote from the vTPM, forming a composite quote, and then sends it to Intel Trust Authority to retrieve a token. If the token request is successful, the contents of the token and other information are printed to the screen. 
 
@@ -24,10 +24,10 @@ To build the example in debug mode, run the following command.
 make DEBUG=1 azure_tpm_token_docker
 ```
 
-When successfully built, run `docker image ls -a` includes `taas/azure_tpm_token:v1.x.x`.
+When successfully built, running `docker image ls -a` includes `taas/azure_tpm_token:v1.x.x`.
 
 ## Deployment Instructions
-The docker image must be present inside the CVM trust domain (TD).  For example, it can be exported/copied from a build machine as follows.
+The docker image must be present inside the CVM.  For example, it can be exported from a build machine as follows.
 
 ```shell
 #Save the azure_tpm_token Docker image into trust_authority.azure_tpm_token.tar.gz
@@ -55,9 +55,14 @@ The sample relies on an environment file to provide information such as the API 
 |TPM_WITH_IMA_LOGS|When "true", includes IMA logs into TPM evidence.|
 |TPM_WITH_UEFI_LOGS|When "true", includes UEFI event logs into TPM evidence.|
 
-    
+The API_URL and BASE_URL depend on your location. There are two Intel Trust Authority deployment regions: European Union (EU) region, and a global region for all other countries. There is a different BaseUrl and ApiUrl for each region, as follows:
 
-1. Create tpm_token.env by running the following command. Replace values in <> with your values. Note that if you're in the EU, you also have a different API_URL and BASE_URL than shown here.
+| Region | BASE_URL | API_URL |
+|--- | --- | --- |
+| **EU** | `https://portal.eu.trustauthority.intel.com` | `https://api.eu.trustauthority.intel.com` |
+| **World/US** | `https://portal.trustauthority.intel.com` | `httsp://api.trustauthority.intel.com` |
+
+1. Create tpm_token.env by running the following command. Replace values in <> with your values. Note that if you're in the EU, you also have a different API_URL and BASE_URL as listed above.
 
 ``` shell
 cat <<EOF | tee tpm_token.env
@@ -77,7 +82,7 @@ When successful, the token and other information will be displayed.
 
 # Azure CVM with SEVSNP and vTPM Attestation Example
 
-<p style="font-size: 0.875em;">· 07 May 2025 ·</p>
+<p style="font-size: 0.875em;">· 07 Oct 2025 ·</p>
 
 The Azure confidential VM with SEVSNP + vTPM Token example application is a C program that uses the Intel® Trust Authority Attestation Client libraries to get an attestation token from Intel Trust Authority. The program runs inside an Azure CVM with AMD SEV-SNP.  
 
@@ -105,18 +110,14 @@ To build the example in debug mode, run the following command:
 make DEBUG=1 azure_sevsnp_tpm_token_docker
 ```
 
-When the example is successfully built, run  following command: 
-
-```shell
-docker image ls -a` includes `taas/azure_sevsnp_tpm_token:v1.3.0
+When successfully built, running `docker image ls -a` includes `taas/azure_sevsnp_tpm_token:v1.x.x`.
 
 ## Deployment Instructions
 The docker image must be present inside the CVM.  For example, it can be exported from the build machine as follows:
 
-
 ```shell
 #Save the azure_sevsnp_tpm_token Docker image into trust_authority.azure_sevsnp_tpm_token.tar.gz
-docker save taas/azure_sevsnp_tpm_token:v1.3.0 > trust_authority.azure_sevsnp_tpm_token.tar.gz
+docker save taas/azure_sevsnp_tpm_token:v1.x.x > trust_authority.azure_sevsnp_tpm_token.tar.gz
 #scp trust_authority.azure_sevsnp_tpm_token.tar.gz to the SEVSNP VM.
 #On the SEVSNP VM load/import trust_authority.azure_sevsnp_tpm_token.tar.gz docker image using below command
 docker load -i trust_authority.azure_sevsnp_tpm_token.tar.gz
@@ -140,14 +141,14 @@ The sample relies on an environment file to provide information such as the API 
 |TPM_WITH_IMA_LOGS|When "true", includes IMA logs into TPM evidence.|
 |TPM_WITH_UEFI_LOGS|When "true", includes UEFI event logs into TPM evidence.|
 
-     The API_URL and BASE_URL depend on your location. There are two Intel Trust Authority deployment regions: European Union (EU) region, and a global region for all other countries. There is a different BaseUrl and ApiUrl for each region, as follows:
+The API_URL and BASE_URL depend on your location. There are two Intel Trust Authority deployment regions: European Union (EU) region, and a global region for all other countries. There is a different BaseUrl and ApiUrl for each region, as follows:
 
-    | Region | BASE_URL | API_URL |
-    |--- | --- | --- |
-    | **EU** | `https://portal.eu.trustauthority.intel.com` | `https://api.eu.trustauthority.intel.com` |
-    | **World/US** | `https://portal.trustauthority.intel.com` | `api.trustauthority.intel.com` |
+| Region | BASE_URL | API_URL |
+|--- | --- | --- |
+| **EU** | `https://portal.eu.trustauthority.intel.com` | `https://api.eu.trustauthority.intel.com` |
+| **World/US** | `https://portal.trustauthority.intel.com` | `httsp://api.trustauthority.intel.com` |
 
-1. Create tpm_token.env by running the following command. Replace values in <> with your values. Note that if you're in the EU, you also have a different API_URL and BASE_URL than shown here.
+1. Create tpm_token.env by running the following command. Replace values in <> with your values. Note that if you're in the EU, you also have a different API_URL and BASE_URL as listed above.
 
 ``` shell
 cat <<EOF | tee tpm_token.env
@@ -160,7 +161,7 @@ EOF
 
 2. Run the example in a Docker container
 ``` shell
-sudo docker run -it --rm --device=/dev/tpm0 --device=/dev/tpmrm0 --privileged -u root -v /sys:/sys --env-file tpm_token.env --group-add $(getent group tss | cut -d: -f3) taas/azure_sevsnp_tpm_token:v1.3.0
+sudo docker run -it --rm --device=/dev/tpm0 --device=/dev/tpmrm0 --privileged -u root -v /sys:/sys --env-file tpm_token.env --group-add $(getent group tss | cut -d: -f3) taas/azure_sevsnp_tpm_token:v1.x.x
 ```
 
 When successful, the token and other information will be displayed.

@@ -36,8 +36,7 @@ make DEBUG=1 azure_sevsnp_token_docker
 When successfully built, running `docker image ls -a` includes `taas/azure_sevsnp_token:v1.x.x`.
 
 ## Deployment Instructions
-
-The Docker image must be present inside the SEV-SNP CVM.  For example, it can be copied from a build machine as follows.
+The Docker image must be present inside the SEV-SNP CVM.  For example, it can be exported from a build machine as follows.
 
 ```shell
 #Save the sevsnp_token Docker image into trust_authority.sevsnp_token.tar.gz
@@ -47,23 +46,30 @@ docker save taas/sevsnp_token:v1.x.x > trust_authority.sevsnp_token.tar.gz
 docker load -i trust_authority.sevsnp_token.tar.gz
 ``` 
 
+## Running the example
 
 The example relies on an environment file for information such as the API key and Intel Trust Authority base URL. The following table lists the environment variables used in `sevsnp_token.env`.
 
-    |Variable|Description|
-    |:--------|:-----------|
-    |TRUSTAUTHORITY_API_KEY|The Intel Trust Authority API key.|
-    |TRUSTAUTHORITY_POLICY_ID|The policy id created using Intel Trust Authority portal.|
-    |TRUSTAUTHORITY_API_URL|The Intel Trust Authority API URL.| 
-    |TRUSTAUTHORITY_BASE_URL|The base url of Intel Trust Authority certificate management authority to download certificate to verify token in Azure. (ex. "https://portal.pilot.trustauthority.intel.com")|
-    |REQUEST_ID|An optional parameter to trace the request.|
-    |TOKEN_SIGNING_ALG|An optional parameter to specify token signing algorithm, supported algorithms are RS256, PS384.|
-    |POLICY_MUST_MATCH|An optional boolean parameter to enforce policies match during attestation, supported values are true/false.|
-    |RETRY_WAIT_TIME|Wait time between retries. Default value is 2 seconds.|
-    |RETRY_MAX|Maximum number of retries. Default value is 2 seconds.|
-    
-1. Create the sevsnp_token.env file
+|Variable|Description|
+|:--------|:-----------|
+|TRUSTAUTHORITY_API_KEY|The Intel Trust Authority API key.|
+|TRUSTAUTHORITY_POLICY_ID|The policy id created using Intel Trust Authority portal.|
+|TRUSTAUTHORITY_API_URL|The Intel Trust Authority API URL.|
+|TRUSTAUTHORITY_BASE_URL|The base url of Intel Trust Authority certificate management authority to download certificate to verify token in Azure. (ex. "https://portal.pilot.trustauthority.intel.com")|
+|REQUEST_ID|An optional parameter to trace the request.|
+|TOKEN_SIGNING_ALG|An optional parameter to specify token signing algorithm, supported algorithms are RS256, PS384.|
+|POLICY_MUST_MATCH|An optional boolean parameter to enforce policies match during attestation, supported values are true/false.|
+|RETRY_WAIT_TIME|Wait time between retries. Default value is 2 seconds.|
+|RETRY_MAX|Maximum number of retries. Default value is 2 seconds.|
 
+The API_URL and BASE_URL depend on your location. There are two Intel Trust Authority deployment regions: European Union (EU) region, and a global region for all other countries. There is a different BaseUrl and ApiUrl for each region, as follows:
+
+| Region | BASE_URL | API_URL |
+|--- | --- | --- |
+| **EU** | `https://portal.eu.trustauthority.intel.com` | `https://api.eu.trustauthority.intel.com` |
+| **World/US** | `https://portal.trustauthority.intel.com` | `httsp://api.trustauthority.intel.com` |
+
+1. Create sevsnp_token.env by running the following command. Replace values in <> with your values. Note that if you're in the EU, you also have a different API_URL and BASE_URL as listed above.
 
   ```shell
   cat <<EOF | tee sevsnp_token.env
