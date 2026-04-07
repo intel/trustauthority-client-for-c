@@ -398,6 +398,51 @@ ERROR:
 	return status;
 }
 
+/**
+ * Helper function to check if a handle exists using TPM2-TSS GetCapability API
+ */
+static bool handle_exists(ESYS_CONTEXT *esys_context, TPM2_HANDLE handle)
+{
+	TPMS_CAPABILITY_DATA *capability_data = NULL;
+	TPM2_CAP capability = TPM2_CAP_HANDLES;
+	TPM2_HANDLE first_handle = handle;
+	UINT32 property_count = 1;
+	TPMI_YES_NO more_data = 0;
+
+	/* Query the TPM for the specific handle */
+	TSS2_RC rval = Esys_GetCapability(esys_context,
+			ESYS_TR_NONE,
+			ESYS_TR_NONE,
+			ESYS_TR_NONE,
+			capability,
+			first_handle,
+			property_count,
+			&more_data,
+			&capability_data);
+	if (rval != TSS2_RC_SUCCESS)
+	{
+		ERROR("Error querying TPM capabilities: 0x%x\n", rval);
+		return false;
+	}
+
+	/* Check if the returned handle matches the one we're looking for */
+	bool exists = false;
+	if (capability_data != NULL && capability_data->data.handles.count > 0)
+	{
+		if (capability_data->data.handles.handle[0] == handle)
+		{
+			exists = true;
+		}
+	}
+
+	if (capability_data != NULL)
+	{
+		Esys_Free(capability_data);
+	}
+
+	return exists;
+}
+
 int get_td_report(uint8_t *report_data, uint8_t **tpm_report)
 {
 	char command[COMMAND_LEN] = {0};
@@ -422,17 +467,10 @@ int get_td_report(uint8_t *report_data, uint8_t **tpm_report)
 		goto ERROR;
 	}
 
-	/* Create/Fetch ESAPI Handle from TPM public area of the index */
-	rval = Esys_TR_FromTPMPublic(
-			esys_context,
-			REPORT_DATA_NVINDEX,
-			ESYS_TR_NONE,
-			ESYS_TR_NONE,
-			ESYS_TR_NONE,
-			&nvIndex);
-
-	if (rval != TSS2_RC_SUCCESS)
+	/* Check if NV Index exists using the helper function */
+	if (!handle_exists(esys_context, REPORT_DATA_NVINDEX))
 	{
+		/* NV Index doesn't exist, create it */
 		TPM2B_NV_PUBLIC pub_templ = {
 			/* this is counterintuitive, but it tells the TSS2 library to calculate this for us */
 			.size = 0,
