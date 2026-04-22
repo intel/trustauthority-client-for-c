@@ -5,6 +5,10 @@ project(trustauthority_client)
 #Generate sgx mock DCAP library
 add_library(mocksgxdcap SHARED mock_sgx_dcap/mock_sgx.c)
 
+# Generate mock NVML library for nvgpu_adapter unit tests
+add_library(mocknvml SHARED mock_nvml/mock_nvml.c)
+target_include_directories(mocknvml PUBLIC mock_nvml/include)
+
 # Find the Google Test library
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
@@ -39,6 +43,32 @@ set(TEST_SOURCES
     token_verifier_test.cpp
     report_test.cpp
 )
+
+# nvgpu_adapter test — compiled separately to use mock NVML instead of real nvidia-ml
+set(NVGPU_TEST_SOURCES
+    ../src/log/log.c
+    ../src/util/base64.c
+    ../src/util/json.c
+    ../src/nvgpu/nvgpu_adapter.c
+    nvgpu_adapter_test.cpp
+)
+add_executable(nvgpu_adapter_test ${NVGPU_TEST_SOURCES})
+target_compile_definitions(nvgpu_adapter_test PRIVATE TEST_MODE)
+find_package(OpenSSL REQUIRED)
+target_link_libraries(nvgpu_adapter_test PUBLIC
+    ${GTEST_BOTH_LIBRARIES}
+    jansson
+    mocknvml
+    OpenSSL::SSL OpenSSL::Crypto
+    pthread
+)
+target_include_directories(nvgpu_adapter_test PRIVATE
+    ../include
+    ../src/log
+    ../src/util
+    mock_nvml/include
+)
+add_test(NAME nvgpu_adapter_test COMMAND nvgpu_adapter_test)
 
 # Create the test target and link against the Google Test library
 add_executable(trustauthorityclienttest ${TEST_SOURCES})

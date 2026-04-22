@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Intel Corporation
+ * Copyright (C) 2025-2026 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #ifndef __NVGPU_ADAPTER_H__
@@ -16,7 +16,7 @@ extern "C"
 #define STATUS_NVGPU_ERROR_BASE 0x8000
 
 	/**
-	 * Adapter context to get evidence and corresponding certs chain from NVIDIA GPU on platform.
+	 * Adapter context to get evidence and corresponding certs chain from NVIDIA Hopper or Blackwell GPUs on platform.
 	 */
 	typedef struct nvgpu_adapter_context
 	{
@@ -25,7 +25,8 @@ extern "C"
 
 	/**
 	 * @brief 
-	 * Create a new adapter to get evidence and corresponding certs chain from NVIDIA GPU provisioned.
+	 * Create a new adapter to get evidence and corresponding certs chain from NVIDIA Hopper or Blackwell GPUs.
+	 * Multiple GPUs are supported; all must be of a supported architecture.
 	 * @param adapter pointer reference to evidence adapter 
 	 * @return int containing status
 	 */
@@ -36,13 +37,17 @@ extern "C"
 
 	/**
 	 * @brief 
-	 * Collect NVGPU evidence from NVIDIA GPU and generate JSON object based request body for ITA attestation.
+	 * Collect evidence from all supported NVIDIA Hopper and Blackwell GPUs and generate the
+	 * JSON object for ITA attestation. The resulting JSON uses the evidence_list schema,
+	 * which contains one entry per GPU with base64-encoded report, certificate chain, and
+	 * firmware version.
 	 * @param ctx the pointer of context
-	 * @param evidence the pointer reference of generated JSON object based evidence
-	 * @param nonce the pointer of nonce
+	 * @param evidence pointer to a caller-allocated JSON object (created with json_object())
+	 *        that the adapter populates with the generated evidence
+	 * @param nonce the pointer of nonce (may be NULL)
 	 * @param user_data should be NULL as it is not supported by NVGPU attestation
 	 * @param user_data_len should be 0 as it is not supported by NVGPU attestation
-	 * @return size_t 
+	 * @return STATUS_OK or an error code
 	 */
 	int nvgpu_get_evidence(void *ctx,
 			json_t *evidence,

@@ -15,7 +15,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 find_package(OpenSSL REQUIRED)
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(NVIDIA_ML REQUIRED nvidia-ml-12.5)
+# Support both NVML 12.x and 13.x package names
+pkg_check_modules(NVIDIA_ML nvidia-ml-13.1)
+if(NOT NVIDIA_ML_FOUND)
+    pkg_check_modules(NVIDIA_ML REQUIRED nvidia-ml-12.5)
+endif()
 
 link_directories(${NVIDIA_ML_LIBRARY_DIRS})
 

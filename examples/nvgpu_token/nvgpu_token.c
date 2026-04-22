@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Intel Corporation
+ * Copyright (C) 2025-2026 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include <stdio.h>
@@ -14,7 +14,6 @@
 #include <api.h>
 
 #include <log.h>
-#include <jwt.h>
 #include <openssl/crypto.h>
 #include <openssl/evp.h>
 #include <assert.h>

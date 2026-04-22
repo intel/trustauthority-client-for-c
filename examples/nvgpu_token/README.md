@@ -1,52 +1,39 @@
-# NVIDIA H100 Attestation Token Example
+# NVIDIA GPU Attestation Token Example (Hopper and Blackwell)
 
-<p style="font-size: 0.875em;">· 07 Oct 2025 ·</p>
+<p style="font-size: 0.875em;">· 21 April 2026 ·</p>
 
-The NVIDIA H100 GPU attestation example ("NVGPU") is a C program that uses the Intel® Trust Authority Attestation Client libraries to to attest the GPU and the Intel® Trust Domain Extensions (Intel® TDX) host. When run, NVGPU collects GPU evidence from the NVGPU H100, and then sends a quote to Intel Trust Authority to retrieve an attestation token. If attestation is successful, NVGPU prints the contents of the token and other information to the screen.
+The NVIDIA GPU attestation example ("NVGPU") is a C program that uses the Intel® Trust Authority Attestation Client libraries to attest one or more NVIDIA Hopper (H100/H200) or Blackwell (B100/B200) GPUs and an Intel® Trust Domain Extensions (Intel® TDX) host. When run, NVGPU collects GPU evidence from all supported GPUs, then sends the combined evidence to Intel Trust Authority to retrieve an attestation token. If attestation is successful, NVGPU prints the contents of the token and other information to the screen.
 
 ```
-Intel TDX host
+Intel TDX host with NVIDIA GPU
 ┌────────────────────────────────────────────────┐
 │    ┌──────────────────────────────────────┐    │
 │    │          Docker Container            │    │
 │    │                                      │    │
-│    │    ┌──────────────────────────┐      │    │
-│    │    │        NVGPU Token       │      │    │                ┌────────────────┐
-│    │    └──────────────────────────┘      │    │                │                │
-│    │                                      │    │                │                │
-│    │    ┌──────────────────────────┐      │◄───┼───────────────►│ INTEL TRUST    |
-│    │    │    libnvidia-ml.so       │      │    │                │ AUTHORITY      |
-│    │    └──────────────────────────┘      │    │                │ SERVER         |
-│    │                                      │    │                └────────────────┘   
-│    │    ┌──────────────────────────┐      |    |                                                  
-│    │    |libtrustauthority_nvgpu.so|      |    |
-│    │    └──────────────────────────┘      │    │
-│    │                                      │    │              
-│    │    ┌──────────────────────────┐      |    |                                                  
-│    │    | libtrustauthority_tdx.so |      |    |
-│    │    └──────────────────────────┘      │    │
-│    │                                      │    │              
-│    │    ┌──────────────────────────┐      |    |                                                  
-│    │    |    libtrustauthority_    |      |    |
-|    |    |    evidence_builder.so   |      |    |
-│    │    └──────────────────────────┘      │    │
-│    │                                      │    │              
-│    │    ┌──────────────────────────┐      │    │
-│    │    │    libtrustauthority_    |      |    |
-|    |    |    connector.so          │      │    │
-│    │    └──────────────────────────┘      │    │
+│    │  ┌────────────────────────────────┐  │    │
+│    │  │       nvgpu_token binary       │  │    │                ┌────────────────┐
+│    │  │  statically links:             │  │    │                │                │
+│    │  │   nvgpu · tdx · connector      │  │◄───┼───────────────►│ INTEL TRUST    │
+│    │  │   evidence_builder             │  │    │                │ AUTHORITY      │
+│    │  │   token_verifier               │  │    │                │ SERVER         │
+│    │  └────────────────────────────────┘  │    │                └────────────────┘
 │    │                                      │    │
-│    │    ┌────────────────────────────┐    │    │
-│    │    │    libtrustauthority_      |    |    |
-|    |    |    token_verifier.so       │    │    │
-│    │    └────────────────────────────┘    │    │
-│    │                                      │    │
+│    │  ┌────────────────────────────────┐  │    │
+│    │  │ libjwt.so  (dynamic, runtime)  │  │    │
+│    │  │ libjansson.so  libcurl.so      │  │    │
+│    │  │ libssl.so                      │  │    │
+│    │  └────────────────────────────────┘  │    │
 │    └──────────────────────────────────────┘    │
 │                                                │
-│             NVIDIA H100 GPU Host               │
+│  ┌────────────────────────────────────────┐    │
+│  │ libnvidia-ml.so (NVIDIA host driver,   │    │
+│  │ injected by NVIDIA container toolkit)  │    │
+│  └────────────────────────────────────────┘    │
+│                                                │
+│       NVIDIA Hopper / Blackwell GPU Host       │
 └────────────────────────────────────────────────┘
 ```
-The diagram above depicts the components used in the NVGPU example while running within a Docker container. The NVGPU example can also be run directly on a NVIDIA H100 host.
+The diagram above depicts the components used in the NVGPU example while running within a Docker container. The NVGPU example can also be run directly on a supported NVIDIA Hopper or Blackwell GPU host.
 
 ## Prerequisites
 
@@ -97,7 +84,7 @@ The example requires an environment file to provide the API key and other inform
 |TOKEN_SIGNING_ALG|An optional parameter to specify token signing algorithm, supported algorithms are RS256, PS384.|
 |POLICY_MUST_MATCH|An optional boolean parameter to enforce policies match during attestation, supported values are true/false.|
 |RETRY_WAIT_TIME		|Wait time between retries. Default value is 2 seconds.		|
-|RETRY_MAX			|Maximum number of retries. Default value is 2 seconds.		|
+|RETRY_MAX			|Maximum number of retries. Default value is 2.			|
 
 The API_URL and BASE_URL depend on your location. There are two Intel Trust Authority deployment regions: European Union (EU) region, and a global region for all other countries. There is a different BaseUrl and ApiUrl for each region, as follows:
 
